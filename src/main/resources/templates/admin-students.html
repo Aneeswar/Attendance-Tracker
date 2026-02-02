@@ -539,7 +539,7 @@
         let currentPage = 0;
         const pageSize = 10;
         let totalPages = 0;
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('jwtToken');
 
         function switchTab(tabName) {
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
@@ -559,33 +559,44 @@
                     'Content-Type': 'application/json'
                 }
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    console.error('Statistics API error:', response.status);
+                    throw new Error('Failed to load statistics');
+                }
+                return response.json();
+            })
             .then(data => {
+                console.log('Statistics loaded:', data);
                 const statsHtml = `
                     <div class="stat-card">
                         <div class="stat-label">Total Students</div>
-                        <div class="stat-value">${data.totalStudents}</div>
+                        <div class="stat-value">${data.totalStudents || 0}</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-label">Total Courses</div>
-                        <div class="stat-value">${data.totalCourses}</div>
+                        <div class="stat-value">${data.totalCourses || 0}</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-label">Average Attendance</div>
-                        <div class="stat-value">${data.averageAttendance}</div>
+                        <div class="stat-value">${(data.averageAttendance || 0).toFixed(2)}%</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-label">Attendance Records</div>
-                        <div class="stat-value">${data.totalAttendanceRecords}</div>
+                        <div class="stat-value">${data.totalAttendanceRecords || 0}</div>
                     </div>
                 `;
                 document.getElementById('statsGrid').innerHTML = statsHtml;
             })
-            .catch(error => showError('Failed to load statistics'));
+            .catch(error => {
+                console.error('Error loading statistics:', error);
+                showError('Failed to load statistics: ' + error.message);
+            });
         }
 
         function loadStudents() {
             const url = `/api/admin/students?page=${currentPage}&size=${pageSize}`;
+            console.log('Loading students from:', url);
             
             fetch(url, {
                 headers: {
@@ -593,13 +604,23 @@
                     'Content-Type': 'application/json'
                 }
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    console.error('Students API error:', response.status);
+                    throw new Error('Failed to load students: ' + response.status);
+                }
+                return response.json();
+            })
             .then(data => {
-                totalPages = data.totalPages;
-                displayStudents(data.students);
+                console.log('Students loaded:', data);
+                totalPages = data.totalPages || 0;
+                displayStudents(data.students || []);
                 updatePagination();
             })
-            .catch(error => showError('Failed to load students'));
+            .catch(error => {
+                console.error('Error loading students:', error);
+                showError('Failed to load students: ' + error.message);
+            });
         }
 
         function displayStudents(students) {
@@ -891,7 +912,7 @@
         }
 
         function logout() {
-            localStorage.removeItem('token');
+            localStorage.removeItem('jwtToken');
             window.location.href = '/login';
         }
 
