@@ -121,7 +121,7 @@ public class AdminRestController {
                             }});
                 }
 
-                // TODO: Verify current password here if you implement a password encoder
+                
                 // For now, we'll just update the password
                 userData.setPassword(newPassword); // In production, this should be encoded
             }
