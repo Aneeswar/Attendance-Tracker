@@ -330,6 +330,10 @@
                 newPassword: newPassword || null
             };
 
+            const submitBtn = event.target.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.textContent = '⏳ Updating...';
+
             fetch('/api/student/profile/update', {
                 method: 'POST',
                 headers: {
@@ -349,6 +353,8 @@
             .catch(error => {
                 console.error('Error:', error);
                 showAlert('Error updating profile: ' + (error.message || 'Please try again'), 'error');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Update Profile';
             });
         }
 

@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.*;
@@ -481,6 +482,7 @@ public class StudentService {
     /**
      * Delete a course by course ID
      */
+    @Transactional
     public void deleteCourse(Long userId, Long courseId) {
         Optional<Course> course = courseRepository.findById(courseId);
         if (course.isEmpty() || !course.get().getUserId().equals(userId)) {
@@ -489,7 +491,14 @@ public class StudentService {
         
         Course c = course.get();
         
-        // Delete related attendance inputs first
+        // Delete attendance reports first (foreign key constraint)
+        Optional<AttendanceReport> attendanceReport = attendanceReportRepository.findByCourseId(c.getId());
+        attendanceReport.ifPresent(attendanceReportRepository::delete);
+        
+        // Delete date-based attendance records
+        dateBasedAttendanceRepository.deleteByCourseId(c.getId());
+        
+        // Delete related attendance inputs
         Optional<AttendanceInput> attendanceInput = attendanceInputRepository.findByCourseId(c.getId());
         attendanceInput.ifPresent(attendanceInputRepository::delete);
         

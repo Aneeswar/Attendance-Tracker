@@ -1052,6 +1052,13 @@
                 courseStartDate: courseStartDate || null
             }];
 
+            // Disable submit button
+            const submitBtn = document.getElementById('submitAddCourseBtn');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.textContent = '⏳ Adding...';
+            }
+
             fetch('/api/student/timetable/confirm', {
                 method: 'POST',
                 headers: {
@@ -1076,6 +1083,11 @@
                 .catch(error => {
                     console.error('Error adding course:', error);
                     showFormError('Failed to add course: ' + error.message);
+                    // Re-enable submit button
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Add Course';
+                    }
                 });
         }
 
@@ -1096,6 +1108,13 @@
                 showAlert('Not authenticated. Please login again.', 'error');
                 return;
             }
+
+            // Disable all delete buttons and show loading
+            const deleteButtons = document.querySelectorAll('.btn-delete');
+            deleteButtons.forEach(btn => {
+                btn.disabled = true;
+                btn.textContent = 'Deleting...';
+            });
 
             fetch(`/api/student/courses/${courseId}`, {
                 method: 'DELETE',
@@ -1122,6 +1141,11 @@
                 .catch(error => {
                     console.error('Error deleting course:', error);
                     showAlert('Failed to delete course: ' + error.message, 'error');
+                    // Re-enable delete buttons
+                    deleteButtons.forEach(btn => {
+                        btn.disabled = false;
+                        btn.textContent = '🗑 Delete';
+                    });
                 });
         }
         

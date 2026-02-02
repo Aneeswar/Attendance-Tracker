@@ -641,6 +641,12 @@
                 return;
             }
 
+            const saveBtn = document.querySelector('.btn-save');
+            if (saveBtn) {
+                saveBtn.disabled = true;
+                saveBtn.textContent = '⏳ Saving...';
+            }
+
             // Convert attendance data to array format
             const attendanceArray = Object.entries(attendanceData).map(([date, attended]) => ({
                 date: date,
@@ -668,10 +674,20 @@
                 .then(data => {
                     showAlert('Attendance saved successfully!', 'success');
                     console.log('Attendance saved:', data);
+                    // Re-enable button
+                    if (saveBtn) {
+                        saveBtn.disabled = false;
+                        saveBtn.textContent = '💾 Save Attendance';
+                    }
                 })
                 .catch(error => {
                     console.error('Error saving attendance:', error);
                     showAlert('Error saving attendance: ' + error.message, 'error');
+                    // Re-enable button
+                    if (saveBtn) {
+                        saveBtn.disabled = false;
+                        saveBtn.textContent = '💾 Save Attendance';
+                    }
                 });
         }
 

@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -33,6 +34,9 @@ public class StudentController {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     /**
      * Confirm and save timetable after student edits
@@ -501,9 +505,16 @@ public class StudentController {
                             }});
                 }
 
+                // Verify current password
+                if (!passwordEncoder.matches(currentPassword, userData.getPassword())) {
+                    return ResponseEntity.badRequest()
+                            .body(new HashMap<String, String>() {{
+                                put("error", "Current password is incorrect");
+                            }});
+                }
 
-                // For now, we'll just update the password
-                userData.setPassword(newPassword); // In production, this should be encoded
+                // Encode and update the password
+                userData.setPassword(passwordEncoder.encode(newPassword));
             }
 
             userRepository.save(userData);

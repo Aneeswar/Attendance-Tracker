@@ -690,13 +690,6 @@
                 document.getElementById('saveBtn').textContent = '💾 Save Attendance';
             });
         }
-            .catch(error => {
-                console.error('Error:', error);
-                showMessage('Failed to save attendance', 'error');
-                document.getElementById('saveBtn').disabled = false;
-                document.getElementById('saveBtn').textContent = '💾 Save Attendance';
-            });
-        }
 
         function setAttendance(index, present) {
             // Set attendance for the clicked row

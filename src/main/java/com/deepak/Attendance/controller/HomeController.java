@@ -36,6 +36,11 @@ public class HomeController {
         return "admin-academic-calendar";
     }
 
+    @GetMapping("/admin/students")
+    public String adminStudents() {
+        return "admin-students";
+    }
+
     @GetMapping("/student-dashboard")
     public String studentDashboard() {
         return "student-dashboard";

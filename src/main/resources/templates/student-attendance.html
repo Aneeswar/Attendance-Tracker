@@ -445,6 +445,7 @@
         function saveAttendance(courseCode, index) {
             const total = parseInt(document.getElementById(`total-${index}`).value);
             const attended = parseInt(document.getElementById(`attended-${index}`).value);
+            const button = event.target;
 
             if (!total || !attended) {
                 showError('Please enter both total and attended classes');
@@ -455,6 +456,10 @@
                 showError('Attended classes cannot exceed total classes');
                 return;
             }
+
+            // Disable button and show loading
+            button.disabled = true;
+            button.textContent = '⏳ Saving...';
 
             fetch('/api/student/attendance', {
                 method: 'POST',
@@ -471,9 +476,13 @@
             .then(response => response.json())
             .then(data => {
                 showSuccess(`Attendance saved for ${courseCode}`);
+                button.disabled = false;
+                button.textContent = '✓ Save Attendance';
             })
             .catch(error => {
                 showError('Error saving attendance: ' + error.message);
+                button.disabled = false;
+                button.textContent = '✓ Save Attendance';
             });
         }
 
