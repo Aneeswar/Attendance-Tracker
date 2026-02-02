@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Attendance System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 420px;
+            padding: 20px;
+        }
+
+        .login-box {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .user-type-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+            background: #f0f0ff;
+            padding: 8px;
+            border-radius: 8px;
+        }
+
+        .user-type-btn {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid transparent;
+            background: transparent;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            color: #666;
+            transition: all 0.3s ease;
+        }
+
+        .user-type-btn.active {
+            background: white;
+            color: #667eea;
+            border-color: #667eea;
+        }
+
+        .user-type-btn:hover {
+            color: #667eea;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        input[type="text"],
+        input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+            font-family: inherit;
+        }
+
+        input[type="text"]:focus,
+        input[type="password"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-login:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .error {
+            color: #c62828;
+            margin-top: 15px;
+            padding: 12px;
+            background: #ffcdd2;
+            border-left: 4px solid #f44336;
+            border-radius: 5px;
+            display: none;
+            font-size: 14px;
+        }
+
+        .success {
+            color: #2e7d32;
+            margin-top: 15px;
+            padding: 12px;
+            background: #c8e6c9;
+            border-left: 4px solid #4caf50;
+            border-radius: 5px;
+            display: none;
+            font-size: 14px;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 15px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .links {
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .links a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+
+        .links a:hover {
+            color: #764ba2;
+        }
+
+        .home-link {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .home-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.3s ease;
+        }
+
+        .home-link a:hover {
+            color: #764ba2;
+        }
+
+        .admin-info {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            color: #856404;
+            padding: 12px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="login-box">
+            <div class="home-link">
+                <a href="/">← Back to Home</a>
+            </div>
+
+            <div class="header">
+                <h1>Login</h1>
+                <p id="headerSubtitle">Sign in to your account</p>
+            </div>
+
+            <div class="user-type-selector">
+                <button class="user-type-btn active" id="studentBtn" onclick="selectUserType('student')">
+                    👤 Student
+                </button>
+                <button class="user-type-btn" id="adminBtn" onclick="selectUserType('admin')">
+                    🔐 Admin
+                </button>
+            </div>
+
+            <div class="admin-info" id="adminInfo">
+                Admin accounts are pre-configured. Contact system administrator if needed.
+            </div>
+
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" placeholder="Enter your username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" placeholder="Enter your password" required>
+                </div>
+                <button type="submit" class="btn-login" id="loginBtn">Login</button>
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p>Logging in...</p>
+                </div>
+                <div class="error" id="error"></div>
+                <div class="success" id="success"></div>
+            </form>
+
+            <div class="links" id="studentLinks">
+                <p>Don't have an account? <a href="/register">Create one here</a></p>
+            </div>
+            <div class="links" id="adminLinks" style="display: none;">
+                <p>Admin panel access only</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = `${window.location.origin}/api/auth`;
+        let selectedUserType = 'student';
+
+        // Get user type from URL parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        const mode = urlParams.get('mode') || 'student';
+        selectUserType(mode);
+
+        function selectUserType(type) {
+            selectedUserType = type;
+            const studentBtn = document.getElementById('studentBtn');
+            const adminBtn = document.getElementById('adminBtn');
+            const adminInfo = document.getElementById('adminInfo');
+            const studentLinks = document.getElementById('studentLinks');
+            const adminLinks = document.getElementById('adminLinks');
+            const headerSubtitle = document.getElementById('headerSubtitle');
+
+            if (type === 'student') {
+                studentBtn.classList.add('active');
+                adminBtn.classList.remove('active');
+                adminInfo.style.display = 'none';
+                studentLinks.style.display = 'block';
+                adminLinks.style.display = 'none';
+                headerSubtitle.textContent = 'Student Login';
+            } else {
+                studentBtn.classList.remove('active');
+                adminBtn.classList.add('active');
+                adminInfo.style.display = 'block';
+                studentLinks.style.display = 'none';
+                adminLinks.style.display = 'block';
+                headerSubtitle.textContent = 'Admin Login';
+            }
+
+            clearMessages();
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+
+            if (!username || !password) {
+                showError('Please enter both username and password');
+                return;
+            }
+
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('loginBtn').disabled = true;
+
+            try {
+                const response = await fetch(`${API_URL}/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    localStorage.setItem('jwtToken', data.token);
+                    localStorage.setItem('username', data.username);
+                    
+                    // Also store token in cookie for server-side page requests
+                    document.cookie = `jwt=${data.token}; path=/; max-age=86400; SameSite=Lax`;
+
+                    showSuccess('Login successful! Redirecting...');
+
+                    // Redirect based on user type
+                    setTimeout(() => {
+                        if (selectedUserType === 'admin') {
+                            window.location.href = '/admin-dashboard';
+                        } else {
+                            window.location.href = '/student-dashboard';
+                        }
+                    }, 1500);
+                } else {
+                    showError('Invalid username or password');
+                    document.getElementById('loginBtn').disabled = false;
+                }
+            } catch (error) {
+                showError('Error logging in: ' + error.message);
+                document.getElementById('loginBtn').disabled = false;
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        });
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            document.getElementById('success').style.display = 'none';
+        }
+
+        function showSuccess(message) {
+            const successDiv = document.getElementById('success');
+            successDiv.textContent = message;
+            successDiv.style.display = 'block';
+            document.getElementById('error').style.display = 'none';
+        }
+
+        function clearMessages() {
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('success').style.display = 'none';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance System - Welcome</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .navbar {
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar-brand {
+            font-size: 22px;
+            font-weight: 700;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .navbar-menu {
+            display: flex;
+            gap: 20px;
+        }
+
+        .navbar-menu a {
+            color: white;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: color 0.3s ease;
+            padding: 8px 16px;
+            border-radius: 5px;
+        }
+
+        .navbar-menu a:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: #667eea;
+        }
+
+        .hero-section {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            text-align: center;
+            color: white;
+        }
+
+        .hero-content h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .hero-content p {
+            font-size: 18px;
+            margin-bottom: 40px;
+            opacity: 0.95;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .cta-btn {
+            padding: 15px 40px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            min-width: 150px;
+        }
+
+        .btn-student {
+            background: white;
+            color: #667eea;
+        }
+
+        .btn-student:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-admin {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid white;
+        }
+
+        .btn-admin:hover {
+            background: white;
+            color: #667eea;
+            transform: translateY(-3px);
+        }
+
+        .features {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 60px 40px;
+            margin: 40px auto;
+            max-width: 1200px;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+        }
+
+        .features h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 40px;
+            font-size: 32px;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+        }
+
+        .feature-card {
+            padding: 25px;
+            border-radius: 10px;
+            background: #f9f9f9;
+            border-left: 4px solid #667eea;
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .feature-card h3 {
+            color: #667eea;
+            margin-bottom: 12px;
+            font-size: 18px;
+        }
+
+        .feature-card p {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .feature-icon {
+            font-size: 30px;
+            margin-bottom: 12px;
+        }
+
+        .user-types {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 40px;
+            padding-top: 40px;
+            border-top: 2px solid #eee;
+        }
+
+        .user-type-card {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            border: 2px solid #eee;
+            transition: all 0.3s ease;
+        }
+
+        .user-type-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.2);
+        }
+
+        .user-type-card h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+
+        .user-type-card ul {
+            list-style: none;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .user-type-card li {
+            padding: 8px 0;
+            display: flex;
+            gap: 10px;
+        }
+
+        .user-type-card li:before {
+            content: "✓";
+            color: #4caf50;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        footer {
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            text-align: center;
+            padding: 20px;
+            font-size: 13px;
+            margin-top: 40px;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <div class="navbar-brand">
+            <span>📚</span>
+            <span>Student Attendance System</span>
+        </div>
+        <div class="navbar-menu">
+            <a href="#features">Features</a>
+            <a href="#about">About</a>
+        </div>
+    </div>
+
+    <div class="hero-section">
+        <div class="hero-content">
+            <h1>Welcome to Attendance System</h1>
+            <p>Manage your attendance, track your eligibility, and ensure you meet the 75% requirement before exams</p>
+            <div class="cta-buttons">
+                <a href="/login?mode=student" class="cta-btn btn-student">👤 Login</a>
+                <a href="/register" class="cta-btn btn-student">📝 Create Student Account</a>
+                <a href="/login?mode=admin" class="cta-btn btn-admin">🔐 Admin Login</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="features" id="features">
+        <h2>System Features</h2>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">📷</div>
+                <h3>Smart OCR Upload</h3>
+                <p>Upload your timetable as an image. Our OCR system automatically extracts course information.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📊</div>
+                <h3>Attendance Tracking</h3>
+                <p>Record and track your attendance for each course with real-time percentage calculations.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🎯</div>
+                <h3>Eligibility Status</h3>
+                <p>Know exactly how many classes you need to attend to reach 75% before exams.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📅</div>
+                <h3>Smart Calendar</h3>
+                <p>System considers holidays and exam dates for accurate future class calculations.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">✏️</div>
+                <h3>Admin Control</h3>
+                <p>Admins manage academic calendars, holidays, and system settings.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🔒</div>
+                <h3>Secure & Private</h3>
+                <p>JWT-based authentication ensures your data is secure and private.</p>
+            </div>
+        </div>
+
+        <div class="user-types" id="about">
+            <div class="user-type-card">
+                <h3>👤 For Students</h3>
+                <ul>
+                    <li>Upload timetable via image</li>
+                    <li>Enter attendance manually</li>
+                    <li>View attendance report</li>
+                    <li>Check 75% eligibility</li>
+                    <li>Track progress</li>
+                    <li>Get alerts & warnings</li>
+                </ul>
+            </div>
+            <div class="user-type-card">
+                <h3>🔐 For Admins</h3>
+                <ul>
+                    <li>Manage academic calendar</li>
+                    <li>Add/remove holidays</li>
+                    <li>Set exam dates</li>
+                    <li>Configure working days</li>
+                    <li>View student statistics</li>
+                    <li>System management</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2024 Student Attendance System. All rights reserved.</p>
+    </footer>
+</body>
+</html>

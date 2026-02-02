@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Holiday List - Student</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 900px; margin: 0 auto; }
+        .header {
+            background: white;
+            border-radius: 15px;
+            padding: 25px 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 { color: #667eea; font-size: 24px; }
+        .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.3s; text-decoration: none; }
+        .btn-back { background: #757575; color: white; }
+        .btn-back:hover { background: #616161; }
+        .card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+            margin-bottom: 25px;
+        }
+        .card-header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px 25px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        .card-body { padding: 25px; }
+        
+        .filter-section {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .filter-btn {
+            padding: 10px 20px;
+            border: 2px solid #667eea;
+            border-radius: 25px;
+            background: white;
+            color: #667eea;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        .filter-btn.active, .filter-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+        
+        .holiday-list { margin-top: 20px; }
+        .holiday-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 18px 20px;
+            border-bottom: 1px solid #eee;
+            transition: background 0.3s;
+        }
+        .holiday-item:hover { background: #f9f9ff; }
+        .holiday-item:last-child { border-bottom: none; }
+        .holiday-info { flex: 1; }
+        .holiday-info h4 { color: #333; margin-bottom: 5px; font-size: 16px; }
+        .holiday-info p { color: #888; font-size: 13px; }
+        .holiday-date { 
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: 600;
+            min-width: 120px;
+            text-align: center;
+        }
+        .holiday-type {
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 15px;
+        }
+        .type-PUBLIC { background: #e3f2fd; color: #1976d2; }
+        .type-ACADEMIC { background: #fff3e0; color: #f57c00; }
+        .type-RESTRICTED { background: #fce4ec; color: #c2185b; }
+        
+        .empty-state { 
+            text-align: center; 
+            padding: 60px 20px; 
+            color: #888; 
+        }
+        .empty-state .icon { font-size: 60px; margin-bottom: 15px; }
+        .empty-state p { font-size: 16px; }
+        
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+        .stat-card .number { font-size: 32px; font-weight: 700; color: #667eea; }
+        .stat-card .label { color: #888; font-size: 14px; margin-top: 5px; }
+        
+        .month-header {
+            background: #f5f5f5;
+            padding: 12px 20px;
+            font-weight: 600;
+            color: #555;
+            border-bottom: 2px solid #667eea;
+        }
+        
+        .error { 
+            background: #ffebee; 
+            border-left: 4px solid #f44336; 
+            color: #c62828; 
+            padding: 15px; 
+            border-radius: 5px; 
+            margin-bottom: 20px; 
+            display: none; 
+        }
+        
+        @media (max-width: 600px) {
+            .holiday-item { flex-direction: column; align-items: flex-start; gap: 10px; }
+            .holiday-date { align-self: flex-end; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎄 Holiday Calendar</h1>
+            <a href="/student-dashboard" class="btn btn-back">← Back to Dashboard</a>
+        </div>
+
+        <div class="error" id="error"></div>
+
+        <div class="stats-row" id="statsRow">
+            <div class="stat-card">
+                <div class="number" id="totalHolidays">0</div>
+                <div class="label">Total Holidays</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" id="upcomingHolidays">0</div>
+                <div class="label">Upcoming</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" id="publicHolidays">0</div>
+                <div class="label">Public Holidays</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">📅 Holidays List</div>
+            <div class="card-body">
+                <div class="filter-section">
+                    <button class="filter-btn active" onclick="filterHolidays('ALL')">All</button>
+                    <button class="filter-btn" onclick="filterHolidays('PUBLIC')">Public</button>
+                    <button class="filter-btn" onclick="filterHolidays('ACADEMIC')">Academic</button>
+                    <button class="filter-btn" onclick="filterHolidays('RESTRICTED')">Restricted</button>
+                    <button class="filter-btn" onclick="filterHolidays('UPCOMING')">Upcoming Only</button>
+                </div>
+                <div class="holiday-list" id="holidayList">
+                    <div class="empty-state">
+                        <div class="icon">⏳</div>
+                        <p>Loading holidays...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allHolidays = [];
+        let currentFilter = 'ALL';
+
+        function getToken() {
+            return localStorage.getItem('jwtToken');
+        }
+
+        const token = getToken();
+        if (!token) window.location.href = '/login?mode=student';
+
+        async function loadHolidays() {
+            try {
+                const res = await fetch('/api/student/holidays', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (res.ok) {
+                    allHolidays = await res.json();
+                    allHolidays.sort((a, b) => new Date(a.date) - new Date(b.date));
+                    updateStats();
+                    renderHolidays(allHolidays);
+                } else if (res.status === 401 || res.status === 403) {
+                    window.location.href = '/login?mode=student';
+                } else {
+                    showError('Failed to load holidays');
+                }
+            } catch (e) {
+                showError('Error: ' + e.message);
+            }
+        }
+
+        function updateStats() {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            const upcoming = allHolidays.filter(h => new Date(h.date) >= today);
+            const publicCount = allHolidays.filter(h => h.type === 'PUBLIC').length;
+            
+            document.getElementById('totalHolidays').textContent = allHolidays.length;
+            document.getElementById('upcomingHolidays').textContent = upcoming.length;
+            document.getElementById('publicHolidays').textContent = publicCount;
+        }
+
+        function filterHolidays(filter) {
+            currentFilter = filter;
+            
+            // Update active button
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            let filtered = [...allHolidays];
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            if (filter === 'UPCOMING') {
+                filtered = allHolidays.filter(h => new Date(h.date) >= today);
+            } else if (filter !== 'ALL') {
+                filtered = allHolidays.filter(h => h.type === filter);
+            }
+            
+            renderHolidays(filtered);
+        }
+
+        function renderHolidays(holidays) {
+            const list = document.getElementById('holidayList');
+            
+            if (!holidays || holidays.length === 0) {
+                list.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">📭</div>
+                        <p>No holidays found</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Group by month
+            const grouped = {};
+            holidays.forEach(h => {
+                const date = new Date(h.date);
+                const monthKey = date.toLocaleString('default', { month: 'long', year: 'numeric' });
+                if (!grouped[monthKey]) grouped[monthKey] = [];
+                grouped[monthKey].push(h);
+            });
+            
+            let html = '';
+            for (const month in grouped) {
+                html += `<div class="month-header">📅 ${month}</div>`;
+                grouped[month].forEach(h => {
+                    const date = new Date(h.date);
+                    const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+                    const dayNum = date.getDate();
+                    const isUpcoming = date >= new Date().setHours(0, 0, 0, 0);
+                    
+                    html += `
+                        <div class="holiday-item" style="${isUpcoming ? '' : 'opacity: 0.6'}">
+                            <div class="holiday-info">
+                                <h4>${h.name || h.reason || 'Holiday'}</h4>
+                                <p>${date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                            </div>
+                            <span class="holiday-type type-${h.type || 'PUBLIC'}">${h.type || 'PUBLIC'}</span>
+                            <span class="holiday-date">${dayName}, ${dayNum}</span>
+                        </div>
+                    `;
+                });
+            }
+            
+            list.innerHTML = html;
+        }
+
+        function showError(msg) {
+            const el = document.getElementById('error');
+            el.textContent = msg;
+            el.style.display = 'block';
+            setTimeout(() => el.style.display = 'none', 5000);
+        }
+
+        loadHolidays();
+    </script>
+</body>
+</html>

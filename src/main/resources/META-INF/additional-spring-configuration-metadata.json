@@ -1,0 +1,24 @@
+{"properties": [
+  {
+    "name": "jwt.secret",
+    "type": "java.lang.String",
+    "description": "Secret key for JWT token generation (HS512 algorithm requires minimum 512 bits)"
+  },
+  {
+    "name": "jwt.expiration",
+    "type": "java.lang.Long",
+    "description": "JWT token expiration time in milliseconds (default: 24 hours = 86400000)"
+  },
+  {
+    "name": "app.upload.dir",
+    "type": "java.lang.String",
+    "description": "Directory path for uploading timetable files",
+    "defaultValue": "uploads/timetables"
+  },
+  {
+    "name": "app.ocr.mock-mode",
+    "type": "java.lang.Boolean",
+    "description": "Enable mock mode for OCR (set to true for development without tessdata)",
+    "defaultValue": false
+  }
+]}

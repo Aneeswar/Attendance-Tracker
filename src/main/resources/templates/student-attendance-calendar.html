@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Date-Based Attendance - Student Portal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar-brand {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .navbar-menu {
+            display: flex;
+            gap: 20px;
+        }
+
+        .navbar-menu a {
+            color: white;
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.3s ease;
+        }
+
+        .navbar-menu a:hover {
+            color: #667eea;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 30px auto;
+            padding: 20px;
+        }
+
+        .page-header {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .page-header h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .page-header p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .calendar-container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .calendar-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #eee;
+        }
+
+        .course-info h2 {
+            color: #333;
+            font-size: 20px;
+            margin-bottom: 5px;
+        }
+
+        .course-info p {
+            color: #666;
+            font-size: 13px;
+        }
+
+        .class-schedule {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .class-day {
+            background: #e3f2fd;
+            color: #1565c0;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .calendar-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .date-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #eee;
+            transition: all 0.3s ease;
+        }
+
+        .date-row:hover {
+            background: #f5f5f5;
+            border-color: #ddd;
+        }
+
+        .date-info {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex: 1;
+        }
+
+        .date-display {
+            min-width: 120px;
+        }
+
+        .date-display .date {
+            font-size: 18px;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .date-display .day {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .toggle-buttons {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .toggle-btn {
+            padding: 10px 20px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            min-width: 100px;
+            text-align: center;
+        }
+
+        .toggle-btn.present {
+            background: #c8e6c9;
+            border-color: #4caf50;
+            color: #2e7d32;
+        }
+
+        .toggle-btn.absent {
+            background: #ffcdd2;
+            border-color: #f44336;
+            color: #c62828;
+        }
+
+        .toggle-btn.inactive {
+            background: white;
+            border-color: #ddd;
+            color: #999;
+        }
+
+        .toggle-btn:hover:not(.inactive) {
+            transform: translateY(-2px);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .summary {
+            background: #f9f9f9;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .summary-row:last-child {
+            border-bottom: none;
+        }
+
+        .summary-label {
+            color: #666;
+            font-weight: 600;
+        }
+
+        .summary-value {
+            color: #333;
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .summary-value.attended {
+            color: #4caf50;
+        }
+
+        .summary-value.percentage {
+            color: #1565c0;
+            font-size: 20px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 14px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #1e88e5, #1565c0);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(21, 101, 192, 0.3);
+        }
+
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #666;
+            border: 2px solid #ddd;
+        }
+
+        .btn-secondary:hover {
+            background: #eee;
+        }
+
+        .btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #e0e0e0;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .legend {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin: 20px 0;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+        }
+
+        .legend-dot {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            border: 2px solid;
+        }
+
+        .legend-dot.attended {
+            background: #c8e6c9;
+            border-color: #4caf50;
+        }
+
+        .legend-dot.not-attended {
+            background: #ffcdd2;
+            border-color: #f44336;
+        }
+
+        .legend-dot.unmarked {
+            background: #f5f5f5;
+            border-color: #bbb;
+        }
+
+        .message {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .message.success {
+            background: #c8e6c9;
+            color: #2e7d32;
+            border-left: 4px solid #4caf50;
+            display: block;
+        }
+
+        .message.error {
+            background: #ffcdd2;
+            color: #c62828;
+            border-left: 4px solid #f44336;
+            display: block;
+        }
+
+        footer {
+            text-align: center;
+            color: white;
+            padding: 20px;
+            font-size: 13px;
+            margin-top: 40px;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <div class="navbar-brand">📚 Student Attendance Portal</div>
+        <div class="navbar-menu">
+            <a href="/student-dashboard">Dashboard</a>
+            <a href="#" onclick="logout()">Logout</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="page-header">
+            <h1>📅 Date-Based Attendance Tracking</h1>
+            <p>Mark the specific dates you attended each class for more accurate tracking</p>
+        </div>
+
+        <div class="calendar-container">
+            <div id="loading" class="loading">
+                <div class="spinner"></div>
+                <p>Loading calendar...</p>
+            </div>
+
+            <div id="content" style="display: none;">
+                <div id="message" class="message"></div>
+
+                <div class="calendar-info">
+                    <div class="course-info">
+                        <h2 id="courseName">Course Name</h2>
+                        <p id="courseCode">Code</p>
+                    </div>
+                    <div>
+                        <strong>Class Schedule:</strong>
+                        <div class="class-schedule" id="classSchedule"></div>
+                    </div>
+                </div>
+
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-dot attended"></div>
+                        <span>Present (✓)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot not-attended"></div>
+                        <span>Absent (✗)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot unmarked"></div>
+                        <span>Not Marked</span>
+                    </div>
+                </div>
+
+                <div class="summary">
+                    <div class="summary-row">
+                        <span class="summary-label">📅 Date Range:</span>
+                        <span class="summary-value" id="dateRange">Loading...</span>
+                    </div>
+                    <div class="summary-row">
+                        <span class="summary-label">📍 Total Class Days:</span>
+                        <span class="summary-value" id="totalDays">0</span>
+                    </div>
+                    <div class="summary-row">
+                        <span class="summary-label">✅ Days Attended:</span>
+                        <span class="summary-value attended" id="daysAttended">0</span>
+                    </div>
+                    <div class="summary-row">
+                        <span class="summary-label">📊 Attendance Percentage:</span>
+                        <span class="summary-value percentage" id="percentage">0%</span>
+                    </div>
+                </div>
+
+                <div class="calendar-grid" id="calendarGrid"></div>
+
+                <div class="button-group">
+                    <button class="btn btn-secondary" onclick="goBack()">← Back</button>
+                    <button class="btn btn-primary" onclick="saveAttendance()" id="saveBtn">💾 Save Attendance</button>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>&copy; 2024 Student Attendance System. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <script>
+        let currentCourseId = null;
+        let attendanceData = [];
+
+        // Get course ID from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        currentCourseId = urlParams.get('courseId');
+
+        if (!currentCourseId) {
+            document.getElementById('message').textContent = 'No course selected. Please go back and select a course.';
+            document.getElementById('message').className = 'message error';
+            document.getElementById('content').style.display = 'block';
+            document.getElementById('loading').style.display = 'none';
+            return;
+        }
+
+        // Check authentication
+        const token = localStorage.getItem('jwtToken');
+        if (!token) {
+            window.location.href = '/login';
+        }
+
+        document.addEventListener('DOMContentLoaded', loadCalendar);
+
+        function loadCalendar() {
+            // Get course details from localStorage if available
+            const courseData = localStorage.getItem('currentCourseData');
+            
+            if (courseData) {
+                const course = JSON.parse(courseData);
+                document.querySelector('.course-info h2').textContent = course.courseCode;
+                document.querySelector('.course-info p').textContent = course.courseName;
+            }
+            
+            // Generate calendar for current month
+            generateMonthCalendar();
+            document.getElementById('loading').style.display = 'none';
+        }
+        
+        function generateMonthCalendar() {
+            const monthCalendar = document.getElementById('monthCalendar');
+            if (!monthCalendar) return;
+            
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = now.getMonth();
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const daysInMonth = lastDay.getDate();
+            const startingDayOfWeek = firstDay.getDay();
+            
+            let html = '<table class="calendar-table"><tr><th>Sun</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th></tr><tr>';
+            
+            // Empty cells before first day
+            for (let i = 0; i < startingDayOfWeek; i++) {
+                html += '<td></td>';
+            }
+            
+            // Days of month
+            for (let day = 1; day <= daysInMonth; day++) {
+                const date = new Date(year, month, day);
+                const dayOfWeek = date.getDay();
+                
+                // Skip Sundays and Mondays for marking attendance
+                const isWorkingDay = dayOfWeek !== 0 && dayOfWeek !== 1;
+                const dayClass = isWorkingDay ? 'working-day' : 'non-working-day';
+                
+                html += `<td class="${dayClass}" data-date="${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}" 
+                        onclick="toggleDateSelection('${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}')">
+                        ${day}
+                    </td>`;
+                
+                if (dayOfWeek === 6) {
+                    html += '</tr><tr>';
+                }
+            }
+            
+            // Empty cells after last day
+            const endingDayOfWeek = lastDay.getDay();
+            for (let i = endingDayOfWeek; i < 6; i++) {
+                html += '<td></td>';
+            }
+            
+            html += '</tr></table>';
+            monthCalendar.innerHTML = html;
+        }
+        
+        function toggleDateSelection(dateStr) {
+            const cell = document.querySelector(`[data-date="${dateStr}"]`);
+            if (cell && !cell.classList.contains('non-working-day')) {
+                cell.classList.toggle('selected-date');
+            }
+        }
+            // Update course info
+            document.getElementById('courseName').textContent = data.courseName || data.courseCode;
+            document.getElementById('courseCode').textContent = `Code: ${data.courseCode}`;
+
+            // Update class schedule
+            const scheduleDiv = document.getElementById('classSchedule');
+            scheduleDiv.innerHTML = data.classScheduleDays
+                .map(day => `<div class="class-day">${day.substring(0, 3)}</div>`)
+                .join('');
+
+            // Update date range
+            const startDate = new Date(data.startDate).toLocaleDateString();
+            const endDate = new Date(data.endDate).toLocaleDateString();
+            document.getElementById('dateRange').textContent = `${startDate} to ${endDate}`;
+
+            // Update summary
+            document.getElementById('totalDays').textContent = data.totalDaysAvailable;
+            document.getElementById('daysAttended').textContent = data.totalDaysAttended;
+            const percentage = data.totalDaysAvailable > 0 
+                ? Math.round((data.totalDaysAttended / data.totalDaysAvailable) * 100)
+                : 0;
+            document.getElementById('percentage').textContent = `${percentage}%`;
+
+            // Render date rows with toggle buttons
+            const calendarGrid = document.getElementById('calendarGrid');
+            calendarGrid.innerHTML = '';
+            attendanceData = data.attendanceDates;
+
+            data.attendanceDates.forEach((attendance, index) => {
+                const row = createDateRow(attendance, index);
+                calendarGrid.appendChild(row);
+            });
+
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('content').style.display = 'block';
+        }
+
+        function createDateRow(attendance, index) {
+            const row = document.createElement('div');
+            const date = new Date(attendance.date);
+            const dateStr = date.getDate().toString().padStart(2, '0');
+            const monthStr = (date.getMonth() + 1).toString().padStart(2, '0');
+            const yearStr = date.getFullYear();
+            const dayStr = date.toLocaleDateString('en-US', { weekday: 'long' });
+            const formattedDate = `${monthStr}/${dateStr}/${yearStr}`;
+
+            row.className = 'date-row';
+            row.innerHTML = `
+                <div class="date-info">
+                    <div class="date-display">
+                        <div class="date">${formattedDate}</div>
+                        <div class="day">${dayStr}</div>
+                    </div>
+                </div>
+                <div class="toggle-buttons">
+                    <button class="toggle-btn present-btn" onclick="setAttendance(${index}, true)" data-index="${index}">
+                        ✓ Present
+                    </button>
+                    <button class="toggle-btn absent-btn" onclick="setAttendance(${index}, false)" data-index="${index}">
+                        ✗ Absent
+                    </button>
+                </div>
+            `;
+
+            // Update button states based on current attendance
+            updateRowButtonStates(row, attendance.attended);
+            row.setAttribute('data-index', index);
+
+            return row;
+        }
+
+        function updateRowButtonStates(row, attended) {
+            const presentBtn = row.querySelector('.present-btn');
+            const absentBtn = row.querySelector('.absent-btn');
+
+            presentBtn.className = 'toggle-btn present-btn';
+            absentBtn.className = 'toggle-btn absent-btn';
+
+            if (attended === true) {
+                presentBtn.classList.add('present');
+                absentBtn.classList.add('inactive');
+            } else if (attended === false) {
+                presentBtn.classList.add('inactive');
+                absentBtn.classList.add('absent');
+            } else {
+                presentBtn.classList.add('inactive');
+                absentBtn.classList.add('inactive');
+            }
+        }
+
+        function saveAttendance() {
+            const selectedDates = document.querySelectorAll('.selected-date');
+            
+            if (selectedDates.length === 0) {
+                showMessage('Please select at least one date', 'error');
+                return;
+            }
+
+            const courseCode = localStorage.getItem('currentCourseCode') || 'UNKNOWN';
+            const token = localStorage.getItem('jwtToken') || localStorage.getItem('token');
+            
+            if (!token) {
+                showMessage('Not authenticated. Please login again.', 'error');
+                return;
+            }
+
+            document.getElementById('saveBtn').disabled = true;
+            document.getElementById('saveBtn').textContent = 'Saving...';
+
+            // Save as single attendance record
+            fetch('/api/student/attendance', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    courseCode: courseCode,
+                    totalConducted: selectedDates.length,
+                    attended: selectedDates.length,
+                    markedDates: Array.from(selectedDates).map(cell => cell.getAttribute('data-date'))
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.text().then(text => {
+                        throw new Error(`Server error: ${response.status}`);
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                showMessage('✅ Attendance marked successfully!', 'success');
+                setTimeout(() => {
+                    window.location.href = '/student-attendance';
+                }, 1500);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showMessage('Failed to save attendance: ' + error.message, 'error');
+                document.getElementById('saveBtn').disabled = false;
+                document.getElementById('saveBtn').textContent = '💾 Save Attendance';
+            });
+        }
+            .catch(error => {
+                console.error('Error:', error);
+                showMessage('Failed to save attendance', 'error');
+                document.getElementById('saveBtn').disabled = false;
+                document.getElementById('saveBtn').textContent = '💾 Save Attendance';
+            });
+        }
+
+        function setAttendance(index, present) {
+            // Set attendance for the clicked row
+            attendanceData[index].attended = present;
+
+            // Update all row button states
+            const rows = document.querySelectorAll('.date-row');
+            rows.forEach((row, i) => {
+                if (i === index) {
+                    updateRowButtonStates(row, present);
+                }
+            });
+
+            // Update summary
+            const attended = attendanceData.filter(d => d.attended === true).length;
+            const total = attendanceData.filter(d => d.attended !== null).length;
+            document.getElementById('daysAttended').textContent = attended;
+            const percentage = total > 0 ? Math.round((attended / total) * 100) : 0;
+            document.getElementById('percentage').textContent = `${percentage}%`;
+        }
+
+        function showMessage(text, type) {
+            const msgDiv = document.getElementById('message');
+            msgDiv.textContent = text;
+            msgDiv.className = `message ${type}`;
+        }
+
+        function goBack() {
+            window.location.href = '/student-attendance';
+        }
+
+        function logout() {
+            localStorage.removeItem('jwtToken');
+            localStorage.removeItem('username');
+            document.cookie = 'jwt=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+            window.location.href = '/login';
+        }
+    </script>
+</body>
+</html>

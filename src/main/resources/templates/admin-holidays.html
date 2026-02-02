@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Holiday Management - Admin</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .header {
+            background: white;
+            border-radius: 15px;
+            padding: 25px 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 { color: #1e3c72; font-size: 24px; }
+        .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.3s; }
+        .btn-back { background: #757575; color: white; text-decoration: none; }
+        .btn-back:hover { background: #616161; }
+        .card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+            margin-bottom: 25px;
+        }
+        .card-header {
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+            padding: 20px 25px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        .card-body { padding: 25px; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 15px; align-items: end; margin-bottom: 20px; }
+        .form-group { display: flex; flex-direction: column; }
+        .form-group label { font-weight: 600; color: #555; margin-bottom: 8px; font-size: 14px; }
+        .form-group input, .form-group select {
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .form-group input:focus, .form-group select:focus { outline: none; border-color: #1e3c72; }
+        .btn-add { background: #4caf50; color: white; }
+        .btn-add:hover { background: #43a047; }
+        .btn-delete { background: #f44336; color: white; padding: 8px 16px; font-size: 13px; }
+        .btn-delete:hover { background: #d32f2f; }
+        .holiday-list { margin-top: 20px; }
+        .holiday-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        .holiday-item:last-child { border-bottom: none; }
+        .holiday-info h4 { color: #333; margin-bottom: 5px; }
+        .holiday-info p { color: #888; font-size: 13px; }
+        .holiday-date { background: #e3f2fd; color: #1976d2; padding: 5px 12px; border-radius: 20px; font-size: 13px; font-weight: 600; }
+        .empty-state { text-align: center; padding: 40px; color: #888; }
+        .empty-state .icon { font-size: 50px; margin-bottom: 15px; }
+        .error { background: #ffebee; border-left: 4px solid #f44336; color: #c62828; padding: 15px; border-radius: 5px; margin-bottom: 20px; display: none; }
+        .success { background: #e8f5e9; border-left: 4px solid #4caf50; color: #2e7d32; padding: 15px; border-radius: 5px; margin-bottom: 20px; display: none; }
+        @media (max-width: 768px) { .form-row { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎄 Holiday Management</h1>
+            <a href="/admin-dashboard" class="btn btn-back">← Back to Dashboard</a>
+        </div>
+
+        <div class="error" id="error"></div>
+        <div class="success" id="success"></div>
+
+        <div class="card">
+            <div class="card-header">➕ Add Single Holiday</div>
+            <div class="card-body">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="holidayName">Holiday Name</label>
+                        <input type="text" id="holidayName" placeholder="e.g., Diwali">
+                    </div>
+                    <div class="form-group">
+                        <label for="holidayDate">Date</label>
+                        <input type="date" id="holidayDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="holidayType">Type</label>
+                        <select id="holidayType">
+                            <option value="PUBLIC">Public Holiday</option>
+                            <option value="ACADEMIC">Academic Holiday</option>
+                            <option value="RESTRICTED">Restricted Holiday</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-add" onclick="addHoliday()">➕ Add</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">📅 Add Date Range Holidays (e.g., Summer Vacation)</div>
+            <div class="card-body">
+                <div class="form-row" style="grid-template-columns: 1fr 1fr 1fr 1fr auto;">
+                    <div class="form-group">
+                        <label for="rangeName">Holiday Name</label>
+                        <input type="text" id="rangeName" placeholder="e.g., Summer Vacation">
+                    </div>
+                    <div class="form-group">
+                        <label for="rangeStartDate">Start Date</label>
+                        <input type="date" id="rangeStartDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="rangeEndDate">End Date</label>
+                        <input type="date" id="rangeEndDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="rangeType">Type</label>
+                        <select id="rangeType">
+                            <option value="PUBLIC">Public Holiday</option>
+                            <option value="ACADEMIC">Academic Holiday</option>
+                            <option value="RESTRICTED">Restricted Holiday</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-add" onclick="addHolidayRange()">📅 Add Range</button>
+                </div>
+                <p style="color: #888; font-size: 13px; margin-top: 10px;">
+                    💡 Use this to add continuous holidays (e.g., 10-day vacation). All dates between start and end will be marked as holidays.
+                </p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">📅 All Holidays</div>
+            <div class="card-body">
+                <div class="holiday-list" id="holidayList">
+                    <div class="empty-state">
+                        <div class="icon">📭</div>
+                        <p>No holidays configured</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function getToken() {
+            return localStorage.getItem('jwtToken');
+        }
+
+        const token = getToken();
+        if (!token) window.location.href = '/login?mode=admin';
+
+        async function loadHolidays() {
+            try {
+                const res = await fetch('/api/admin/holidays', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (res.ok) {
+                    const holidays = await res.json();
+                    renderHolidays(holidays);
+                } else {
+                    showError('Failed to load holidays');
+                }
+            } catch (e) {
+                showError('Error: ' + e.message);
+            }
+        }
+
+        function groupHolidaysByRange(holidays) {
+            if (!holidays || holidays.length === 0) return [];
+            
+            // Sort by date
+            holidays.sort((a, b) => new Date(a.date) - new Date(b.date));
+            
+            const grouped = [];
+            let currentGroup = null;
+            
+            for (const h of holidays) {
+                const currentDate = new Date(h.date);
+                
+                if (!currentGroup) {
+                    // Start new group
+                    currentGroup = {
+                        name: h.name,
+                        type: h.type,
+                        startDate: h.date,
+                        endDate: h.date,
+                        ids: [h.id],
+                        count: 1
+                    };
+                } else {
+                    const lastDate = new Date(currentGroup.endDate);
+                    const nextDay = new Date(lastDate);
+                    nextDay.setDate(nextDay.getDate() + 1);
+                    
+                    // Check if this holiday is consecutive and same name
+                    if (h.name === currentGroup.name && 
+                        currentDate.getTime() === nextDay.getTime()) {
+                        // Extend current group
+                        currentGroup.endDate = h.date;
+                        currentGroup.ids.push(h.id);
+                        currentGroup.count++;
+                    } else {
+                        // Save current group and start new one
+                        grouped.push(currentGroup);
+                        currentGroup = {
+                            name: h.name,
+                            type: h.type,
+                            startDate: h.date,
+                            endDate: h.date,
+                            ids: [h.id],
+                            count: 1
+                        };
+                    }
+                }
+            }
+            
+            // Don't forget last group
+            if (currentGroup) {
+                grouped.push(currentGroup);
+            }
+            
+            return grouped;
+        }
+
+        function formatDateRange(start, end, count) {
+            if (start === end || count === 1) {
+                return start;
+            }
+            return `${start} → ${end}`;
+        }
+
+        function renderHolidays(holidays) {
+            const list = document.getElementById('holidayList');
+            if (!holidays || holidays.length === 0) {
+                list.innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>No holidays configured</p></div>';
+                return;
+            }
+            
+            const grouped = groupHolidaysByRange(holidays);
+            
+            list.innerHTML = grouped.map(g => `
+                <div class="holiday-item">
+                    <div class="holiday-info">
+                        <h4>${g.name} ${g.count > 1 ? '<span style="color: #1976d2; font-size: 12px;">(' + g.count + ' days)</span>' : ''}</h4>
+                        <p>${g.type || 'Holiday'}</p>
+                    </div>
+                    <span class="holiday-date">${formatDateRange(g.startDate, g.endDate, g.count)}</span>
+                    <button class="btn btn-delete" onclick="deleteHolidayGroup([${g.ids.join(',')}], '${g.name}', ${g.count})">🗑️ Delete${g.count > 1 ? ' All' : ''}</button>
+                </div>
+            `).join('');
+        }
+
+        async function addHoliday() {
+            const name = document.getElementById('holidayName').value.trim();
+            const date = document.getElementById('holidayDate').value;
+            const type = document.getElementById('holidayType').value;
+
+            if (!name || !date) {
+                showError('Please fill in all fields');
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/admin/holidays', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify({ name, date, type })
+                });
+
+                if (res.ok) {
+                    showSuccess('Holiday added successfully');
+                    document.getElementById('holidayName').value = '';
+                    document.getElementById('holidayDate').value = '';
+                    loadHolidays();
+                } else {
+                    const err = await res.text();
+                    showError(err || 'Failed to add holiday');
+                }
+            } catch (e) {
+                showError('Error: ' + e.message);
+            }
+        }
+
+        async function deleteHoliday(id) {
+            if (!confirm('Delete this holiday?')) return;
+
+            try {
+                const res = await fetch('/api/admin/holidays/' + id, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+
+                if (res.ok) {
+                    showSuccess('Holiday deleted');
+                    loadHolidays();
+                } else {
+                    showError('Failed to delete holiday');
+                }
+            } catch (e) {
+                showError('Error: ' + e.message);
+            }
+        }
+        
+        async function deleteHolidayGroup(ids, name, count) {
+            const confirmMsg = count > 1 
+                ? `Delete all ${count} days of "${name}"?` 
+                : `Delete "${name}"?`;
+            
+            if (!confirm(confirmMsg)) return;
+
+            try {
+                let successCount = 0;
+                for (const id of ids) {
+                    const res = await fetch('/api/admin/holidays/' + id, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': 'Bearer ' + token }
+                    });
+                    if (res.ok) successCount++;
+                }
+
+                if (successCount === ids.length) {
+                    showSuccess(count > 1 ? `All ${count} holidays deleted` : 'Holiday deleted');
+                } else {
+                    showSuccess(`${successCount} of ${ids.length} holidays deleted`);
+                }
+                loadHolidays();
+            } catch (e) {
+                showError('Error: ' + e.message);
+            }
+        }
+
+        async function addHolidayRange() {
+            const name = document.getElementById('rangeName').value.trim();
+            const startDate = document.getElementById('rangeStartDate').value;
+            const endDate = document.getElementById('rangeEndDate').value;
+            const type = document.getElementById('rangeType').value;
+
+            if (!name || !startDate || !endDate) {
+                showError('Please fill in all fields for date range');
+                return;
+            }
+
+            if (new Date(startDate) > new Date(endDate)) {
+                showError('Start date must be before end date');
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/admin/holidays/range', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify({ name, startDate, endDate, type })
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    showSuccess(`${data.length} holidays added successfully (${startDate} to ${endDate})`);
+                    document.getElementById('rangeName').value = '';
+                    document.getElementById('rangeStartDate').value = '';
+                    document.getElementById('rangeEndDate').value = '';
+                    loadHolidays();
+                } else {
+                    const err = await res.text();
+                    showError(err || 'Failed to add holiday range');
+                }
+            } catch (e) {
+                showError('Error: ' + e.message);
+            }
+        }
+
+        function showError(msg) {
+            const el = document.getElementById('error');
+            el.textContent = msg;
+            el.style.display = 'block';
+            document.getElementById('success').style.display = 'none';
+            setTimeout(() => el.style.display = 'none', 5000);
+        }
+
+        function showSuccess(msg) {
+            const el = document.getElementById('success');
+            el.textContent = msg;
+            el.style.display = 'block';
+            document.getElementById('error').style.display = 'none';
+            setTimeout(() => el.style.display = 'none', 5000);
+        }
+
+        loadHolidays();
+    </script>
+</body>
+</html>

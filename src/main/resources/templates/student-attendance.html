@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enter Attendance - Student Portal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header-back-btn {
+            position: absolute;
+            left: 20px;
+            top: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid white;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+
+        .header-back-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateX(-3px);
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .error-message {
+            background: #ffebee;
+            border-left: 4px solid #f44336;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .success-message {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            color: #2e7d32;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            color: #1565c0;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .attendance-list {
+            display: grid;
+            gap: 20px;
+        }
+
+        .course-card {
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 20px;
+            background: #f9f9f9;
+            transition: all 0.3s ease;
+        }
+
+        .course-card:hover {
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .course-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .course-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .course-code {
+            font-size: 12px;
+            color: #666;
+            background: #e0e0e0;
+            padding: 4px 10px;
+            border-radius: 5px;
+            margin-left: 10px;
+        }
+
+        .input-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 15px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            color: #555;
+            font-weight: 500;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .form-group input {
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .percentage-display {
+            background: #fff9e6;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 15px;
+            text-align: center;
+            border-left: 4px solid #ffd700;
+        }
+
+        .percentage-display p {
+            color: #666;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .percentage-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #ff9800;
+        }
+
+        .save-btn {
+            background: #4caf50;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 5px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 15px;
+            width: 100%;
+        }
+
+        .save-btn:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 60px;
+            margin-bottom: 20px;
+        }
+
+        .action-buttons {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px solid #eee;
+        }
+
+        button {
+            padding: 12px 30px;
+            margin: 0 10px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-view-report {
+            background: #2196f3;
+            color: white;
+        }
+
+        .btn-view-report:hover {
+            background: #0b7dda;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(33, 150, 243, 0.3);
+        }
+
+        .btn-back {
+            background: #757575;
+            color: white;
+        }
+
+        .btn-back:hover {
+            background: #616161;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="/student-dashboard" class="header-back-btn">← Back</a>
+            <h1>📊 Enter Your Attendance</h1>
+            <p>Record the number of classes attended for each course</p>
+        </div>
+
+        <div class="content">
+            <div class="error-message" id="errorMessage"></div>
+            <div class="success-message" id="successMessage"></div>
+
+            <div class="info-box">
+                📌 Enter the total number of classes conducted and the number you attended for each course. This helps calculate your 75% attendance eligibility.
+            </div>
+
+
+
+            <div class="loading" id="loadingSection">
+                <div class="spinner"></div>
+                <p>Loading your courses...</p>
+            </div>
+
+            <div class="attendance-list" id="attendanceList">
+            </div>
+
+            <div class="empty-state" id="emptyState" style="display: none;">
+                <div class="empty-state-icon">📭</div>
+                <p>No courses found. Please add your courses first.</p>
+                <a href="/student-manage-courses" class="save-btn" style="width: 200px; margin-top: 20px; text-decoration: none; display: inline-block; text-align: center;">➕ Add Your First Course</a>
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn-view-report" onclick="viewAttendanceReport()">📈 View Attendance Report</button>
+                <button class="btn-back" onclick="goBack()">← Go Back</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const attendanceList = document.getElementById('attendanceList');
+        const emptyState = document.getElementById('emptyState');
+        const loadingSection = document.getElementById('loadingSection');
+        const errorMessage = document.getElementById('errorMessage');
+        const successMessage = document.getElementById('successMessage');
+
+        let courses = [];
+
+        // Helper function to get JWT token
+        function getJwtToken() {
+            let token = localStorage.getItem('jwtToken');
+            if (token) return token;
+            const cookies = document.cookie.split(';');
+            for (let cookie of cookies) {
+                const [name, value] = cookie.trim().split('=');
+                if (name === 'jwt') {
+                    localStorage.setItem('jwtToken', value);
+                    return value;
+                }
+            }
+            return null;
+        }
+
+        // Check auth
+        const token = getJwtToken();
+        if (!token) {
+            window.location.href = '/login';
+        }
+
+        // Load courses on page load
+        document.addEventListener('DOMContentLoaded', loadCourses);
+
+        function loadCourses() {
+            loadingSection.style.display = 'block';
+
+            fetch('/api/student/timetable', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to fetch courses');
+                }
+                return response.json();
+            })
+            .then(data => {
+                loadingSection.style.display = 'none';
+                console.log('Timetable data:', data);
+                if (data.timetables && data.timetables.length > 0) {
+                    courses = data.timetables;
+                    displayCourses();
+                    emptyState.style.display = 'none';
+                    attendanceList.style.display = 'grid';
+                } else {
+                    emptyState.style.display = 'block';
+                    attendanceList.style.display = 'none';
+                }
+            })
+            .catch(error => {
+                loadingSection.style.display = 'none';
+                showError('Error loading courses: ' + error.message);
+                console.error('Error:', error);
+            });
+        }
+
+        function displayCourses() {
+            attendanceList.innerHTML = '';
+            courses.forEach((course, index) => {
+                const courseCard = document.createElement('div');
+                courseCard.className = 'course-card';
+                courseCard.innerHTML = `
+                    <div class="course-header">
+                        <div>
+                            <span class="course-name">${course.courseName || 'Unknown'}</span>
+                            <span class="course-code">${course.courseCode}</span>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <div class="form-group">
+                            <label for="total-${index}">Total Classes Conducted</label>
+                            <input type="number" id="total-${index}" class="total-classes" 
+                                   min="0" placeholder="Enter total classes" data-course-code="${course.courseCode}">
+                        </div>
+                        <div class="form-group">
+                            <label for="attended-${index}">Classes Attended</label>
+                            <input type="number" id="attended-${index}" class="attended-classes" 
+                                   min="0" placeholder="Enter attended classes" data-course-code="${course.courseCode}">
+                        </div>
+                    </div>
+
+                    <div class="percentage-display" id="percentage-${index}" style="display: none;">
+                        <p>Current Attendance</p>
+                        <div class="percentage-value" id="percentage-value-${index}">-</div>
+                    </div>
+
+                    <div class="button-group" style="display: flex; gap: 10px;">
+                        <button class="save-btn" onclick="saveAttendance('${course.courseCode}', ${index})" style="flex: 1;">
+                            ✓ Save Attendance
+                        </button>
+                    </div>
+                `;
+                attendanceList.appendChild(courseCard);
+
+                // Add event listeners for percentage calculation
+                document.getElementById(`total-${index}`).addEventListener('change', () => updatePercentage(index));
+                document.getElementById(`attended-${index}`).addEventListener('change', () => updatePercentage(index));
+            });
+        }
+
+        function updatePercentage(index) {
+            const total = parseInt(document.getElementById(`total-${index}`).value) || 0;
+            const attended = parseInt(document.getElementById(`attended-${index}`).value) || 0;
+
+            if (total > 0) {
+                const percentage = ((attended / total) * 100).toFixed(1);
+                document.getElementById(`percentage-${index}`).style.display = 'block';
+                document.getElementById(`percentage-value-${index}`).textContent = percentage + '%';
+            }
+        }
+
+        function saveAttendance(courseCode, index) {
+            const total = parseInt(document.getElementById(`total-${index}`).value);
+            const attended = parseInt(document.getElementById(`attended-${index}`).value);
+
+            if (!total || !attended) {
+                showError('Please enter both total and attended classes');
+                return;
+            }
+
+            if (attended > total) {
+                showError('Attended classes cannot exceed total classes');
+                return;
+            }
+
+            fetch('/api/student/attendance', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    courseCode: courseCode,
+                    totalClassesConducted: total,
+                    classesAttended: attended
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                showSuccess(`Attendance saved for ${courseCode}`);
+            })
+            .catch(error => {
+                showError('Error saving attendance: ' + error.message);
+            });
+        }
+
+        function viewAttendanceReport() {
+            window.location.href = '/student-attendance-report';
+        }
+
+        function openDateBasedAttendance(courseId) {
+            const courseIndex = courses.findIndex(c => c.courseId === courseId);
+            if (courseIndex >= 0) {
+                const course = courses[courseIndex];
+                localStorage.setItem('currentCourseCode', course.courseCode);
+                localStorage.setItem('currentCourseName', course.courseName);
+                localStorage.setItem('currentCourseData', JSON.stringify(course));
+            }
+            window.location.href = `/student-attendance-calendar?courseId=${courseId}`;
+        }
+
+        function goBack() {
+            window.location.href = '/student-dashboard';
+        }
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+            successMessage.style.display = 'none';
+        }
+
+        function showSuccess(message) {
+            successMessage.textContent = message;
+            successMessage.style.display = 'block';
+            errorMessage.style.display = 'none';
+        }
+
+        // Modal functions removed - use student-manage-courses.html for course management
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('addCourseModal');
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        }
+    </script>
+
+    <!-- Add Course Modal - Removed, use student-manage-courses.html instead -->
+</body>
+</html>

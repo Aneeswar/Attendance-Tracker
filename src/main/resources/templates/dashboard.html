@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+        }
+
+        .navbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .navbar h1 {
+            font-size: 24px;
+        }
+
+        .navbar button {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid white;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .navbar button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .container {
+            display: flex;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .sidebar {
+            width: 250px;
+            background: white;
+            padding: 20px;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+            height: calc(100vh - 70px);
+            overflow-y: auto;
+        }
+
+        .sidebar ul {
+            list-style: none;
+        }
+
+        .sidebar li {
+            margin: 10px 0;
+        }
+
+        .sidebar a {
+            display: block;
+            padding: 12px 15px;
+            color: #333;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+
+        .sidebar a:hover,
+        .sidebar a.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 30px;
+            height: calc(100vh - 70px);
+            overflow-y: auto;
+        }
+
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 28px;
+        }
+
+        .form-box {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        input[type="date"],
+        input[type="text"],
+        input[type="email"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        input[type="date"]:focus,
+        input[type="text"]:focus,
+        input[type="email"]:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 5px rgba(102, 126, 234, 0.1);
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+        }
+
+        .btn-secondary {
+            background: #95a5a6;
+        }
+
+        .message {
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            display: none;
+        }
+
+        .success {
+            background: #d5f4e6;
+            color: #27ae60;
+            display: none;
+        }
+
+        .error {
+            background: #fadbd8;
+            color: #e74c3c;
+            display: none;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        th {
+            background: #667eea;
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        tr:hover {
+            background: #f9f9f9;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .action-buttons button {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .info-box {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .info-box h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        .info-box p {
+            color: #555;
+            font-size: 16px;
+            margin: 5px 0;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-input-wrapper input[type="file"] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .file-input-label {
+            display: block;
+            padding: 10px;
+            background: #f0f0f0;
+            border: 2px dashed #667eea;
+            border-radius: 5px;
+            text-align: center;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .file-input-label:hover {
+            background: #e8e8ff;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <h1>Attendance System - Admin Dashboard</h1>
+        <button onclick="logout()">Logout</button>
+    </div>
+
+    <div class="container">
+        <div class="sidebar">
+            <ul>
+                <li><a href="javascript:showPage('calendar')" class="sidebar-link active" id="link-calendar">Academic Calendar</a></li>
+                <li><a href="javascript:showPage('holidays')" class="sidebar-link" id="link-holidays">Holiday Management</a></li>
+            </ul>
+        </div>
+
+        <div class="main-content">
+            <!-- Academic Calendar Page -->
+            <div id="calendar" class="page active">
+                <h2>Academic Calendar Management</h2>
+                
+                <div class="form-box">
+                    <h3>Set Academic Dates</h3>
+                    <div id="calendarMessage" class="message"></div>
+                    
+                    <div class="form-group">
+                        <label for="semesterStart">Semester Start Date</label>
+                        <input type="date" id="semesterStart" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="examStart">Exam Start Date</label>
+                        <input type="date" id="examStart" required>
+                    </div>
+
+                    <button onclick="saveAcademicCalendar()">Save Academic Calendar</button>
+                </div>
+
+                <div class="form-box">
+                    <h3>Current Academic Calendar</h3>
+                    <div id="calendarInfo">
+                        <p>Loading...</p>
+                    </div>
+                    <button class="btn-secondary" onclick="loadAcademicCalendar()">Refresh</button>
+                </div>
+            </div>
+
+            <!-- Holidays Page -->
+            <div id="holidays" class="page">
+                <h2>Holiday Management</h2>
+
+                <div class="form-box">
+                    <h3>Add Single Holiday</h3>
+                    <div id="holidayMessage" class="message"></div>
+                    
+                    <div class="row">
+                        <div class="form-group">
+                            <label for="holidayDate">Date</label>
+                            <input type="date" id="holidayDate" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="holidayReason">Reason</label>
+                            <input type="text" id="holidayReason" placeholder="e.g., National Holiday" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="holidayType">Type</label>
+                        <select id="holidayType">
+                            <option value="EXTRA">Extra Holiday</option>
+                            <option value="CALENDAR">Calendar Holiday</option>
+                        </select>
+                    </div>
+
+                    <button onclick="addHoliday()">Add Holiday</button>
+                </div>
+
+                <div class="form-box">
+                    <h3>Bulk Upload Holidays</h3>
+                    <p style="margin-bottom: 15px; color: #666; font-size: 14px;">Upload a CSV file with columns: date (YYYY-MM-DD), reason</p>
+                    <div class="file-input-wrapper">
+                        <label for="bulkFile" class="file-input-label">
+                            Choose CSV file or drag and drop
+                        </label>
+                        <input type="file" id="bulkFile" accept=".csv" onchange="handleBulkUpload()">
+                    </div>
+                    <button onclick="uploadBulkHolidays()" style="margin-top: 15px;">Upload Holidays</button>
+                </div>
+
+                <div class="form-box">
+                    <h3>All Holidays</h3>
+                    <div id="holidaysTable">
+                        <p>Loading...</p>
+                    </div>
+                    <button class="btn-secondary" onclick="loadHolidays()">Refresh</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = `${window.location.origin}/api/admin`;
+        let token = localStorage.getItem('token');
+
+        if (!token) {
+            window.location.href = '/admin/login';
+        }
+
+        function getAuthHeaders() {
+            return {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            };
+        }
+
+        function showPage(page) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(page).classList.add('active');
+
+            document.querySelectorAll('.sidebar-link').forEach(link => link.classList.remove('active'));
+            document.getElementById(`link-${page}`).classList.add('active');
+
+            if (page === 'calendar') {
+                loadAcademicCalendar();
+            } else if (page === 'holidays') {
+                loadHolidays();
+            }
+        }
+
+        function showMessage(elementId, message, isSuccess = true) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = 'message ' + (isSuccess ? 'success' : 'error');
+            element.style.display = 'block';
+            setTimeout(() => {
+                element.style.display = 'none';
+            }, 5000);
+        }
+
+        // Academic Calendar Functions
+        async function saveAcademicCalendar() {
+            const semesterStart = document.getElementById('semesterStart').value;
+            const examStart = document.getElementById('examStart').value;
+
+            if (!semesterStart || !examStart) {
+                showMessage('calendarMessage', 'Please fill all fields', false);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/academic-calendar`, {
+                    method: 'PUT',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({
+                        semesterStartDate: semesterStart,
+                        examStartDate: examStart
+                    })
+                });
+
+                if (response.ok) {
+                    showMessage('calendarMessage', 'Academic calendar saved successfully');
+                    loadAcademicCalendar();
+                } else {
+                    const error = await response.text();
+                    showMessage('calendarMessage', error || 'Error saving calendar', false);
+                }
+            } catch (error) {
+                showMessage('calendarMessage', 'Error: ' + error.message, false);
+            }
+        }
+
+        async function loadAcademicCalendar() {
+            try {
+                const response = await fetch(`${API_URL}/academic-calendar`, {
+                    headers: getAuthHeaders()
+                });
+
+                if (response.ok) {
+                    const calendar = await response.json();
+                    document.getElementById('calendarInfo').innerHTML = `
+                        <div class="info-box">
+                            <h3>Semester Start Date</h3>
+                            <p>${new Date(calendar.semesterStartDate).toLocaleDateString()}</p>
+                        </div>
+                        <div class="info-box">
+                            <h3>Exam Start Date</h3>
+                            <p>${new Date(calendar.examStartDate).toLocaleDateString()}</p>
+                        </div>
+                        <div class="info-box">
+                            <h3>Created</h3>
+                            <p>${new Date(calendar.createdAt).toLocaleDateString()}</p>
+                        </div>
+                        <div class="info-box">
+                            <h3>Updated</h3>
+                            <p>${new Date(calendar.updatedAt).toLocaleDateString()}</p>
+                        </div>
+                    `;
+                    document.getElementById('semesterStart').value = calendar.semesterStartDate;
+                    document.getElementById('examStart').value = calendar.examStartDate;
+                } else {
+                    document.getElementById('calendarInfo').innerHTML = '<p>No academic calendar set yet</p>';
+                }
+            } catch (error) {
+                document.getElementById('calendarInfo').innerHTML = '<p>Error loading calendar</p>';
+            }
+        }
+
+        // Holiday Functions
+        async function addHoliday() {
+            const date = document.getElementById('holidayDate').value;
+            const reason = document.getElementById('holidayReason').value;
+            const type = document.getElementById('holidayType').value;
+
+            if (!date || !reason) {
+                showMessage('holidayMessage', 'Please fill all fields', false);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/holidays`, {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({ date, reason, type })
+                });
+
+                if (response.ok) {
+                    showMessage('holidayMessage', 'Holiday added successfully');
+                    document.getElementById('holidayDate').value = '';
+                    document.getElementById('holidayReason').value = '';
+                    loadHolidays();
+                } else {
+                    const error = await response.text();
+                    showMessage('holidayMessage', error || 'Error adding holiday', false);
+                }
+            } catch (error) {
+                showMessage('holidayMessage', 'Error: ' + error.message, false);
+            }
+        }
+
+        async function loadHolidays() {
+            try {
+                const response = await fetch(`${API_URL}/holidays`, {
+                    headers: getAuthHeaders()
+                });
+
+                if (response.ok) {
+                    const holidays = await response.json();
+                    if (holidays.length === 0) {
+                        document.getElementById('holidaysTable').innerHTML = '<p>No holidays set yet</p>';
+                        return;
+                    }
+
+                    let table = `<table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Reason</th>
+                                <th>Type</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>`;
+
+                    holidays.forEach(holiday => {
+                        table += `<tr>
+                            <td>${new Date(holiday.date).toLocaleDateString()}</td>
+                            <td>${holiday.reason}</td>
+                            <td>${holiday.type}</td>
+                            <td>
+                                <button class="btn-danger" onclick="deleteHoliday(${holiday.id})">Delete</button>
+                            </td>
+                        </tr>`;
+                    });
+
+                    table += `</tbody></table>`;
+                    document.getElementById('holidaysTable').innerHTML = table;
+                }
+            } catch (error) {
+                document.getElementById('holidaysTable').innerHTML = '<p>Error loading holidays</p>';
+            }
+        }
+
+        async function deleteHoliday(id) {
+            if (!confirm('Are you sure you want to delete this holiday?')) return;
+
+            try {
+                const response = await fetch(`${API_URL}/holidays/${id}`, {
+                    method: 'DELETE',
+                    headers: getAuthHeaders()
+                });
+
+                if (response.ok) {
+                    showMessage('holidayMessage', 'Holiday deleted successfully');
+                    loadHolidays();
+                }
+            } catch (error) {
+                showMessage('holidayMessage', 'Error: ' + error.message, false);
+            }
+        }
+
+        function handleBulkUpload() {
+            const file = document.getElementById('bulkFile').files[0];
+            if (file) {
+                console.log('File selected:', file.name);
+            }
+        }
+
+        async function uploadBulkHolidays() {
+            const file = document.getElementById('bulkFile').files[0];
+            if (!file) {
+                showMessage('holidayMessage', 'Please select a CSV file', false);
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const csv = e.target.result;
+                const lines = csv.split('\n');
+                const holidays = [];
+
+                for (let i = 0; i < lines.length; i++) {
+                    if (lines[i].trim() === '') continue;
+                    const [date, reason] = lines[i].split(',');
+                    if (date && reason) {
+                        holidays.push({ date: date.trim(), reason: reason.trim() });
+                    }
+                }
+
+                try {
+                    const response = await fetch(`${API_URL}/holidays/bulk`, {
+                        method: 'POST',
+                        headers: getAuthHeaders(),
+                        body: JSON.stringify({ holidays })
+                    });
+
+                    if (response.ok) {
+                        showMessage('holidayMessage', 'Holidays uploaded successfully');
+                        document.getElementById('bulkFile').value = '';
+                        loadHolidays();
+                    }
+                } catch (error) {
+                    showMessage('holidayMessage', 'Error uploading holidays: ' + error.message, false);
+                }
+            };
+
+            reader.readAsText(file);
+        }
+
+        function logout() {
+            const token = localStorage.getItem('token');
+            
+            // Call logout API if token exists
+            if (token) {
+                fetch(window.location.origin + '/api/auth/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + token,
+                        'Content-Type': 'application/json'
+                    }
+                }).finally(() => {
+                    // Clear localStorage regardless of API response
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('username');
+                    window.location.href = '/admin/login';
+                });
+            } else {
+                // If no token, just redirect
+                localStorage.removeItem('token');
+                localStorage.removeItem('username');
+                window.location.href = '/admin/login';
+            }
+        }
+
+        // Load initial data
+        window.addEventListener('load', () => {
+            loadAcademicCalendar();
+        });
+    </script>
+</body>
+</html>

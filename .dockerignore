@@ -1,0 +1,15 @@
+target/
+.git/
+.gitignore
+.DS_Store
+.vscode/
+.idea/
+*.iml
+*.swp
+*.swo
+*~
+.mvn/wrapper/maven-wrapper.jar
+mvnw
+mvnw.cmd
+README.md
+HELP.md

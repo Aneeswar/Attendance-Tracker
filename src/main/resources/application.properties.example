@@ -1,0 +1,32 @@
+spring.application.name=Attendance
+
+# PostgreSQL Database Configuration
+# Update with your actual database credentials
+spring.datasource.url=jdbc:postgresql://localhost:5432/attendance_db
+spring.datasource.username=postgres
+spring.datasource.password=YOUR_PASSWORD_HERE
+spring.datasource.driver-class-name=org.postgresql.Driver
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
+spring.jpa.properties.hibernate.format_sql=true
+
+# JWT Configuration (Custom application properties)
+# IMPORTANT: Change this to a strong random secret in production!
+# Generate with: openssl rand -hex 64
+jwt.secret=your_super_secret_key_here_change_this_in_production_minimum_512_bits_for_HS512
+jwt.expiration=86400000
+
+# Server Configuration
+server.port=8081
+
+# File Upload Configuration (Custom application properties)
+app.upload.dir=uploads/timetables
+spring.servlet.multipart.max-file-size=10MB
+spring.servlet.multipart.max-request-size=10MB
+
+# OCR Configuration (Custom application properties)
+app.ocr.mock-mode=false
+
+# Logging Configuration
+logging.level.root=INFO
+logging.level.com.deepak.Attendance=DEBUG
