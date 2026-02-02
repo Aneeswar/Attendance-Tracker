@@ -42,6 +42,9 @@ public class StudentService {
     @Autowired
     private AcademicCalendarRepository academicCalendarRepository;
 
+    @Autowired
+    private AttendanceReportRepository attendanceReportRepository;
+
     @Value("${app.upload.dir:uploads/timetables}")
     private String uploadDir;
 
@@ -165,6 +168,9 @@ public class StudentService {
         // This allows mark-by-date to show the records and allows overriding later
         generateDateBasedAttendanceFromTotal(c.getId(), attended, totalConducted);
 
+        // Calculate and cache the attendance report for this course
+        calculateAndCacheAttendanceReport(c);
+
         log.info("Attendance input saved for course: {} with attended: {}/{}", 
                 courseCode, attended, totalConducted);
     }
@@ -211,44 +217,74 @@ public class StudentService {
     }
 
     /**
-     * Get attendance report for all courses of a student
+     * Get attendance report for all courses of a student (from cached data)
      */
     public List<AttendanceReportDTO> getAttendanceReport(Long userId) {
-        List<Course> courses = courseRepository.findByUserId(userId);
+        List<AttendanceReport> cachedReports = attendanceReportRepository.findByCourse_UserId(userId);
         List<AttendanceReportDTO> reports = new ArrayList<>();
-        
-        // Get academic calendar for exam dates
-        Optional<AcademicCalendarDTO> calendarOpt = academicCalendarService.getCurrentAcademicCalendar();
-        LocalDate today = LocalDate.now();
 
-        for (Course course : courses) {
-            // Try to get from DateBasedAttendance first (if user marked dates)
+        for (AttendanceReport cached : cachedReports) {
+            AttendanceReportDTO report = new AttendanceReportDTO();
+            report.setCourseCode(cached.getCourse().getCourseCode());
+            report.setCourseName(cached.getCourse().getCourseName());
+            report.setCourseId(cached.getCourse().getId());
+            
+            report.setCurrentPercentage(cached.getCurrentPercentage());
+            report.setFutureClassesAvailable(cached.getFutureClassesAvailable());
+            report.setMinimumClassesToAttend(cached.getMinimumClassesToAttend75());
+            report.setStatus(cached.getStatus());
+            report.setTotalClassesConducted(cached.getTotalClassesConducted());
+            report.setClassesAttended(cached.getClassesAttended());
+            
+            report.setClassesCanSkip75(cached.getClassesCanSkip75());
+            report.setClassesCanSkip65(cached.getClassesCanSkip65());
+            
+            if (cached.getUpcomingExamName() != null) {
+                report.setUpcomingExamName(cached.getUpcomingExamName());
+                report.setUpcomingExamStartDate(cached.getUpcomingExamStartDate());
+                report.setUpcomingExamEndDate(cached.getUpcomingExamEndDate());
+                report.setUpcomingExamEligible(cached.getUpcomingExamEligible75());
+                report.setUpcomingExamEligibleRelaxed(cached.getUpcomingExamEligible65());
+                report.setFutureClassesAvailable(cached.getFutureClassesUntilExam() != null ? cached.getFutureClassesUntilExam() : cached.getFutureClassesAvailable());
+                report.setMinimumClassesToAttend(cached.getMinimumClassesToAttendForExam75() != null ? cached.getMinimumClassesToAttendForExam75() : cached.getMinimumClassesToAttend75());
+                report.setClassesCanSkip75(cached.getClassesCanSkipUntilExam75() != null ? cached.getClassesCanSkipUntilExam75() : cached.getClassesCanSkip75());
+                report.setClassesCanSkip65(cached.getClassesCanSkipUntilExam65() != null ? cached.getClassesCanSkipUntilExam65() : cached.getClassesCanSkip65());
+                report.setProjectedAttendancePercentage(cached.getProjectedAttendancePercentage());
+            }
+            
+            reports.add(report);
+        }
+
+        return reports;
+    }
+
+    /**
+     * Calculate and cache attendance report for a specific course
+     * This is called when attendance is saved to pre-calculate the report
+     */
+    private void calculateAndCacheAttendanceReport(Course course) {
+        try {
+            Optional<AcademicCalendarDTO> calendarOpt = academicCalendarService.getCurrentAcademicCalendar();
+            LocalDate today = LocalDate.now();
+
+            // Get attendance data
             LocalDate startDate = course.getCourseStartDate() != null ? course.getCourseStartDate() : today.minusMonths(4);
             List<DateBasedAttendance> dateBasedRecords = dateBasedAttendanceRepository
                     .findByCourseIdAndAttendanceDateBetweenOrderByAttendanceDateAsc(course.getId(), startDate, today);
             
-            AttendanceReportDTO report = new AttendanceReportDTO();
-            report.setCourseCode(course.getCourseCode());
-            report.setCourseName(course.getCourseName());
-            report.setCourseId(course.getId());
-            
             int totalClasses;
             int attendedClasses;
             
-            // Use date-based attendance if available, otherwise use manual input
             if (!dateBasedRecords.isEmpty()) {
                 totalClasses = dateBasedRecords.size();
                 attendedClasses = (int) dateBasedRecords.stream().filter(DateBasedAttendance::getAttended).count();
-                log.info("Using date-based attendance for course {}: total={}, attended={}", course.getCourseCode(), totalClasses, attendedClasses);
             } else {
-                // Fall back to manual input
                 Optional<AttendanceInput> input = attendanceInputRepository.findByCourseId(course.getId());
                 if (input.isEmpty()) {
-                    continue; // Skip courses without attendance input
+                    return; // No attendance data to cache
                 }
                 totalClasses = input.get().getTotalClassesConducted();
                 attendedClasses = input.get().getClassesAttended();
-                log.info("Using manual input for course {}: total={}, attended={}", course.getCourseCode(), totalClasses, attendedClasses);
             }
             
             int futureClasses = attendanceCalculationService.calculateFutureClassesAvailable(course);
@@ -261,136 +297,122 @@ public class StudentService {
                             futureClasses
                     );
 
-            // Record result
-            attendanceCalculationService.recordAttendanceResult(course, result);
-
-            report.setCurrentPercentage(result.currentPercentage());
-            report.setFutureClassesAvailable(result.futureClasses());
-            report.setMinimumClassesToAttend(result.minClassesRequired());
-            report.setStatus(result.status());
+            // Create or update report cache
+            AttendanceReport cachedReport = attendanceReportRepository.findByCourseId(course.getId())
+                    .orElse(new AttendanceReport());
             
-            // Set current attendance data
-            report.setTotalClassesConducted(totalClasses);
-            report.setClassesAttended(attendedClasses);
+            cachedReport.setCourse(course);
+            cachedReport.setTotalClassesConducted(totalClasses);
+            cachedReport.setClassesAttended(attendedClasses);
+            cachedReport.setCurrentPercentage(result.currentPercentage());
+            cachedReport.setFutureClassesAvailable(result.futureClasses());
+            cachedReport.setMinimumClassesToAttend75(result.minClassesRequired());
+            cachedReport.setStatus(result.status());
             
             // Calculate classes that can be skipped
             int totalWithFuture = totalClasses + futureClasses;
             int attended = attendedClasses;
             
-            // For 75%: (attended + futureClasses - skip) / totalWithFuture >= 0.75
-            // skip <= attended + futureClasses - 0.75 * totalWithFuture
             int maxSkip75 = (int) Math.floor(attended + futureClasses - (0.75 * totalWithFuture));
-            report.setClassesCanSkip75(Math.max(0, maxSkip75));
+            cachedReport.setClassesCanSkip75(Math.max(0, maxSkip75));
             
-            // For 65%: (attended + futureClasses - skip) / totalWithFuture >= 0.65
             int maxSkip65 = (int) Math.floor(attended + futureClasses - (0.65 * totalWithFuture));
-            report.setClassesCanSkip65(Math.max(0, maxSkip65));
+            cachedReport.setClassesCanSkip65(Math.max(0, maxSkip65));
             
-            // Find the upcoming exam (only the next one)
+            // Calculate minimum classes needed for 65%
+            int futureForCalc = futureClasses;
+            int minFor65 = attended;
+            for (int att = attended; att <= attended + futureForCalc; att++) {
+                double pct = totalWithFuture > 0 ? (double) att / totalWithFuture * 100 : 0;
+                if (pct >= 65.0) {
+                    minFor65 = att;
+                    break;
+                }
+            }
+            cachedReport.setMinimumClassesToAttend65(Math.max(0, minFor65 - attended));
+            
+            // Handle upcoming exam info if available
             if (calendarOpt.isPresent()) {
                 AcademicCalendarDTO calendar = calendarOpt.get();
                 
-                // Determine the upcoming exam
                 String upcomingExam = null;
                 LocalDate upcomingStart = null;
                 LocalDate upcomingEnd = null;
                 
-                // Check CAT-1
                 if (calendar.getCat1StartDate() != null && today.isBefore(calendar.getCat1StartDate())) {
                     upcomingExam = "CAT-1";
                     upcomingStart = calendar.getCat1StartDate();
                     upcomingEnd = calendar.getCat1EndDate();
-                }
-                // Check CAT-2 (if CAT-1 is past or not set)
-                else if (calendar.getCat2StartDate() != null && today.isBefore(calendar.getCat2StartDate())) {
+                } else if (calendar.getCat2StartDate() != null && today.isBefore(calendar.getCat2StartDate())) {
                     upcomingExam = "CAT-2";
                     upcomingStart = calendar.getCat2StartDate();
                     upcomingEnd = calendar.getCat2EndDate();
-                }
-                // Check FAT (if CAT-1 and CAT-2 are past or not set)
-                else if (calendar.getFatStartDate() != null && today.isBefore(calendar.getFatStartDate())) {
+                } else if (calendar.getFatStartDate() != null && today.isBefore(calendar.getFatStartDate())) {
                     upcomingExam = "FAT";
                     upcomingStart = calendar.getFatStartDate();
                     upcomingEnd = calendar.getFatEndDate();
                 }
                 
-                // Set upcoming exam info
                 if (upcomingExam != null && upcomingStart != null) {
-                    report.setUpcomingExamName(upcomingExam);
-                    report.setUpcomingExamStartDate(upcomingStart);
-                    report.setUpcomingExamEndDate(upcomingEnd);
+                    cachedReport.setUpcomingExamName(upcomingExam);
+                    cachedReport.setUpcomingExamStartDate(upcomingStart);
+                    cachedReport.setUpcomingExamEndDate(upcomingEnd);
                     
-                    // Recalculate eligibility based on classes until the exam date
                     int futureClassesUntilExam = attendanceCalculationService
                             .calculateFutureClassesAvailableUntilDate(course, upcomingStart, upcomingExam);
                     int totalClassesUntilExam = totalClasses + futureClassesUntilExam;
-                    int currentAttended = attendedClasses;
                     
-                    log.info("Course {}: Current attended={}, Total={}, Future classes until {}={}, Total until exam={}",
-                            course.getCourseCode(), currentAttended, 
-                            totalClasses, upcomingExam, 
-                            futureClassesUntilExam, totalClassesUntilExam);
+                    cachedReport.setFutureClassesUntilExam(futureClassesUntilExam);
                     
-                    // Calculate classes needed for 75%
-                    
-                    // Calculate classes that can be skipped using ceiling rounding
-                    // Find minimum classes needed where ceil(percentage) >= 75%
-                    int minClassesNeededFor75 = currentAttended;
-                    for (int attended75 = currentAttended; attended75 <= currentAttended + futureClassesUntilExam; attended75++) {
-                        double percentage75 = (double) attended75 / totalClassesUntilExam * 100;
-                        if (Math.ceil(percentage75) >= 75.0) {
-                            minClassesNeededFor75 = attended75;
-                            break;
-                        }
-                    }
-                    int additionalClassesNeededFor75 = Math.max(0, minClassesNeededFor75 - currentAttended);
-                    int maxSkip75UntilExam = futureClassesUntilExam - additionalClassesNeededFor75;
-                    maxSkip75UntilExam = Math.max(0, maxSkip75UntilExam);
-                    
-                    // Calculate projected attendance if minimum needed classes are attended (with ceiling rounding)
-                    double projectedAttendance = totalClassesUntilExam > 0 
-                            ? (double) (currentAttended + additionalClassesNeededFor75) / totalClassesUntilExam * 100 
+                    // Calculate for 75%
+                    int minClassesNeededFor75 = attendedClasses;
+                    for (int att75 = attendedClasses; att75 <= attendedClasses + futureClassesUntilExam; att75++) {
+                        double pct75 = totalClassesUntilExam > 0 
+                            ? (double) att75 / totalClassesUntilExam * 100 
                             : 0;
-                    // Round up the projected percentage for display
-                    double projectedAttendanceRounded = Math.ceil(projectedAttendance);
-                    report.setProjectedAttendancePercentage(projectedAttendanceRounded);
-                    
-                    // Eligibility check: Can they reach 75% if they attend required classes?
-                    boolean canBeEligibleFor75 = additionalClassesNeededFor75 <= futureClassesUntilExam;
-                    
-                    // Update the report with exam-specific calculations
-                    report.setFutureClassesAvailable(futureClassesUntilExam);
-                    report.setMinimumClassesToAttend(additionalClassesNeededFor75);
-                    report.setClassesCanSkip75(maxSkip75UntilExam);
-                    
-                    log.info("Exam {} for course {}: Future classes={}, Need to attend={}, Can skip={}, Eligible={}, Projected={}%",
-                            upcomingExam, course.getCourseCode(), futureClassesUntilExam, 
-                            additionalClassesNeededFor75, maxSkip75UntilExam, canBeEligibleFor75, projectedAttendanceRounded);
-                    
-                    // Calculate for 65% as well (with ceiling rounding)
-                    int minClassesNeededFor65 = currentAttended;
-                    for (int attended65 = currentAttended; attended65 <= currentAttended + futureClassesUntilExam; attended65++) {
-                        double percentage65 = (double) attended65 / totalClassesUntilExam * 100;
-                        if (Math.ceil(percentage65) >= 65.0) {
-                            minClassesNeededFor65 = attended65;
+                        if (Math.ceil(pct75) >= 75.0) {
+                            minClassesNeededFor75 = att75;
                             break;
                         }
                     }
-                    int additionalClassesNeeded65 = Math.max(0, minClassesNeededFor65 - currentAttended);
-                    int maxSkip65UntilExam = futureClassesUntilExam - additionalClassesNeeded65;
-                    maxSkip65UntilExam = Math.max(0, maxSkip65UntilExam);
-                    report.setClassesCanSkip65(maxSkip65UntilExam);
+                    int additionalFor75 = Math.max(0, minClassesNeededFor75 - attendedClasses);
+                    cachedReport.setMinimumClassesToAttendForExam75(additionalFor75);
+                    cachedReport.setClassesCanSkipUntilExam75(Math.max(0, futureClassesUntilExam - additionalFor75));
+                    cachedReport.setUpcomingExamEligible75(additionalFor75 <= futureClassesUntilExam);
                     
-                    // Set eligibility: they are eligible if they CAN achieve it with future classes
-                    report.setUpcomingExamEligible(canBeEligibleFor75);
-                    report.setUpcomingExamEligibleRelaxed(additionalClassesNeeded65 <= futureClassesUntilExam);
+                    double projectedPct = totalClassesUntilExam > 0 
+                        ? (double) (attendedClasses + additionalFor75) / totalClassesUntilExam * 100 
+                        : 0;
+                    cachedReport.setProjectedAttendancePercentage(Math.ceil(projectedPct));
+                    
+                    // Calculate for 65%
+                    int minClassesNeededFor65 = attendedClasses;
+                    for (int att65 = attendedClasses; att65 <= attendedClasses + futureClassesUntilExam; att65++) {
+                        double pct65 = totalClassesUntilExam > 0 
+                            ? (double) att65 / totalClassesUntilExam * 100 
+                            : 0;
+                        if (Math.ceil(pct65) >= 65.0) {
+                            minClassesNeededFor65 = att65;
+                            break;
+                        }
+                    }
+                    int additionalFor65 = Math.max(0, minClassesNeededFor65 - attendedClasses);
+                    cachedReport.setMinimumClassesToAttendForExam65(additionalFor65);
+                    cachedReport.setClassesCanSkipUntilExam65(Math.max(0, futureClassesUntilExam - additionalFor65));
+                    cachedReport.setUpcomingExamEligible65(additionalFor65 <= futureClassesUntilExam);
                 }
+            } else {
+                cachedReport.setUpcomingExamEligible75(false);
+                cachedReport.setUpcomingExamEligible65(false);
             }
-
-            reports.add(report);
+            
+            attendanceReportRepository.save(cachedReport);
+            log.info("Cached attendance report for course: {}", course.getCourseCode());
+            
+        } catch (Exception e) {
+            log.warn("Failed to cache attendance report for course: {}", course.getCourseCode(), e);
+            // Don't fail the save - just log the error
         }
-
-        return reports;
     }
 
     /**
@@ -641,6 +663,9 @@ public class StudentService {
                 log.error("Error processing attendance entry: {}", e.getMessage());
             }
         }
+        
+        // Calculate and cache the attendance report for this course
+        calculateAndCacheAttendanceReport(c);
         
         log.info("Date-based attendance saved for course {} - overrides total/attended", courseId);
     }

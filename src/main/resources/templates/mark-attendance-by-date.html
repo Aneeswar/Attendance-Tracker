@@ -387,6 +387,8 @@
             <div class="card">
                 <h2 style="margin-bottom: 20px; color: #333;">📝 Class Dates</h2>
                 
+                <button class="btn-save" onclick="saveAttendance()" style="margin-bottom: 20px; width: 100%;">💾 Save Attendance</button>
+
                 <div id="datesList"></div>
 
                 <div class="summary">
@@ -403,8 +405,6 @@
                         <span class="value" id="absentCount">0</span>
                     </div>
                 </div>
-
-                <button class="btn-save" onclick="saveAttendance()">💾 Save Attendance</button>
             </div>
         </div>
     </div>
@@ -572,6 +572,9 @@
                 document.getElementById('attendanceDatesContainer').classList.remove('show');
                 return;
             }
+
+            // Reverse the order of dates (newest first)
+            dates = dates.reverse();
 
             // Initialize attendance data
             attendanceData = {};

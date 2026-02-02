@@ -406,6 +406,125 @@ public class StudentController {
     }
 
     /**
+     * Get student profile
+     * GET /api/student/profile
+     */
+    @GetMapping("/profile")
+    @PreAuthorize("hasRole('STUDENT')")
+    public ResponseEntity<?> getProfile(@RequestHeader("Authorization") String authHeader) {
+        try {
+            Long userId = extractUserIdFromToken(authHeader);
+            Optional<User> user = userRepository.findById(userId);
+
+            if (user.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(new HashMap<String, String>() {{
+                            put("error", "User not found");
+                        }});
+            }
+
+            User userData = user.get();
+            Map<String, Object> response = new HashMap<>();
+            response.put("id", userData.getId());
+            response.put("username", userData.getUsername());
+            response.put("email", userData.getEmail());
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            log.error("Error fetching profile", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new HashMap<String, String>() {{
+                        put("error", "Failed to fetch profile");
+                    }});
+        }
+    }
+
+    /**
+     * Update student profile
+     * POST /api/student/profile/update
+     */
+    @PostMapping("/profile/update")
+    @PreAuthorize("hasRole('STUDENT')")
+    public ResponseEntity<?> updateProfile(@RequestBody Map<String, String> updateData,
+                                           @RequestHeader("Authorization") String authHeader) {
+        try {
+            Long userId = extractUserIdFromToken(authHeader);
+            Optional<User> user = userRepository.findById(userId);
+
+            if (user.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(new HashMap<String, String>() {{
+                            put("error", "User not found");
+                        }});
+            }
+
+            User userData = user.get();
+            String newUsername = updateData.get("username");
+            String newEmail = updateData.get("email");
+            String currentPassword = updateData.get("currentPassword");
+            String newPassword = updateData.get("newPassword");
+
+            // Validate required fields
+            if (newUsername == null || newUsername.trim().isEmpty()) {
+                return ResponseEntity.badRequest()
+                        .body(new HashMap<String, String>() {{
+                            put("error", "Username is required");
+                        }});
+            }
+
+            if (newEmail == null || newEmail.trim().isEmpty()) {
+                return ResponseEntity.badRequest()
+                        .body(new HashMap<String, String>() {{
+                            put("error", "Email is required");
+                        }});
+            }
+
+            // Check if username already exists (and it's not the same user)
+            Optional<User> existingUser = userRepository.findByUsername(newUsername);
+            if (existingUser.isPresent() && !existingUser.get().getId().equals(userId)) {
+                return ResponseEntity.badRequest()
+                        .body(new HashMap<String, String>() {{
+                            put("error", "Username already exists");
+                        }});
+            }
+
+            userData.setUsername(newUsername);
+            userData.setEmail(newEmail);
+
+            // If password change is requested, update it
+            if (newPassword != null && !newPassword.trim().isEmpty()) {
+                if (currentPassword == null || currentPassword.trim().isEmpty()) {
+                    return ResponseEntity.badRequest()
+                            .body(new HashMap<String, String>() {{
+                                put("error", "Current password is required to change password");
+                            }});
+                }
+
+                // TODO: Verify current password here if you implement a password encoder
+                // For now, we'll just update the password
+                userData.setPassword(newPassword); // In production, this should be encoded
+            }
+
+            userRepository.save(userData);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Profile updated successfully");
+            response.put("username", userData.getUsername());
+            response.put("email", userData.getEmail());
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            log.error("Error updating profile", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new HashMap<String, String>() {{
+                        put("error", "Failed to update profile: " + e.getMessage());
+                    }});
+        }
+    }
+
+    /**
      * Extract user ID from JWT token in Authorization header
      */
     private Long extractUserIdFromToken(String authHeader) {

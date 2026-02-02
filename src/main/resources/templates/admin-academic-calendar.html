@@ -249,12 +249,14 @@
                     // Semester settings
                     document.getElementById('currentYear').textContent = calendar.academicYear || 'Not Set';
                     document.getElementById('currentStart').textContent = calendar.semesterStartDate || 'Not Set';
-                    document.getElementById('currentEnd').textContent = calendar.semesterEndDate || 'Not Set';
+                    // Use examStartDate or semesterEndDate (both should be the same due to JSON mapping)
+                    const semesterEnd = calendar.semesterEndDate || calendar.examStartDate || 'Not Set';
+                    document.getElementById('currentEnd').textContent = semesterEnd;
 
                     if (calendar.academicYear && calendar.academicYear !== 'Not Set') {
                         document.getElementById('academicYear').value = calendar.academicYear;
                         document.getElementById('semesterStart').value = calendar.semesterStartDate || '';
-                        document.getElementById('semesterEnd').value = calendar.semesterEndDate || '';
+                        document.getElementById('semesterEnd').value = calendar.semesterEndDate || calendar.examStartDate || '';
                     }
                     
                     // Exam dates

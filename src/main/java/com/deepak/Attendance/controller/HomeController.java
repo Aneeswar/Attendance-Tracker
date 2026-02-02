@@ -80,4 +80,9 @@ public class HomeController {
     public String markAttendanceByDate() {
         return "mark-attendance-by-date";
     }
+
+    @GetMapping("/student-profile")
+    public String studentProfile() {
+        return "student-profile";
+    }
 }
