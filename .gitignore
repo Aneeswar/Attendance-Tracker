@@ -41,12 +41,10 @@ uploads/captcha/
 .env
 .env.local
 .env.*.local
-application.properties
 application-dev.properties
 application-prod.properties
 application-*.properties
-!application.properties.example
-!application-example.properties
+application.properties.example
 
 ### Logs ###
 logs/
