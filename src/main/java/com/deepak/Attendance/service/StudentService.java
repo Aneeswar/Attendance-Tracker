@@ -469,9 +469,9 @@ public class StudentService {
         
         Course c = course.get();
         
-        // Delete related attendance inputs first
-        Optional<AttendanceInput> attendanceInput = attendanceInputRepository.findByCourseId(c.getId());
-        attendanceInput.ifPresent(attendanceInputRepository::delete);
+        // Delete related attendance inputs (may have multiple records)
+        List<AttendanceInput> attendanceInputs = attendanceInputRepository.findAllByCourseId(c.getId());
+        attendanceInputRepository.deleteAll(attendanceInputs);
         
         // Delete the course (this will cascade delete timetable entries)
         courseRepository.delete(c);
@@ -491,16 +491,16 @@ public class StudentService {
         
         Course c = course.get();
         
-        // Delete attendance reports first (foreign key constraint)
-        Optional<AttendanceReport> attendanceReport = attendanceReportRepository.findByCourseId(c.getId());
-        attendanceReport.ifPresent(attendanceReportRepository::delete);
+        // Delete attendance reports first (may have multiple records)
+        List<AttendanceReport> attendanceReports = attendanceReportRepository.findAllByCourseId(c.getId());
+        attendanceReportRepository.deleteAll(attendanceReports);
         
         // Delete date-based attendance records
         dateBasedAttendanceRepository.deleteByCourseId(c.getId());
         
-        // Delete related attendance inputs
-        Optional<AttendanceInput> attendanceInput = attendanceInputRepository.findByCourseId(c.getId());
-        attendanceInput.ifPresent(attendanceInputRepository::delete);
+        // Delete related attendance inputs (may have multiple records)
+        List<AttendanceInput> attendanceInputs = attendanceInputRepository.findAllByCourseId(c.getId());
+        attendanceInputRepository.deleteAll(attendanceInputs);
         
         // Delete timetable entries
         List<TimetableEntry> entries = timetableEntryRepository.findByCourseId(c.getId());

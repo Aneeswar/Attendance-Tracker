@@ -11,6 +11,7 @@ import java.util.Optional;
 public interface AttendanceReportRepository extends JpaRepository<AttendanceReport, Long> {
     
     Optional<AttendanceReport> findByCourseId(Long courseId);
+    List<AttendanceReport> findAllByCourseId(Long courseId);
     
     List<AttendanceReport> findByCourse_UserId(Long userId);
     
