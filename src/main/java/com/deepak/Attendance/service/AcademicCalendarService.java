@@ -7,6 +7,7 @@ import com.deepak.Attendance.repository.AttendanceReportRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -20,7 +21,11 @@ public class AcademicCalendarService {
     
     @Autowired
     private AttendanceReportRepository attendanceReportRepository;
+    
+    @Autowired
+    private StudentService studentService;
 
+    @Transactional
     public AcademicCalendarDTO saveOrUpdateAcademicCalendar(AcademicCalendarDTO dto) {
         log.info("Saving Academic Calendar: academicYear={}, semesterStart={}, examStart={}", 
                  dto.getAcademicYear(), dto.getSemesterStartDate(), dto.getExamStartDate());
@@ -57,6 +62,11 @@ public class AcademicCalendarService {
 
         AcademicCalendar saved = academicCalendarRepository.save(calendar);
         log.info("Academic Calendar saved with ID: {}", saved.getId());
+        
+        // Recalculate attendance reports for all students with new exam dates and holidays
+        log.info("Academic calendar updated. Recalculating attendance reports for all students.");
+        studentService.recalculateAttendanceReportsForAllStudents();
+        
         return convertToDTO(saved);
     }
 

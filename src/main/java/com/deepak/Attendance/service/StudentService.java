@@ -417,6 +417,84 @@ public class StudentService {
     }
 
     /**
+     * Recalculate attendance reports for all students (all their courses)
+     * Called when holidays or academic calendar changes
+     */
+    @Transactional
+    public void recalculateAttendanceReportsForAllStudents() {
+        try {
+            log.info("Starting recalculation of attendance reports for all students");
+            
+            // Get all courses
+            List<Course> allCourses = courseRepository.findAll();
+            
+            for (Course course : allCourses) {
+                try {
+                    calculateAndCacheAttendanceReport(course);
+                } catch (Exception e) {
+                    log.warn("Failed to recalculate report for course: {}", course.getCourseCode(), e);
+                    // Continue processing other courses even if one fails
+                }
+            }
+            
+            log.info("Completed recalculation of attendance reports for all students. Processed {} courses", allCourses.size());
+        } catch (Exception e) {
+            log.error("Error recalculating all attendance reports", e);
+            throw e;
+        }
+    }
+
+    /**
+     * Recalculate attendance reports for a specific student (all their courses)
+     * Called when holidays or academic calendar changes
+     */
+    @Transactional
+    public void recalculateAttendanceReportsForStudent(Long userId) {
+        try {
+            log.info("Starting recalculation of attendance reports for student: {}", userId);
+            
+            // Get all courses for this student
+            List<Course> studentCourses = courseRepository.findByUserId(userId);
+            
+            for (Course course : studentCourses) {
+                try {
+                    calculateAndCacheAttendanceReport(course);
+                } catch (Exception e) {
+                    log.warn("Failed to recalculate report for course: {} for student: {}", course.getCourseCode(), userId, e);
+                    // Continue processing other courses even if one fails
+                }
+            }
+            
+            log.info("Completed recalculation of attendance reports for student: {}. Processed {} courses", userId, studentCourses.size());
+        } catch (Exception e) {
+            log.error("Error recalculating attendance reports for student: {}", userId, e);
+            throw e;
+        }
+    }
+
+    /**
+     * Recalculate attendance report for a specific course
+     * Called when student attendance is updated
+     */
+    public void recalculateAttendanceReportForCourse(Long courseId) {
+        try {
+            log.info("Recalculating attendance report for course ID: {}", courseId);
+            
+            Course course = courseRepository.findById(courseId).orElse(null);
+            if (course == null) {
+                log.warn("Course not found for ID: {}", courseId);
+                return;
+            }
+            
+            calculateAndCacheAttendanceReport(course);
+            log.info("Successfully recalculated attendance report for course: {}", course.getCourseCode());
+        } catch (Exception e) {
+            log.error("Error recalculating attendance report for course ID: {}", courseId, e);
+            throw e;
+        }
+    }
+
+    /**
      * Get student's timetable
      */
     public List<TimetableEntryDTO> getStudentTimetable(Long userId) {

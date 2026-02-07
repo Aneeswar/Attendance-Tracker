@@ -33,6 +33,9 @@ public class DateBasedAttendanceService {
     @Autowired
     private TimetableEntryRepository timetableEntryRepository;
 
+    @Autowired
+    private StudentService studentService;
+
     /**
      * Get attendance calendar for a specific course
      * Shows dates from last attendance update to today based on course schedule
@@ -132,7 +135,10 @@ public class DateBasedAttendanceService {
 
         // Update the AttendanceInput with aggregated values
         updateAggregatedAttendance(courseId);
-        logger.info("Updated date-based attendance for course {}", courseId);
+        
+        // Recalculate attendance report for this course since attendance was updated
+        logger.info("Date-based attendance updated. Recalculating report for course {}", courseId);
+        studentService.recalculateAttendanceReportForCourse(courseId);
     }
 
     /**
