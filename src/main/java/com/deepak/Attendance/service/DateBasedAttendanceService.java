@@ -6,6 +6,7 @@ import com.deepak.Attendance.entity.*;
 import com.deepak.Attendance.repository.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,7 +35,7 @@ public class DateBasedAttendanceService {
     private TimetableEntryRepository timetableEntryRepository;
 
     @Autowired
-    private StudentService studentService;
+    private ObjectProvider<StudentService> studentServiceProvider;
 
     /**
      * Get attendance calendar for a specific course
@@ -138,7 +139,13 @@ public class DateBasedAttendanceService {
         
         // Recalculate attendance report for this course since attendance was updated
         logger.info("Date-based attendance updated. Recalculating report for course {}", courseId);
-        studentService.recalculateAttendanceReportForCourse(courseId);
+        studentServiceProvider.ifAvailable(studentService -> {
+            try {
+                studentService.recalculateAttendanceReportForCourse(courseId);
+            } catch (Exception e) {
+                logger.error("Error recalculating report after date-based attendance update", e);
+            }
+        });
     }
 
     /**

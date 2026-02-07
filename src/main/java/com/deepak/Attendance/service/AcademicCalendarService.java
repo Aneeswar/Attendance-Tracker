@@ -5,6 +5,7 @@ import com.deepak.Attendance.entity.AcademicCalendar;
 import com.deepak.Attendance.repository.AcademicCalendarRepository;
 import com.deepak.Attendance.repository.AttendanceReportRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,7 +24,7 @@ public class AcademicCalendarService {
     private AttendanceReportRepository attendanceReportRepository;
     
     @Autowired
-    private StudentService studentService;
+    private ObjectProvider<StudentService> studentServiceProvider;
 
     @Transactional
     public AcademicCalendarDTO saveOrUpdateAcademicCalendar(AcademicCalendarDTO dto) {
@@ -65,7 +66,13 @@ public class AcademicCalendarService {
         
         // Recalculate attendance reports for all students with new exam dates and holidays
         log.info("Academic calendar updated. Recalculating attendance reports for all students.");
-        studentService.recalculateAttendanceReportsForAllStudents();
+        studentServiceProvider.ifAvailable(studentService -> {
+            try {
+                studentService.recalculateAttendanceReportsForAllStudents();
+            } catch (Exception e) {
+                log.error("Error recalculating reports after academic calendar update", e);
+            }
+        });
         
         return convertToDTO(saved);
     }

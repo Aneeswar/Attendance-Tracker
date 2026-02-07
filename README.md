@@ -7,25 +7,37 @@ A comprehensive Spring Boot-based attendance tracking and management system for 
 ### Student Features
 - **Course Management**: Add new courses or select from existing courses in the system
 - **Attendance Tracking**: 
-  - Enter attendance by total classes conducted and classes attended
+  - Mark attendance by total classes conducted and classes attended
   - Mark attendance by individual dates with a calendar interface
   - Automatic date generation based on course schedule and start date
+  - Supports both count-based and date-based marking methods
 - **Attendance Report**: View detailed attendance reports including:
-  - Current attendance percentage
+  - Real-time attendance percentage calculation
   - 75% eligibility status (standard threshold)
   - 65% eligibility status (medical/relaxation)
   - Classes that can be skipped while maintaining threshold
   - Projected attendance if all remaining classes are attended
   - Upcoming exam eligibility calculations
+- **Auto-Updated Reports**: 
+  - Reports automatically regenerate when admins update holidays
+  - Reports automatically refresh when exam dates are changed
+  - Always get the latest calculations without manual refresh
 - **Holiday Calendar**: View institutional holidays and exam dates
 - **Timetable Management**: Set and manage weekly class schedules
 
 ### Admin Features
-- **Dashboard Statistics**: View total students, courses, and academic year
-- **Academic Calendar Management**: Set exam dates (CAT-1, CAT-2, FAT) and academic year
-- **Holiday Management**: Add and manage institutional holidays
+- **Dashboard Statistics**: View total students, courses, and current academic year
+- **Academic Calendar Management**: 
+  - Set exam dates (CAT-1, CAT-2, FAT)
+  - Configure academic year and semesters
+  - Changes automatically update all student reports
+- **Holiday Management**: 
+  - Add and manage institutional holidays
+  - Bulk import holidays
+  - Automatic report regeneration for affected students
 - **Course Management**: Create and manage courses available for students
 - **Semester Configuration**: Configure different semesters with unique exam dates and holidays
+- **Student Management**: View and manage student accounts and enrollment
 
 ## 🛠️ Technology Stack
 
@@ -169,22 +181,32 @@ Attendance/
 
 ## 🎯 Attendance Calculation Logic
 
+### Real-Time Report Updates
+- **Automatic Regeneration**: Reports recalculate automatically when:
+  - Student marks or updates attendance
+  - Admin modifies holiday schedule
+  - Admin changes exam dates
+  - Admin updates academic calendar
+- **Instant Accuracy**: No manual refresh needed - always get the latest calculations
+
 ### Eligibility Determination
-- **Standard Threshold**: 75% attendance required
+- **Standard Threshold**: 75% attendance required for exam eligibility
 - **Relaxed Threshold**: 65% (with medical/other relaxation)
-- **Ceiling Rounding**: Used for percentage comparisons (74.1% = 75%)
+- **Ceiling Rounding**: Used for percentage comparisons (74.1% ≥ 75%)
 
 ### Future Classes Calculation
-- Excludes weekends (only Tue-Sat count)
-- Excludes institutional holidays
+- Excludes weekends (only Tue-Sat count as working days)
+- Excludes institutional holidays (automatically updated when admin changes holidays)
 - Excludes exam periods (CAT-1, CAT-2, FAT)
 - For CAT exams: Excludes day before exam start
 - For FAT exam: Includes last working day
+- Recalculates instantly when holidays or calendar changes
 
 ### Attendance Override
 - Saving **total/attended** auto-generates individual date records
 - Saving **mark-by-date** overrides and deletes total/attended record
 - Most recent save method becomes the source of truth
+- Triggers automatic report regeneration
 
 ## 🔐 Security Features
 
