@@ -88,6 +88,24 @@ public class AttendanceCalculationService {
     }
 
     /**
+     * Find the last working day (Tuesday-Saturday) before a given date
+     * Only excludes holidays, not exam dates
+     * Used for determining the cutoff day for exam class counts
+     */
+    private LocalDate getLastWorkingDayBeforeDate(LocalDate date, Set<LocalDate> holidays) {
+        LocalDate current = date.minusDays(1);
+        while (current.isAfter(LocalDate.now().minusDays(1))) {
+            int dayOfWeek = current.getDayOfWeek().getValue();
+            // Tuesday (2) to Saturday (6)
+            if (dayOfWeek >= 2 && dayOfWeek <= 6 && !holidays.contains(current)) {
+                return current;
+            }
+            current = current.minusDays(1);
+        }
+        return null;
+    }
+
+    /**
      * Calculate future classes available for a course until a specific date
      * Only considers: Tuesday to Saturday, excludes holidays
      * The untilDate should be the exam start date - we calculate up to the day BEFORE
@@ -103,59 +121,107 @@ public class AttendanceCalculationService {
                 .findBySemesterStartDateLessThanEqualAndExamStartDateGreaterThanEqual(today, today);
 
         Set<LocalDate> excludedDates = new HashSet<>();
+        Set<LocalDate> holidays = new HashSet<>();
+        
         if (currentCalendar.isPresent()) {
             AcademicCalendar calendar = currentCalendar.get();
             
-            // Add holidays to excluded dates
-            excludedDates.addAll(
+            // Add holidays to both sets
+            holidays.addAll(
                     holidayRepository.findByAcademicCalendarId(calendar.getId()).stream()
                             .map(Holiday::getDate)
                             .toList()
             );
-            log.info("Academic Calendar found: {} holidays", excludedDates.size());
-            for (LocalDate h : excludedDates) {
+            excludedDates.addAll(holidays);
+            
+            log.info("Academic Calendar found: {} holidays", holidays.size());
+            for (LocalDate h : holidays) {
                 log.debug("Holiday: {}", h);
             }
             
-            // Add exam period dates to excluded dates (CAT-1, CAT-2, FAT)
-            if (calendar.getCat1StartDate() != null && calendar.getCat1EndDate() != null) {
-                LocalDate examDate = calendar.getCat1StartDate();
-                while (!examDate.isAfter(calendar.getCat1EndDate())) {
-                    excludedDates.add(examDate);
-                    log.debug("CAT-1 exam date: {}", examDate);
-                    examDate = examDate.plusDays(1);
+            // For FAT, exclude all holidays and all exam period dates (CAT-1, CAT-2, FAT)
+            // The last working days excluded for CAT-1 and CAT-2 will be included through cascading logic
+            if ("FAT".equals(examType)) {
+                // Exclude all exam periods for FAT
+                if (calendar.getCat1StartDate() != null && calendar.getCat1EndDate() != null) {
+                    LocalDate examDate = calendar.getCat1StartDate();
+                    while (!examDate.isAfter(calendar.getCat1EndDate())) {
+                        excludedDates.add(examDate);
+                        log.debug("FAT: excluding CAT-1 exam date: {}", examDate);
+                        examDate = examDate.plusDays(1);
+                    }
                 }
-            }
-            if (calendar.getCat2StartDate() != null && calendar.getCat2EndDate() != null) {
-                LocalDate examDate = calendar.getCat2StartDate();
-                while (!examDate.isAfter(calendar.getCat2EndDate())) {
-                    excludedDates.add(examDate);
-                    log.debug("CAT-2 exam date: {}", examDate);
-                    examDate = examDate.plusDays(1);
+                if (calendar.getCat2StartDate() != null && calendar.getCat2EndDate() != null) {
+                    LocalDate examDate = calendar.getCat2StartDate();
+                    while (!examDate.isAfter(calendar.getCat2EndDate())) {
+                        excludedDates.add(examDate);
+                        log.debug("FAT: excluding CAT-2 exam date: {}", examDate);
+                        examDate = examDate.plusDays(1);
+                    }
                 }
-            }
-            if (calendar.getFatStartDate() != null && calendar.getFatEndDate() != null) {
-                LocalDate examDate = calendar.getFatStartDate();
-                while (!examDate.isAfter(calendar.getFatEndDate())) {
-                    excludedDates.add(examDate);
-                    log.debug("FAT exam date: {}", examDate);
-                    examDate = examDate.plusDays(1);
+                if (calendar.getFatStartDate() != null && calendar.getFatEndDate() != null) {
+                    LocalDate examDate = calendar.getFatStartDate();
+                    while (!examDate.isAfter(calendar.getFatEndDate())) {
+                        excludedDates.add(examDate);
+                        log.debug("FAT exam date: {}", examDate);
+                        examDate = examDate.plusDays(1);
+                    }
+                }
+                log.info("FAT exam: excluding holidays, CAT-1, CAT-2, and FAT exam period dates");
+            } else {
+                // For CAT-1 and CAT-2, exclude all exam periods
+                if (calendar.getCat1StartDate() != null && calendar.getCat1EndDate() != null) {
+                    LocalDate examDate = calendar.getCat1StartDate();
+                    while (!examDate.isAfter(calendar.getCat1EndDate())) {
+                        excludedDates.add(examDate);
+                        log.debug("CAT-1 exam date: {}", examDate);
+                        examDate = examDate.plusDays(1);
+                    }
+                }
+                if (calendar.getCat2StartDate() != null && calendar.getCat2EndDate() != null) {
+                    LocalDate examDate = calendar.getCat2StartDate();
+                    while (!examDate.isAfter(calendar.getCat2EndDate())) {
+                        excludedDates.add(examDate);
+                        log.debug("CAT-2 exam date: {}", examDate);
+                        examDate = examDate.plusDays(1);
+                    }
+                }
+                if (calendar.getFatStartDate() != null && calendar.getFatEndDate() != null) {
+                    LocalDate examDate = calendar.getFatStartDate();
+                    while (!examDate.isAfter(calendar.getFatEndDate())) {
+                        excludedDates.add(examDate);
+                        log.debug("FAT exam date: {}", examDate);
+                        examDate = examDate.plusDays(1);
+                    }
                 }
             }
         } else {
             log.warn("No academic calendar found for today");
         }
 
-        // Determine last class day based on exam type
+        // Determine last class day based on exam type using cascading logic
+        // Find the last working day before the exam (considering only holidays, not exam dates)
+        LocalDate lastWorkingDayBeforeExam = getLastWorkingDayBeforeDate(untilDate, holidays);
+        
         LocalDate lastClassDay;
         if ("FAT".equals(examType)) {
-            // For FAT, include the last working day of semester (day before exam starts)
+            // For FAT, include the last instructional day (day before exam starts)
+            // This includes the day that was excluded for CAT-2
             lastClassDay = untilDate.minusDays(1);
-            log.info("FAT exam: including last working day before exam start");
+            log.info("FAT exam: counting classes up to and including last instructional day ({})", lastClassDay);
         } else {
             // For CAT-1 and CAT-2, exclude the last working day before exam
-            lastClassDay = untilDate.minusDays(2);
-            log.info("CAT exam: excluding last working day before exam start");
+            // Count up to one day before the last working day
+            // This allows the excluded day from current exam to be available for next exam
+            if (lastWorkingDayBeforeExam != null) {
+                lastClassDay = lastWorkingDayBeforeExam.minusDays(1);
+                log.info("CAT exam ({}): last working day before exam is {}, counting up to {} (excluding last working day)",
+                        examType, lastWorkingDayBeforeExam, lastClassDay);
+            } else {
+                // Fallback if unable to determine last working day
+                lastClassDay = untilDate.minusDays(2);
+                log.warn("Could not determine last working day for {}, using minusDays(2) as fallback", examType);
+            }
         }
         log.info("Calculating classes from {} to {} (exam type: {})", today, lastClassDay, examType);
 
