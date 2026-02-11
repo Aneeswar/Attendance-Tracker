@@ -58,15 +58,15 @@ A comprehensive Spring Boot-based attendance tracking and management system for 
 ## 📋 Prerequisites
 
 - Java 21 or higher
-- PostgreSQL 16.9 or higher
+- PostgreSQL 15 or higher
 - Maven 3.8+ (or use the included Maven wrapper)
 
 ## 🚀 Installation & Setup
 
 ### 1. Clone the Repository
 ```bash
-git clone <repository-url>
-cd Attendance
+git clone https://github.com/your-username/Attendance-Tracker.git
+cd Attendance-Tracker
 ```
 
 ### 2. Database Setup
@@ -77,8 +77,8 @@ psql -U postgres -c "CREATE DATABASE attendance_db;"
 # Update application.properties with your database credentials
 # File: src/main/resources/application.properties
 spring.datasource.url=jdbc:postgresql://localhost:5432/attendance_db
-spring.datasource.username=your_username
-spring.datasource.password=your_password
+spring.datasource.username=postgres
+spring.datasource.password=0000
 ```
 
 ### 3. Build the Project
@@ -100,6 +100,18 @@ java -jar target/Attendance-0.0.1-SNAPSHOT.jar
 ```
 
 The application will start on `http://localhost:8081`
+
+### 5. Running with Docker 🐳
+For a quick setup using Docker and Docker Compose:
+
+```bash
+# Build and start all services
+docker-compose up --build
+
+# Run in background
+docker-compose up -d
+```
+The application will be available at `http://localhost:8080` (configured in `docker-compose.yml`).
 
 ## 📖 Usage Guide
 
@@ -149,11 +161,12 @@ Attendance/
 │   │   │   ├── security/         # JWT and security utilities
 │   │   │   └── service/          # Business logic
 │   │   └── resources/
-│   │       ├── templates/        # HTML templates
-│   │       ├── static/           # Static files
-│   │       └── tessdata/         # OCR data
+│   │       └── templates/        # Thymeleaf HTML templates
 │   └── test/
-└── pom.xml
+├── Dockerfile                  # Docker configuration
+├── docker-compose.yml          # Multi-container setup
+├── pom.xml                     # Maven dependencies
+└── README.md
 ```
 
 ## 🔑 Key APIs
@@ -268,4 +281,4 @@ For issues and questions, please create an issue in the repository.
 
 ---
 
-**Last Updated**: February 2, 2026
+**Last Updated**: February 11, 2026
