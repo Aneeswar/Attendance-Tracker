@@ -1,10 +1,28 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Attendance System - Welcome</title>
+    <title>AttenTrack - Smart Attendance Management</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --secondary: #64748b;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --background: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --nav-bg: rgba(15, 23, 42, 0.9);
+            --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -12,313 +30,427 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: var(--background);
+            color: var(--text-main);
+            line-height: 1.5;
+            overflow-x: hidden;
         }
 
         .navbar {
-            background: rgba(0, 0, 0, 0.8);
+            background: var(--nav-bg);
+            backdrop-filter: blur(8px);
             color: white;
-            padding: 15px 40px;
+            padding: 1rem 2rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .navbar-brand {
-            font-size: 22px;
-            font-weight: 700;
+            font-size: 1.5rem;
+            font-weight: 800;
             display: flex;
-            gap: 10px;
+            gap: 0.75rem;
             align-items: center;
+            letter-spacing: -0.025em;
+        }
+
+        .navbar-brand i {
+            color: #818cf8;
         }
 
         .navbar-menu {
             display: flex;
-            gap: 20px;
+            gap: 1.5rem;
         }
 
         .navbar-menu a {
-            color: white;
+            color: rgba(255, 255, 255, 0.8);
             text-decoration: none;
-            font-size: 14px;
-            font-weight: 500;
-            transition: color 0.3s ease;
-            padding: 8px 16px;
-            border-radius: 5px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
         }
 
         .navbar-menu a:hover {
-            background: rgba(255, 255, 255, 0.2);
-            color: #667eea;
+            color: white;
+            background: rgba(255, 255, 255, 0.1);
         }
 
         .hero-section {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 40px 20px;
+            background: radial-gradient(circle at top left, #4f46e5, #764ba2);
+            padding: 8rem 2rem;
             text-align: center;
             color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-section::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 4rem;
+            background: var(--background);
+            clip-path: polygon(0 100%, 100% 100%, 100% 0);
+        }
+
+        .hero-content {
+            max-width: 800px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
         }
 
         .hero-content h1 {
-            font-size: 48px;
-            margin-bottom: 20px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            font-size: 3.5rem;
+            font-weight: 900;
+            margin-bottom: 1.5rem;
+            letter-spacing: -0.05em;
+            line-height: 1.1;
         }
 
         .hero-content p {
-            font-size: 18px;
-            margin-bottom: 40px;
-            opacity: 0.95;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
+            font-size: 1.25rem;
+            margin-bottom: 3rem;
+            opacity: 0.9;
+            line-height: 1.6;
         }
 
         .cta-buttons {
             display: flex;
-            gap: 20px;
+            gap: 1.25rem;
             justify-content: center;
             flex-wrap: wrap;
         }
 
         .cta-btn {
-            padding: 15px 40px;
-            font-size: 16px;
-            font-weight: 600;
-            border: none;
-            border-radius: 8px;
+            padding: 1rem 2.5rem;
+            font-size: 1rem;
+            font-weight: 700;
+            border-radius: 0.5rem;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             text-decoration: none;
-            display: inline-block;
-            min-width: 150px;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
         }
 
-        .btn-student {
+        .btn-primary {
             background: white;
-            color: #667eea;
+            color: var(--primary);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
         }
 
-        .btn-student:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 25px rgba(255, 255, 255, 0.3);
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+            background: #f1f5f9;
         }
 
-        .btn-admin {
-            background: rgba(255, 255, 255, 0.2);
+        .btn-outline {
+            background: rgba(255, 255, 255, 0.1);
             color: white;
-            border: 2px solid white;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(4px);
         }
 
-        .btn-admin:hover {
-            background: white;
-            color: #667eea;
-            transform: translateY(-3px);
+        .btn-outline:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: white;
+            transform: translateY(-2px);
         }
 
-        .features {
-            background: rgba(255, 255, 255, 0.95);
-            padding: 60px 40px;
-            margin: 40px auto;
+        .section-container {
             max-width: 1200px;
-            border-radius: 15px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            margin: 0 auto;
+            padding: 6rem 2rem;
         }
 
-        .features h2 {
+        .section-header {
             text-align: center;
-            color: #333;
-            margin-bottom: 40px;
-            font-size: 32px;
+            margin-bottom: 4rem;
+        }
+
+        .section-header h2 {
+            font-size: 2.25rem;
+            font-weight: 800;
+            color: var(--text-main);
+            margin-bottom: 1rem;
+            letter-spacing: -0.025em;
+        }
+
+        .section-header p {
+            color: var(--text-muted);
+            font-size: 1.125rem;
         }
 
         .features-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 30px;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
         }
 
         .feature-card {
-            padding: 25px;
-            border-radius: 10px;
-            background: #f9f9f9;
-            border-left: 4px solid #667eea;
+            padding: 2.5rem;
+            border-radius: 1rem;
+            background: var(--card-bg);
+            border: 1px solid #e2e8f0;
             transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
         }
 
         .feature-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            transform: translateY(-0.5rem);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--primary);
+        }
+
+        .feature-icon-wrapper {
+            width: 3.5rem;
+            height: 3.5rem;
+            background: #eef2ff;
+            color: var(--primary);
+            border-radius: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
         }
 
         .feature-card h3 {
-            color: #667eea;
-            margin-bottom: 12px;
-            font-size: 18px;
+            color: var(--text-main);
+            font-size: 1.25rem;
+            font-weight: 700;
         }
 
         .feature-card p {
-            color: #666;
-            font-size: 14px;
+            color: var(--text-muted);
+            font-size: 0.95rem;
             line-height: 1.6;
         }
 
-        .feature-icon {
-            font-size: 30px;
-            margin-bottom: 12px;
-        }
-
-        .user-types {
+        .access-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 30px;
-            margin-top: 40px;
-            padding-top: 40px;
-            border-top: 2px solid #eee;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 2.5rem;
+            margin-top: 4rem;
         }
 
-        .user-type-card {
+        .access-card {
             background: white;
-            padding: 30px;
-            border-radius: 10px;
-            border: 2px solid #eee;
-            transition: all 0.3s ease;
+            padding: 3rem;
+            border-radius: 1.25rem;
+            box-shadow: var(--shadow);
+            border: 1px solid #e2e8f0;
         }
 
-        .user-type-card:hover {
-            border-color: #667eea;
-            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.2);
-        }
-
-        .user-type-card h3 {
-            color: #333;
-            margin-bottom: 15px;
-            font-size: 20px;
-        }
-
-        .user-type-card ul {
-            list-style: none;
-            color: #666;
-            font-size: 14px;
-        }
-
-        .user-type-card li {
-            padding: 8px 0;
+        .access-card h3 {
+            color: var(--text-main);
+            margin-bottom: 2rem;
+            font-size: 1.75rem;
+            font-weight: 800;
             display: flex;
-            gap: 10px;
+            align-items: center;
+            gap: 1rem;
         }
 
-        .user-type-card li:before {
-            content: "✓";
-            color: #4caf50;
-            font-weight: 700;
-            flex-shrink: 0;
+        .access-card h3 i {
+            color: var(--primary);
+        }
+
+        .access-list {
+            list-style: none;
+            display: grid;
+            gap: 1rem;
+        }
+
+        .access-list li {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            color: #475569;
+            font-weight: 500;
+        }
+
+        .access-list li i {
+            color: var(--success);
+            font-size: 1.25rem;
         }
 
         footer {
-            background: rgba(0, 0, 0, 0.8);
+            background: var(--nav-bg);
             color: white;
             text-align: center;
-            padding: 20px;
-            font-size: 13px;
-            margin-top: 40px;
+            padding: 4rem 2rem;
+            margin-top: 4rem;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .footer-logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin-bottom: 1.5rem;
+            display: inline-flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        .copyright {
+            opacity: 0.6;
+            font-size: 0.875rem;
+        }
+
+        @media (max-width: 768px) {
+            .hero-content h1 {
+                font-size: 2.5rem;
+            }
+            .access-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 <body>
     <div class="navbar">
         <div class="navbar-brand">
-            <span>📚</span>
-            <span>Student Attendance System</span>
+            <i class="fas fa-graduation-cap"></i>
+            <span>AttenTrack</span>
         </div>
         <div class="navbar-menu">
             <a href="#features">Features</a>
-            <a href="#about">About</a>
+            <a href="#about">For Users</a>
         </div>
     </div>
 
     <div class="hero-section">
         <div class="hero-content">
-            <h1>Welcome to Attendance System</h1>
-            <p>Manage your attendance, track your eligibility, and ensure you meet the 75% requirement before exams</p>
+            <h1>Stay Ahead of Your Attendance</h1>
+            <p>Smart, date-based tracking with predictive analytics to ensure you're always eligible for your exams.</p>
             <div class="cta-buttons">
-                <a href="/login?mode=student" class="cta-btn btn-student">👤 Login</a>
-                <a href="/register" class="cta-btn btn-student">📝 Create Student Account</a>
-                <a href="/login?mode=admin" class="cta-btn btn-admin">🔐 Admin Login</a>
+                <a href="/login?mode=student" class="cta-btn btn-primary">
+                    <i class="fas fa-user-graduate"></i>
+                    Student Login
+                </a>
+                <a href="/register" class="cta-btn btn-outline">
+                    <i class="fas fa-user-plus"></i>
+                    Register
+                </a>
+                <a href="/login?mode=admin" class="cta-btn btn-outline">
+                    <i class="fas fa-user-shield"></i>
+                    Admin Portal
+                </a>
             </div>
         </div>
     </div>
 
-    <div class="features" id="features">
-        <h2>System Features</h2>
+    <div class="section-container" id="features">
+        <div class="section-header">
+            <h2>Powerful Features</h2>
+            <p>Everything you need to manage academic attendance efficiently.</p>
+        </div>
+        
         <div class="features-grid">
             <div class="feature-card">
-                <div class="feature-icon">�</div>
-                <h3>Attendance Tracking</h3>
-                <p>Record and track your attendance for each course. Choose between simple count-based marking or date-based calendar view with detailed tracking.</p>
+                <div class="feature-icon-wrapper">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <h3>Predictive Eligibility</h3>
+                <p>Know exactly how many classes you must attend to reach 75% or 65% thresholds before exams start.</p>
             </div>
+            
             <div class="feature-card">
-                <div class="feature-icon">📅</div>
+                <div class="feature-icon-wrapper">
+                    <i class="fas fa-calendar-check"></i>
+                </div>
                 <h3>Smart Calendar</h3>
-                <p>System automatically considers holidays and exam dates for accurate future class calculations. Calendar updates instantly reflect in your reports.</p>
+                <p>Interactive calendar that automatically accounts for institutional holidays and study breaks.</p>
             </div>
+            
             <div class="feature-card">
-                <div class="feature-icon">🎯</div>
-                <h3>Dynamic Eligibility</h3>
-                <p>Know exactly how many classes you need to attend to reach 75% (standard) and 65% (medical/relaxation) thresholds before exams.</p>
+                <div class="feature-icon-wrapper">
+                    <i class="fas fa-bell"></i>
+                </div>
+                <h3>Real-time Updates</h3>
+                <p>Instant recalculation when academic schedules change. Get notified when your reports need refreshing.</p>
             </div>
+
             <div class="feature-card">
-                <div class="feature-icon">🔄</div>
-                <h3>Auto-Updated Reports</h3>
-                <p>Reports automatically regenerate whenever admin updates holidays or exam dates. Always get the latest calculations without manual refresh.</p>
+                <div class="feature-icon-wrapper">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <h3>Secure Access</h3>
+                <p>JWT-secured dashboard with role-based access for both students and administrators.</p>
             </div>
+
             <div class="feature-card">
-                <div class="feature-icon">✏️</div>
-                <h3>Admin Control</h3>
-                <p>Admins easily manage academic calendars, add/remove holidays, and set exam dates with instant system-wide updates affecting all student reports.</p>
+                <div class="feature-icon-wrapper">
+                    <i class="fas fa-file-invoice"></i>
+                </div>
+                <h3>Detailed Insights</h3>
+                <p>Examine future class dates, upcoming exam schedules, and medical relaxation options.</p>
             </div>
+
             <div class="feature-card">
-                <div class="feature-icon">🔒</div>
-                <h3>Secure & Private</h3>
-                <p>JWT-based authentication ensures your data is secure and private with role-based access control for students and administrators.</p>
+                <div class="feature-icon-wrapper">
+                    <i class="fas fa-tasks"></i>
+                </div>
+                <h3>Easy Management</h3>
+                <p>Admin tools to manage university-wide academic calendars and holiday schedules with one click.</p>
             </div>
         </div>
+    </div>
 
-        <div class="user-types" id="about">
-            <div class="user-type-card">
-                <h3>👤 For Students</h3>
-                <ul>
-                    <li>Mark attendance manually for each class</li>
-                    <li>Use calendar view for date-based attendance</li>
-                    <li>View real-time attendance percentage</li>
-                    <li>Check dynamic eligibility status</li>
-                    <li>Track classes needed to reach 75%</li>
-                    <li>Get automatic report updates</li>
+    <div class="section-container" id="about" style="padding-top: 0;">
+        <div class="access-grid">
+            <div class="access-card">
+                <h3><i class="fas fa-user-graduate"></i> For Students</h3>
+                <ul class="access-list">
+                    <li><i class="fas fa-check-circle"></i> Mark attendance with detailed timestamps</li>
+                    <li><i class="fas fa-check-circle"></i> Visual percentage tracking for all courses</li>
+                    <li><i class="fas fa-check-circle"></i> Exam eligibility predictions for CAT-1, CAT-2, FAT</li>
+                    <li><i class="fas fa-check-circle"></i> Medical/Other relaxation threshold toggles</li>
+                    <li><i class="fas fa-check-circle"></i> View future class dates for better planning</li>
                 </ul>
             </div>
-            <div class="user-type-card">
-                <h3>🔐 For Admins</h3>
-                <ul>
-                    <li>Manage complete academic calendar</li>
-                    <li>Add and remove institutional holidays</li>
-                    <li>Set exam dates (CAT-1, CAT-2, FAT)</li>
-                    <li>Define working days (Tue-Sat)</li>
-                    <li>View system-wide student statistics</li>
-                    <li>Automatic report regeneration on updates</li>
+            
+            <div class="access-card">
+                <h3><i class="fas fa-user-shield"></i> For Admins</h3>
+                <ul class="access-list">
+                    <li><i class="fas fa-check-circle"></i> Centralized Academic Calendar management</li>
+                    <li><i class="fas fa-check-circle"></i> Bulk Institutional Holiday scheduling</li>
+                    <li><i class="fas fa-check-circle"></i> Control semester and exam date ranges</li>
+                    <li><i class="fas fa-check-circle"></i> System-wide data consistency maintenance</li>
+                    <li><i class="fas fa-check-circle"></i> Automated student report invalidation</li>
                 </ul>
             </div>
         </div>
     </div>
 
     <footer>
-        <p>&copy; 2024 Student Attendance System. All rights reserved.</p>
+        <div class="footer-content">
+            <div class="footer-logo">
+                <i class="fas fa-graduation-cap"></i>
+                <span>AttenTrack</span>
+            </div>
+            <p class="copyright">&copy; 2024 AttenTrack System. Crafted for academic excellence.</p>
+        </div>
     </footer>
 </body>
 </html>

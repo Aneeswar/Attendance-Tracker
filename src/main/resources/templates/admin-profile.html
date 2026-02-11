@@ -1,382 +1,258 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Profile - Admin Portal</title>
+    <title>Account Settings - AttenTrack Admin</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        :root {
+            --primary: #0f172a;
+            --accent: #4f46e5;
+            --background: #f1f5f9;
+            --white: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --success: #10b981;
+            --danger: #ef4444;
         }
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: var(--background); color: var(--text-main); min-height: 100vh; }
 
         .navbar {
-            background: rgba(0, 0, 0, 0.8);
+            background: var(--primary);
             color: white;
-            padding: 15px 30px;
+            padding: 1rem 2rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            position: fixed;
+            position: sticky;
             top: 0;
-            left: 0;
-            right: 0;
-            z-index: 100;
+            z-index: 1000;
         }
 
-        .navbar-brand {
-            font-size: 20px;
-            font-weight: 700;
-        }
+        .navbar-brand { font-size: 1.25rem; font-weight: 800; display: flex; align-items: center; gap: 0.75rem; }
+        .navbar-brand i { color: #818cf8; }
 
-        .navbar-menu {
-            display: flex;
-            gap: 20px;
-        }
+        .container { max-width: 800px; margin: 3rem auto; padding: 0 1.5rem; }
 
-        .navbar-menu a {
-            color: white;
-            text-decoration: none;
-            font-size: 14px;
-            transition: color 0.3s ease;
-        }
-
-        .navbar-menu a:hover {
-            color: #667eea;
-        }
-
-        .container {
-            max-width: 600px;
-            margin: 100px auto 30px;
-            padding: 30px;
+        .profile-card {
             background: white;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            border-radius: 1.5rem;
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
         }
 
-        .back-button {
-            position: fixed;
-            top: 70px;
-            left: 20px;
-            background: white;
-            color: #667eea;
-            border: 2px solid #667eea;
-            padding: 10px 20px;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            z-index: 99;
-        }
-
-        .back-button:hover {
-            background: #667eea;
+        .profile-header {
+            background: linear-gradient(to right, #1e293b, #0f172a);
+            padding: 3rem 2rem;
             color: white;
-            transform: translateX(-5px);
-        }
-
-        h1 {
-            color: #333;
-            margin-bottom: 30px;
-            font-size: 28px;
             text-align: center;
+            position: relative;
         }
 
-        .form-group {
-            margin-bottom: 25px;
+        .profile-avatar {
+            width: 80px; height: 80px;
+            background: var(--accent);
+            border-radius: 2rem;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2rem; font-weight: 800;
+            margin: 0 auto 1.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3);
         }
 
-        label {
-            display: block;
-            margin-bottom: 8px;
-            color: #333;
-            font-weight: 600;
-            font-size: 0.95em;
-        }
+        .profile-header h1 { font-size: 1.5rem; font-weight: 800; margin-bottom: 0.5rem; }
+        .profile-header p { color: #94a3b8; font-size: 0.875rem; font-weight: 600; }
 
-        input[type="text"],
-        input[type="password"],
-        input[type="email"] {
+        .card-body { padding: 2.5rem; }
+
+        .section-title {
+            font-size: 0.75rem;
+            font-weight: 800;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .section-title::after { content: ""; flex: 1; height: 1px; background: #f1f5f9; }
+
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2.5rem; }
+        .form-group { margin-bottom: 1.5rem; }
+        .form-group.full { grid-column: span 2; }
+
+        .form-group label { display: block; font-size: 0.8125rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.5rem; }
+        .form-group input {
             width: 100%;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 1em;
-            transition: border-color 0.3s ease;
+            padding: 0.75rem 1rem;
+            border-radius: 0.75rem;
+            border: 2px solid #f1f5f9;
+            font-size: 0.9375rem;
             font-family: inherit;
+            transition: all 0.2s;
+            background: #f8fafc;
         }
+        .form-group input:focus { outline: none; border-color: var(--accent); background: white; }
 
-        input[type="text"]:focus,
-        input[type="password"]:focus,
-        input[type="email"]:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-
-        .button-group {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-top: 30px;
-        }
-
-        button {
-            padding: 12px;
-            border: none;
-            border-radius: 8px;
-            font-size: 1em;
+        .btn-group { display: flex; gap: 1rem; margin-top: 2rem; }
+        .btn {
+            flex: 1;
+            padding: 0.875rem;
+            border-radius: 0.75rem;
+            font-weight: 700;
             cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s ease;
+            transition: all 0.2s;
+            display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+        }
+        .btn-primary { background: var(--accent); color: white; border: none; }
+        .btn-primary:hover { background: #4338ca; transform: translateY(-1px); }
+        .btn-secondary { background: white; color: var(--text-main); border: 2px solid #e2e8f0; }
+        .btn-secondary:hover { background: #f8fafc; }
+
+        .toast {
+            position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%);
+            background: var(--primary); color: white;
+            padding: 1rem 2rem; border-radius: 3rem;
+            font-weight: 700; font-size: 0.875rem;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+            display: none; z-index: 2000;
         }
 
-        .btn-save {
-            background: #28a745;
-            color: white;
-        }
-
-        .btn-save:hover {
-            background: #218838;
-            transform: translateY(-2px);
-        }
-
-        .btn-cancel {
-            background: #6c757d;
-            color: white;
-        }
-
-        .btn-cancel:hover {
-            background: #5a6268;
-        }
-
-        .alert {
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            display: none;
-        }
-
-        .alert.success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-            display: block;
-        }
-
-        .alert.error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-            display: block;
-        }
-
-        .info-box {
-            background: #f0f0f0;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 25px;
-            border-left: 4px solid #667eea;
-        }
-
-        .info-box p {
-            color: #666;
-            margin: 5px 0;
-            font-size: 0.95em;
-        }
-
-        .info-box strong {
-            color: #333;
-        }
-
-        .password-section {
-            border-top: 2px solid #e0e0e0;
-            padding-top: 25px;
-            margin-top: 25px;
-        }
-
-        .password-section h3 {
-            color: #333;
-            margin-bottom: 20px;
-            font-size: 1.2em;
+        @media (max-width: 640px) {
+            .form-grid { grid-template-columns: 1fr; }
+            .form-group.full { grid-column: span 1; }
         }
     </style>
 </head>
 <body>
     <div class="navbar">
-        <div class="navbar-brand">🛡️ Admin Portal</div>
-        <div class="navbar-menu">
-            <a href="#dashboard">Dashboard</a>
-            <a href="#" onclick="logout()">Logout</a>
+        <div class="navbar-brand">
+            <i class="fas fa-shield-user"></i>
+            <span>AttenTrack Admin</span>
+        </div>
+        <div>
+            <a href="/admin-dashboard" style="color: white; text-decoration: none; font-size: 0.875rem; font-weight: 700;">
+                <i class="fas fa-arrow-left"></i> Dashboard
+            </a>
         </div>
     </div>
-
-    <a href="/admin-dashboard" class="back-button">← Back to Dashboard</a>
 
     <div class="container">
-        <h1>👤 Admin Profile</h1>
+        <div class="profile-card">
+            <div class="profile-header">
+                <div class="profile-avatar" id="avatarInitials">AD</div>
+                <h1 id="displayUsername">Administrator</h1>
+                <p id="displayEmail">admin@attentrack.com</p>
+            </div>
 
-        <div id="alertContainer"></div>
+            <div class="card-body">
+                <form id="profileForm" onsubmit="updateProfile(event)">
+                    <div class="section-title">Account Information</div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Username</label>
+                            <input type="text" id="username" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Email Address</label>
+                            <input type="email" id="email" required>
+                        </div>
+                    </div>
 
-        <div class="info-box">
-            <p><strong>Username:</strong> <span id="displayUsername">Loading...</span></p>
-            <p><strong>Email:</strong> <span id="displayEmail">Loading...</span></p>
-            <p><strong>Role:</strong> Administrator</p>
+                    <div class="section-title">Security & Password</div>
+                    <div class="form-group">
+                        <label>Current Password</label>
+                        <input type="password" id="currentPassword" placeholder="Required for all changes">
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>New Password</label>
+                            <input type="password" id="newPassword" placeholder="Leave blank to keep current">
+                        </div>
+                        <div class="form-group">
+                            <label>Confirm New Password</label>
+                            <input type="password" id="confirmPassword" placeholder="Repeat new password">
+                        </div>
+                    </div>
+
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-secondary" onclick="window.location.href='/admin-dashboard'">Cancel</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Save Settings
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
-
-        <form id="profileForm" onsubmit="updateProfile(event)">
-            <div class="form-group">
-                <label for="username">Username *</label>
-                <input type="text" id="username" name="username" required>
-            </div>
-
-            <div class="form-group">
-                <label for="email">Email *</label>
-                <input type="email" id="email" name="email" required>
-            </div>
-
-            <div class="password-section">
-                <h3>🔐 Change Password</h3>
-                
-                <div class="form-group">
-                    <label for="currentPassword">Current Password</label>
-                    <input type="password" id="currentPassword" name="currentPassword" placeholder="Enter your current password">
-                </div>
-
-                <div class="form-group">
-                    <label for="newPassword">New Password</label>
-                    <input type="password" id="newPassword" name="newPassword" placeholder="Enter new password (optional)">
-                </div>
-
-                <div class="form-group">
-                    <label for="confirmPassword">Confirm New Password</label>
-                    <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Confirm new password">
-                </div>
-            </div>
-
-            <div class="button-group">
-                <button type="submit" class="btn-save">💾 Save Changes</button>
-                <button type="button" class="btn-cancel" onclick="goBack()">Cancel</button>
-            </div>
-        </form>
     </div>
 
+    <div id="toast" class="toast">Settings updated successfully!</div>
+
     <script>
-        const token = localStorage.getItem('jwtToken') || localStorage.getItem('token');
+        const token = localStorage.getItem('jwtToken');
+        if (!token) window.location.href = '/login?mode=admin';
 
-        document.addEventListener('DOMContentLoaded', function() {
-            if (!token) {
-                showAlert('Not authenticated. Please login again.', 'error');
-                setTimeout(() => window.location.href = '/login', 2000);
-                return;
-            }
-            loadAdminProfile();
-        });
+        document.addEventListener('DOMContentLoaded', loadProfile);
 
-        function loadAdminProfile() {
-            fetch('/api/admin/profile', {
-                method: 'GET',
-                headers: {
-                    'Authorization': 'Bearer ' + token,
-                    'Content-Type': 'application/json'
-                }
-            })
-            .then(response => {
-                if (!response.ok) throw new Error('Failed to load profile');
-                return response.json();
-            })
-            .then(data => {
-                document.getElementById('username').value = data.username || '';
-                document.getElementById('email').value = data.email || '';
+        async function loadProfile() {
+            try {
+                const res = await fetch('/api/admin/profile', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                
+                document.getElementById('username').value = data.username;
+                document.getElementById('email').value = data.email;
                 document.getElementById('displayUsername').textContent = data.username;
                 document.getElementById('displayEmail').textContent = data.email;
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showAlert('Error loading profile: ' + error.message, 'error');
-            });
+                document.getElementById('avatarInitials').textContent = data.username.substring(0,2).toUpperCase();
+            } catch (e) {
+                console.error(e);
+            }
         }
 
-        function updateProfile(event) {
-            event.preventDefault();
-
-            const username = document.getElementById('username').value.trim();
-            const email = document.getElementById('email').value.trim();
+        async function updateProfile(e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const email = document.getElementById('email').value;
             const currentPassword = document.getElementById('currentPassword').value;
             const newPassword = document.getElementById('newPassword').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
 
-            if (!username || !email) {
-                showAlert('Username and email are required', 'error');
-                return;
+            if(!currentPassword) return alert('Current password is required to save changes.');
+            if(newPassword && newPassword !== confirmPassword) return alert('New passwords do not match.');
+
+            try {
+                const res = await fetch('/api/admin/profile/update', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ username, email, currentPassword, newPassword })
+                });
+
+                if(res.ok) {
+                    showToast();
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    const errRes = await res.json();
+                    alert(errRes.error || 'Failed to update profile');
+                }
+            } catch (e) {
+                alert('An error occurred.');
             }
-
-            if (newPassword && newPassword !== confirmPassword) {
-                showAlert('New passwords do not match', 'error');
-                return;
-            }
-
-            const profileData = {
-                username: username,
-                email: email,
-                currentPassword: currentPassword,
-                newPassword: newPassword || null
-            };
-
-            const submitBtn = event.target.querySelector('button[type="submit"]');
-            submitBtn.disabled = true;
-            submitBtn.textContent = '⏳ Updating...';
-
-            fetch('/api/admin/profile/update', {
-                method: 'POST',
-                headers: {
-                    'Authorization': 'Bearer ' + token,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(profileData)
-            })
-            .then(response => {
-                if (!response.ok) return response.json().then(err => { throw err; });
-                return response.json();
-            })
-            .then(data => {
-                showAlert('Profile updated successfully!', 'success');
-                setTimeout(() => loadAdminProfile(), 1500);
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showAlert('Error updating profile: ' + (error.message || 'Please try again'), 'error');
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Update Profile';
-            });
         }
 
-        function showAlert(message, type) {
-            const container = document.getElementById('alertContainer');
-            const alert = document.createElement('div');
-            alert.className = `alert ${type}`;
-            alert.textContent = message;
-            container.innerHTML = '';
-            container.appendChild(alert);
-            setTimeout(() => alert.style.display = 'none', 5000);
-        }
-
-        function goBack() {
-            window.location.href = '/admin-dashboard';
-        }
-
-        function logout() {
-            localStorage.removeItem('jwtToken');
-            localStorage.removeItem('token');
-            window.location.href = '/login';
+        function showToast() {
+            const t = document.getElementById('toast');
+            t.style.display = 'block';
+            setTimeout(() => t.style.display = 'none', 3000);
         }
     </script>
 </body>

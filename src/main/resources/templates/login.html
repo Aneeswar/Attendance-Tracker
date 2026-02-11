@@ -1,10 +1,25 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Attendance System</title>
+    <title>Login - AttenTrack</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --secondary: #64748b;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --background: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -12,120 +27,174 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: radial-gradient(circle at top left, #4f46e5, #764ba2);
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
+            color: var(--text-main);
+            padding: 1.5rem;
         }
 
         .container {
             width: 100%;
-            max-width: 420px;
-            padding: 20px;
+            max-width: 440px;
         }
 
         .login-box {
-            background: white;
-            padding: 40px;
-            border-radius: 15px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            background: var(--card-bg);
+            padding: 2.5rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            position: relative;
+        }
+
+        .home-link {
+            position: absolute;
+            top: -3.5rem;
+            left: 0;
+        }
+
+        .home-link a {
+            color: white;
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+        }
+
+        .home-link a:hover {
+            opacity: 1;
         }
 
         .header {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 2rem;
+        }
+
+        .header .logo {
+            width: 3.5rem;
+            height: 3.5rem;
+            background: #eef2ff;
+            color: var(--primary);
+            border-radius: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.75rem;
+            margin: 0 auto 1.25rem;
         }
 
         .header h1 {
-            color: #333;
-            font-size: 28px;
-            margin-bottom: 10px;
+            font-size: 1.75rem;
+            font-weight: 800;
+            letter-spacing: -0.025em;
+            margin-bottom: 0.5rem;
         }
 
         .header p {
-            color: #666;
-            font-size: 14px;
+            color: var(--text-muted);
+            font-size: 0.875rem;
         }
 
         .user-type-selector {
             display: flex;
-            gap: 10px;
-            margin-bottom: 25px;
-            background: #f0f0ff;
-            padding: 8px;
-            border-radius: 8px;
+            background: #f1f5f9;
+            padding: 0.375rem;
+            border-radius: 0.75rem;
+            margin-bottom: 2rem;
         }
 
         .user-type-btn {
             flex: 1;
-            padding: 10px;
-            border: 2px solid transparent;
+            padding: 0.625rem;
+            border: none;
             background: transparent;
-            border-radius: 5px;
+            border-radius: 0.5rem;
             cursor: pointer;
             font-weight: 600;
-            font-size: 13px;
-            color: #666;
-            transition: all 0.3s ease;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
         }
 
         .user-type-btn.active {
             background: white;
-            color: #667eea;
-            border-color: #667eea;
-        }
-
-        .user-type-btn:hover {
-            color: #667eea;
+            color: var(--primary);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
 
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 1.25rem;
         }
 
         label {
             display: block;
-            margin-bottom: 8px;
-            color: #555;
-            font-weight: 500;
-            font-size: 14px;
+            margin-bottom: 0.5rem;
+            color: #475569;
+            font-weight: 600;
+            font-size: 0.875rem;
         }
 
-        input[type="text"],
-        input[type="password"] {
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-wrapper i {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+        }
+
+        input {
             width: 100%;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 5px;
-            font-size: 14px;
-            transition: border-color 0.3s;
+            padding: 0.75rem 1rem 0.75rem 2.75rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.75rem;
+            font-size: 0.95rem;
+            transition: all 0.2s;
             font-family: inherit;
         }
 
-        input[type="text"]:focus,
-        input[type="password"]:focus {
+        input:focus {
             outline: none;
-            border-color: #667eea;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
         }
 
         .btn-login {
             width: 100%;
-            padding: 12px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 0.875rem;
+            background: var(--primary);
             color: white;
             border: none;
-            border-radius: 5px;
-            font-size: 16px;
-            font-weight: 600;
+            border-radius: 0.75rem;
+            font-size: 1rem;
+            font-weight: 700;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            margin-top: 2rem;
         }
 
         .btn-login:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
         }
 
         .btn-login:disabled {
@@ -134,145 +203,140 @@
             transform: none;
         }
 
-        .error {
-            color: #c62828;
-            margin-top: 15px;
-            padding: 12px;
-            background: #ffcdd2;
-            border-left: 4px solid #f44336;
-            border-radius: 5px;
+        .alert {
+            padding: 1rem;
+            border-radius: 0.75rem;
+            margin-top: 1.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
             display: none;
-            font-size: 14px;
+            align-items: flex-start;
+            gap: 0.75rem;
         }
 
-        .success {
-            color: #2e7d32;
-            margin-top: 15px;
-            padding: 12px;
-            background: #c8e6c9;
-            border-left: 4px solid #4caf50;
-            border-radius: 5px;
+        .alert-error {
+            background: #fef2f2;
+            color: #b91c1c;
+            border: 1px solid #fee2e2;
+        }
+
+        .alert-success {
+            background: #ecfdf5;
+            color: #065f46;
+            border: 1px solid #d1fae5;
+        }
+
+        .admin-note {
+            background: #fffbeb;
+            color: #92400e;
+            padding: 0.75rem 1rem;
+            border-radius: 0.75rem;
+            font-size: 0.8125rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid #fef3c7;
             display: none;
-            font-size: 14px;
-        }
-
-        .loading {
-            display: none;
-            text-align: center;
-            margin-top: 15px;
-        }
-
-        .spinner {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #667eea;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 10px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            align-items: center;
+            gap: 0.5rem;
         }
 
         .links {
             text-align: center;
-            margin-top: 20px;
-            padding-top: 20px;
-            border-top: 1px solid #eee;
-            font-size: 14px;
-            color: #666;
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #f1f5f9;
+            font-size: 0.875rem;
+            color: var(--text-muted);
         }
 
         .links a {
-            color: #667eea;
+            color: var(--primary);
             text-decoration: none;
-            font-weight: 600;
-            transition: color 0.3s ease;
+            font-weight: 700;
         }
 
         .links a:hover {
-            color: #764ba2;
+            text-decoration: underline;
         }
 
-        .home-link {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
-        .home-link a {
-            color: #667eea;
-            text-decoration: none;
-            font-size: 14px;
-            transition: color 0.3s ease;
-        }
-
-        .home-link a:hover {
-            color: #764ba2;
-        }
-
-        .admin-info {
-            background: #fff3cd;
-            border-left: 4px solid #ffc107;
-            color: #856404;
-            padding: 12px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-            font-size: 13px;
+        .spinner {
+            width: 1.25rem;
+            height: 1.25rem;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
             display: none;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="login-box">
-            <div class="home-link">
-                <a href="/">← Back to Home</a>
-            </div>
+        <div class="home-link">
+            <a href="/"><i class="fas fa-arrow-left"></i> Back to Home</a>
+        </div>
 
+        <div class="login-box">
             <div class="header">
-                <h1>Login</h1>
+                <div class="logo">
+                    <i class="fas fa-graduation-cap"></i>
+                </div>
+                <h1 id="headerTitle">Login</h1>
                 <p id="headerSubtitle">Sign in to your account</p>
             </div>
 
             <div class="user-type-selector">
                 <button class="user-type-btn active" id="studentBtn" onclick="selectUserType('student')">
-                    👤 Student
+                    <i class="fas fa-user"></i> Student
                 </button>
                 <button class="user-type-btn" id="adminBtn" onclick="selectUserType('admin')">
-                    🔐 Admin
+                    <i class="fas fa-user-shield"></i> Admin
                 </button>
             </div>
 
-            <div class="admin-info" id="adminInfo">
-                Admin accounts are pre-configured. Contact system administrator if needed.
+            <div class="admin-note" id="adminNote">
+                <i class="fas fa-info-circle"></i>
+                Admin accounts are pre-configured.
             </div>
 
             <form id="loginForm">
                 <div class="form-group">
-                    <label for="username">Username</label>
-                    <input type="text" id="username" name="username" placeholder="Enter your username" required>
+                    <label>Username</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-at"></i>
+                        <input type="text" id="username" placeholder="your_username" required>
+                    </div>
                 </div>
                 <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" name="password" placeholder="Enter your password" required>
+                    <label>Password</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="password" placeholder="" required>
+                    </div>
                 </div>
-                <button type="submit" class="btn-login" id="loginBtn">Login</button>
-                <div class="loading" id="loading">
-                    <div class="spinner"></div>
-                    <p>Logging in...</p>
+                <button type="submit" class="btn-login" id="loginBtn">
+                    <span>Sign In</span>
+                    <div class="spinner" id="btnSpinner"></div>
+                </button>
+
+                <div class="alert alert-error" id="error">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span id="errorMsg"></span>
                 </div>
-                <div class="error" id="error"></div>
-                <div class="success" id="success"></div>
+                <div class="alert alert-success" id="success">
+                    <i class="fas fa-check-circle"></i>
+                    <span>Login successful! Redirecting...</span>
+                </div>
             </form>
 
             <div class="links" id="studentLinks">
-                <p>Don't have an account? <a href="/register">Create one here</a></p>
+                No account? <a href="/register">Create Account</a>
             </div>
             <div class="links" id="adminLinks" style="display: none;">
-                <p>Admin panel access only</p>
+                Academic Administration Portal
             </div>
         </div>
     </div>
@@ -281,7 +345,6 @@
         const API_URL = `${window.location.origin}/api/auth`;
         let selectedUserType = 'student';
 
-        // Get user type from URL parameter
         const urlParams = new URLSearchParams(window.location.search);
         const mode = urlParams.get('mode') || 'student';
         selectUserType(mode);
@@ -290,7 +353,7 @@
             selectedUserType = type;
             const studentBtn = document.getElementById('studentBtn');
             const adminBtn = document.getElementById('adminBtn');
-            const adminInfo = document.getElementById('adminInfo');
+            const adminNote = document.getElementById('adminNote');
             const studentLinks = document.getElementById('studentLinks');
             const adminLinks = document.getElementById('adminLinks');
             const headerSubtitle = document.getElementById('headerSubtitle');
@@ -298,25 +361,23 @@
             if (type === 'student') {
                 studentBtn.classList.add('active');
                 adminBtn.classList.remove('active');
-                adminInfo.style.display = 'none';
+                adminNote.style.display = 'none';
                 studentLinks.style.display = 'block';
                 adminLinks.style.display = 'none';
-                headerSubtitle.textContent = 'Student Login';
+                headerSubtitle.textContent = 'Enter student credentials';
             } else {
                 studentBtn.classList.remove('active');
                 adminBtn.classList.add('active');
-                adminInfo.style.display = 'block';
+                adminNote.style.display = 'flex';
                 studentLinks.style.display = 'none';
                 adminLinks.style.display = 'block';
-                headerSubtitle.textContent = 'Admin Login';
+                headerSubtitle.textContent = 'Administrator access only';
             }
-
             clearMessages();
         }
 
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-
             const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value;
 
@@ -325,15 +386,18 @@
                 return;
             }
 
-            document.getElementById('loading').style.display = 'block';
-            document.getElementById('loginBtn').disabled = true;
+            const btn = document.getElementById('loginBtn');
+            const spinner = document.getElementById('btnSpinner');
+            const btnText = btn.querySelector('span');
+
+            btn.disabled = true;
+            spinner.style.display = 'block';
+            btnText.style.display = 'none';
 
             try {
                 const response = await fetch(`${API_URL}/login`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, password })
                 });
 
@@ -341,43 +405,40 @@
                     const data = await response.json();
                     localStorage.setItem('jwtToken', data.token);
                     localStorage.setItem('username', data.username);
-                    
-                    // Also store token in cookie for server-side page requests
                     document.cookie = `jwt=${data.token}; path=/; max-age=86400; SameSite=Lax`;
 
-                    showSuccess('Login successful! Redirecting...');
-
-                    // Redirect based on user type
+                    showSuccess();
                     setTimeout(() => {
-                        if (selectedUserType === 'admin') {
-                            window.location.href = '/admin-dashboard';
-                        } else {
-                            window.location.href = '/student-dashboard';
-                        }
+                        window.location.href = selectedUserType === 'admin' ? '/admin-dashboard' : '/student-dashboard';
                     }, 1500);
                 } else {
                     showError('Invalid username or password');
-                    document.getElementById('loginBtn').disabled = false;
+                    resetBtn();
                 }
             } catch (error) {
-                showError('Error logging in: ' + error.message);
-                document.getElementById('loginBtn').disabled = false;
-            } finally {
-                document.getElementById('loading').style.display = 'none';
+                showError('Connection error: ' + error.message);
+                resetBtn();
             }
         });
 
+        function resetBtn() {
+            const btn = document.getElementById('loginBtn');
+            const spinner = document.getElementById('btnSpinner');
+            const btnText = btn.querySelector('span');
+            btn.disabled = false;
+            spinner.style.display = 'none';
+            btnText.style.display = 'block';
+        }
+
         function showError(message) {
             const errorDiv = document.getElementById('error');
-            errorDiv.textContent = message;
-            errorDiv.style.display = 'block';
+            document.getElementById('errorMsg').textContent = message;
+            errorDiv.style.display = 'flex';
             document.getElementById('success').style.display = 'none';
         }
 
-        function showSuccess(message) {
-            const successDiv = document.getElementById('success');
-            successDiv.textContent = message;
-            successDiv.style.display = 'block';
+        function showSuccess() {
+            document.getElementById('success').style.display = 'flex';
             document.getElementById('error').style.display = 'none';
         }
 

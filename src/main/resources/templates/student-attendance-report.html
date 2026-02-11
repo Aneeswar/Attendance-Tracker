@@ -1,11 +1,26 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Attendance Report - Student Portal</title>
+    <title>Attendance Report - AttenTrack</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --secondary: #64748b;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --background: #f1f5f9;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --nav-bg: #0f172a;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -13,1110 +28,517 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Inter', sans-serif;
+            background-color: var(--background);
+            color: var(--text-main);
             min-height: 100vh;
-            padding: 20px;
         }
+
+        .navbar {
+            background: var(--nav-bg);
+            color: white;
+            padding: 0.75rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .navbar-brand {
+            font-size: 1.25rem;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .navbar-brand i { color: #818cf8; }
 
         .container {
             max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            overflow: hidden;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
         }
 
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
+        .page-header {
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
         }
 
-        .header h1 {
-            font-size: 28px;
-            margin-bottom: 10px;
+        .page-header h1 {
+            font-size: 1.875rem;
+            font-weight: 800;
+            letter-spacing: -0.025em;
         }
 
-        .content {
-            padding: 40px;
-        }
-
-        .error-message {
-            background: #ffebee;
-            border-left: 4px solid #f44336;
-            color: #c62828;
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 20px;
+        .stale-banner {
+            background: #fffbeb;
+            border: 1px solid #fef3c7;
+            border-radius: 1rem;
+            padding: 1.25rem;
+            margin-bottom: 2rem;
             display: none;
-        }
-
-        .info-box {
-            background: #e3f2fd;
-            border-left: 4px solid #2196f3;
-            color: #1565c0;
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-            font-size: 14px;
-        }
-
-        .stale-notification {
-            background: #fff3e0;
-            border-left: 4px solid #ff9800;
-            color: #e65100;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 25px;
-            display: none; /* Hidden by default */
             align-items: center;
             justify-content: space-between;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
 
-        .stale-notification-content {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
+        .stale-content { display: flex; align-items: center; gap: 1rem; color: #92400e; }
+        .stale-content i { font-size: 1.5rem; color: var(--warning); }
         .refresh-btn {
-            background: #ff9800;
+            background: var(--warning);
             color: white;
             border: none;
-            padding: 8px 20px;
-            border-radius: 5px;
-            font-weight: 600;
+            padding: 0.625rem 1.25rem;
+            border-radius: 0.5rem;
+            font-weight: 700;
             cursor: pointer;
-            transition: all 0.2s;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 0.5rem;
+            transition: all 0.2s;
+        }
+        .refresh-btn:hover { background: #d97706; transform: translateY(-1px); }
+        .spinning { animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid #e2e8f0;
+            margin-bottom: 1.5rem;
         }
 
-        .refresh-btn:hover {
-            background: #f57c00;
-            transform: scale(1.05);
-        }
-
-        .refresh-btn:active {
-            transform: scale(0.95);
-        }
-
-        .refresh-btn i {
-            font-size: 16px;
-        }
-
-        .spinning {
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-
-        /* Toggle Switch for Medical/Other Relaxation */
-        .relaxation-toggle {
-            background: linear-gradient(135deg, #fff3e0, #ffe0b2);
-            border: 2px solid #ff9800;
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 25px;
+        /* Relaxation Toggle */
+        .policy-card {
+            background: linear-gradient(135deg, #4f46e511, #764ba211);
+            border: 1px solid #4f46e522;
             display: flex;
             align-items: center;
             justify-content: space-between;
         }
 
-        .relaxation-toggle-info {
-            flex: 1;
-        }
-
-        .relaxation-toggle-info h3 {
-            color: #e65100;
-            font-size: 16px;
-            margin-bottom: 5px;
-        }
-
-        .relaxation-toggle-info p {
-            color: #f57c00;
-            font-size: 13px;
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
         }
 
         .toggle-switch {
             position: relative;
-            width: 60px;
-            height: 34px;
+            width: 3.5rem;
+            height: 1.75rem;
         }
 
-        .toggle-switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
 
-        .toggle-slider {
+        .slider {
             position: absolute;
             cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: #ccc;
-            transition: 0.4s;
-            border-radius: 34px;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #cbd5e1;
+            transition: .4s;
+            border-radius: 1.75rem;
         }
 
-        .toggle-slider:before {
+        .slider:before {
             position: absolute;
             content: "";
-            height: 26px;
-            width: 26px;
-            left: 4px;
-            bottom: 4px;
+            height: 1.25rem; width: 1.25rem;
+            left: 0.25rem; bottom: 0.25rem;
             background-color: white;
-            transition: 0.4s;
+            transition: .4s;
             border-radius: 50%;
         }
 
-        .toggle-switch input:checked + .toggle-slider {
-            background-color: #ff9800;
+        input:checked + .slider { background-color: var(--primary); }
+        input:checked + .slider:before { transform: translateX(1.75rem); }
+
+        .policy-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            font-weight: 800;
+            font-size: 0.875rem;
         }
+        .badge-standard { background: #eef2ff; color: var(--primary); }
+        .badge-relaxed { background: #fffbeb; color: var(--warning); }
 
-        .toggle-switch input:checked + .toggle-slider:before {
-            transform: translateX(26px);
-        }
-
-        .toggle-label {
-            margin-left: 15px;
-            font-weight: 600;
-            color: #e65100;
-            font-size: 14px;
-        }
-
-        .threshold-display {
-            background: #fff;
-            padding: 8px 15px;
-            border-radius: 20px;
-            font-weight: 700;
-            font-size: 14px;
-            margin-left: 15px;
-        }
-
-        .threshold-75 { color: #1565c0; border: 2px solid #1565c0; }
-        .threshold-65 { color: #e65100; border: 2px solid #e65100; }
-
+        /* Report Grid */
         .report-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+            gap: 1.5rem;
         }
 
-        .report-card {
-            border: 1px solid #e0e0e0;
-            border-radius: 10px;
-            padding: 20px;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .report-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-        }
-
-        .report-card.safe::before {
-            background: #4caf50;
-        }
-
-        .report-card.at-risk::before {
-            background: #ff9800;
-        }
-
-        .report-card.impossible::before {
-            background: #f44336;
-        }
-
-        .report-card:hover {
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-            transform: translateY(-5px);
-        }
-
-        .course-header {
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid #eee;
-        }
-
-        .course-name {
-            font-size: 18px;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 5px;
-        }
-
-        .course-code {
-            font-size: 12px;
-            color: #999;
-        }
-
-        .stat-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 12px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid #f0f0f0;
-        }
-
-        .stat-label {
-            color: #666;
-            font-size: 13px;
-            font-weight: 500;
-        }
-
-        .stat-value {
-            font-weight: 700;
-            color: #333;
-            font-size: 14px;
-        }
-
-        .stat-value.highlight-green { color: #2e7d32; }
-        .stat-value.highlight-orange { color: #e65100; }
-        .stat-value.highlight-red { color: #c62828; }
-
-        .percentage {
-            font-size: 28px;
-            font-weight: 700;
-            color: #667eea;
-            text-align: center;
-            padding: 15px;
-            background: #f9f9f9;
-            border-radius: 8px;
-            margin-bottom: 15px;
-        }
-
-        .status-badge {
-            display: inline-block;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-weight: 600;
-            font-size: 13px;
-            text-align: center;
-            margin-top: 15px;
-            width: 100%;
-        }
-
-        .status-badge.safe {
-            background: #c8e6c9;
-            color: #2e7d32;
-        }
-
-        .status-badge.at-risk {
-            background: #ffe0b2;
-            color: #e65100;
-        }
-
-        .status-badge.impossible {
-            background: #ffcdd2;
-            color: #c62828;
-        }
-
-        .warning-message {
-            background: #fff3cd;
-            border-left: 4px solid #ffc107;
-            color: #856404;
-            padding: 12px;
-            border-radius: 5px;
-            font-size: 13px;
-            margin-top: 10px;
-        }
-
-        /* Skip Classes Info */
-        .skip-info {
-            background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
-            border-radius: 8px;
-            padding: 12px 15px;
-            margin-top: 15px;
-            border: 1px solid #a5d6a7;
-        }
-
-        .skip-info.warning {
-            background: linear-gradient(135deg, #fff3e0, #ffe0b2);
-            border-color: #ffcc80;
-        }
-
-        .skip-info.danger {
-            background: linear-gradient(135deg, #ffebee, #ffcdd2);
-            border-color: #ef9a9a;
-        }
-
-        .skip-info-title {
-            font-size: 12px;
-            color: #666;
-            margin-bottom: 5px;
-        }
-
-        .skip-info-value {
-            font-size: 18px;
-            font-weight: 700;
-            color: #2e7d32;
-        }
-
-        .skip-info.warning .skip-info-value { color: #e65100; }
-        .skip-info.danger .skip-info-value { color: #c62828; }
-
-        /* Upcoming Exam Section */
-        .upcoming-exam {
-            margin-top: 15px;
-            padding: 15px;
-            border-radius: 8px;
-            border: 2px solid;
-        }
-
-        .upcoming-exam.eligible {
-            background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
-            border-color: #4caf50;
-        }
-
-        .upcoming-exam.not-eligible {
-            background: linear-gradient(135deg, #ffebee, #ffcdd2);
-            border-color: #f44336;
-        }
-
-        .upcoming-exam-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-        }
-
-        .upcoming-exam-name {
-            font-weight: 700;
-            font-size: 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .exam-badge {
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 600;
-        }
-
-        .exam-badge.cat1 { background: #bbdefb; color: #1565c0; }
-        .exam-badge.cat2 { background: #c8e6c9; color: #2e7d32; }
-        .exam-badge.fat { background: #ffcdd2; color: #c62828; }
-
-        .eligibility-status {
-            padding: 5px 12px;
-            border-radius: 15px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        .eligibility-status.eligible {
-            background: #4caf50;
-            color: white;
-        }
-
-        .eligibility-status.not-eligible {
-            background: #f44336;
-            color: white;
-        }
-
-        .exam-dates {
-            font-size: 12px;
-            color: #666;
-        }
-
-        .summary-section {
-            background: #f9f9f9;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 30px;
-            border-left: 4px solid #667eea;
-        }
-
-        .summary-section h3 {
-            color: #333;
-            margin-bottom: 15px;
-            font-size: 18px;
-        }
-
-        .summary-stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 15px;
-        }
-
-        .summary-stat {
+        .course-card {
             background: white;
-            padding: 15px;
-            border-radius: 5px;
-            text-align: center;
-            border: 1px solid #e0e0e0;
-        }
-
-        .summary-stat-value {
-            font-size: 24px;
-            font-weight: 700;
-            color: #667eea;
-            margin-bottom: 5px;
-        }
-
-        .summary-stat-label {
-            font-size: 12px;
-            color: #666;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 40px;
-            color: #999;
-        }
-
-        .empty-state-icon {
-            font-size: 60px;
-            margin-bottom: 20px;
-        }
-
-        .action-buttons {
-            text-align: center;
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 2px solid #eee;
-        }
-
-        button {
-            padding: 12px 30px;
-            margin: 0 10px;
-            border: none;
-            border-radius: 5px;
-            font-size: 16px;
-            font-weight: 600;
+            border-radius: 1rem;
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+            transition: all 0.2s;
             cursor: pointer;
-            transition: all 0.3s ease;
         }
 
-        .btn-back {
-            background: #757575;
-            color: white;
+        .course-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            border-color: var(--primary);
         }
 
-        .btn-back:hover {
-            background: #616161;
-            transform: translateY(-2px);
+        .course-card-header {
+            padding: 1.5rem;
+            background: #f8fafc;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
         }
 
-        .btn-update {
-            background: #2196f3;
-            color: white;
+        .course-info h3 { font-size: 1.125rem; font-weight: 700; margin-bottom: 0.25rem; }
+        .course-info p { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+
+        .percentage-display {
+            text-align: right;
         }
 
-        .btn-update:hover {
-            background: #0b7dda;
-            transform: translateY(-2px);
+        .pct-val { font-size: 1.75rem; font-weight: 900; color: var(--primary); line-height: 1; }
+        .pct-lbl { font-size: 0.75rem; color: var(--text-muted); font-weight: 700; }
+
+        .course-body { padding: 1.5rem; }
+
+        .stat-line {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+            font-size: 0.875rem;
         }
 
-        .loading {
-            display: none;
-            text-align: center;
-            padding: 40px;
+        .stat-label { color: var(--text-muted); font-weight: 500; }
+        .stat-value { font-weight: 700; color: var(--text-main); }
+
+        .status-pill {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1rem;
+            border-radius: 0.75rem;
+            margin-top: 1rem;
+            font-weight: 700;
+            font-size: 0.875rem;
         }
 
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 15px;
+        .safe { background: #ecfdf5; color: #059669; }
+        .at-risk { background: #fffbeb; color: #d97706; }
+        .impossible { background: #fef2f2; color: #dc2626; }
+
+        /* Exam Box */
+        .exam-prediction {
+            background: #f8fafc;
+            border-radius: 0.75rem;
+            padding: 1rem;
+            margin-top: 1.25rem;
+            border: 1px dashed #cbd5e1;
         }
 
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        .exam-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
         }
 
-        .refresh-time {
-            text-align: center;
-            color: #999;
-            font-size: 13px;
-            margin-top: 15px;
+        .exam-name { font-weight: 800; font-size: 0.8125rem; color: var(--text-main); display: flex; align-items: center; gap: 0.5rem; }
+        .eligibility-check { font-size: 0.75rem; font-weight: 700; padding: 0.25rem 0.5rem; border-radius: 0.375rem; }
+        .check-yes { background: var(--success); color: white; }
+        .check-no { background: var(--danger); color: white; }
+
+        .exam-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
         }
 
-        /* Modal Styles */
+        .mini-stat { text-align: center; }
+        .mini-val { display: block; font-weight: 800; font-size: 1rem; color: var(--primary); }
+        .mini-lbl { font-size: 0.625rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; }
+
+        /* Modal */
         .modal {
             display: none;
             position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.6);
-            backdrop-filter: blur(5px);
+            z-index: 2000;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(4px);
             align-items: center;
             justify-content: center;
         }
 
-        .modal-content {
-            background-color: white;
-            padding: 30px;
-            border-radius: 15px;
+        .modal-card {
+            background: white;
             width: 90%;
-            max-width: 500px;
-            max-height: 80vh;
-            overflow-y: auto;
-            position: relative;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-            animation: modalFadeIn 0.3s ease;
-        }
-
-        @keyframes modalFadeIn {
-            from { opacity: 0; transform: translateY(-20px); }
-            to { opacity: 1; transform: translateY(0); }
+            max-width: 440px;
+            border-radius: 1.5rem;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
         }
 
         .modal-header {
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid #eee;
+            padding: 1.5rem;
+            border-bottom: 1px solid #f1f5f9;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
-        .modal-header h2 {
-            font-size: 20px;
-            color: #333;
-        }
+        .modal-header h2 { font-size: 1.25rem; font-weight: 800; }
+        .close-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-muted); }
 
-        .close-modal {
-            font-size: 28px;
-            font-weight: bold;
-            color: #999;
-            cursor: pointer;
-            line-height: 1;
-        }
+        .modal-body { padding: 1rem; overflow-y: auto; }
 
-        .close-modal:hover {
-            color: #333;
-        }
-
-        .date-list {
-            list-style: none;
-        }
-
-        .date-item {
-            padding: 12px 15px;
-            border-bottom: 1px solid #f5f5f5;
+        .date-row {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            transition: background 0.2s;
+            padding: 0.75rem 1rem;
+            border-radius: 0.75rem;
         }
+        .date-row:nth-child(even) { background: #f8fafc; }
 
-        .date-item:hover {
-            background-color: #f9f9f9;
-        }
+        .date-val { font-weight: 600; font-size: 0.95rem; }
+        .date-day { font-size: 0.75rem; font-weight: 700; color: var(--primary); background: #eef2ff; padding: 0.125rem 0.5rem; border-radius: 1rem; }
 
-        .date-item:last-child {
-            border-bottom: none;
-        }
-
-        .date-text {
-            font-weight: 500;
-            color: #444;
-        }
-
-        .day-name {
-            font-size: 0.85em;
-            color: #777;
-            background: #eee;
-            padding: 2px 8px;
-            border-radius: 10px;
-        }
-
-        .exam-flag {
-            font-size: 0.75em;
-            color: white;
-            background: #f44336;
-            padding: 2px 6px;
-            border-radius: 4px;
-            margin-left: 10px;
-            font-weight: bold;
-        }
-
-        .report-card {
-            cursor: pointer;
-        }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        .modal-card { animation: fadeIn 0.2s ease-out; }
     </style>
 </head>
 <body>
+    <div class="navbar">
+        <div class="navbar-brand">
+            <i class="fas fa-graduation-cap"></i>
+            <span>AttenTrack</span>
+        </div>
+        <div class="navbar-menu">
+            <a href="/student-dashboard"><i class="fas fa-home"></i> Dashboard</a>
+            <a href="/student-attendance-report" class="active"><i class="fas fa-chart-pie"></i> My Report</a>
+        </div>
+    </div>
+
     <div class="container">
-        <!-- ... existing content ... -->
+        <div id="staleBanner" class="stale-banner">
+            <div class="stale-content">
+                <i class="fas fa-sync-alt"></i>
+                <p><strong>System Sync:</strong> Academic calendar updates detected. Refresh your calculations.</p>
+            </div>
+            <button onclick="refreshReport(this)" class="refresh-btn">
+                <i class="fas fa-sync-alt"></i>
+                <span>Refresh Report</span>
+            </button>
+        </div>
+
+        <div class="page-header">
+            <div>
+                <h1>Attendance Analysis</h1>
+                <p style="color: var(--text-muted); font-size: 0.95rem;">Comprehensive breakdown of your academic standing.</p>
+            </div>
+            <div id="lastRefresh" style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;"></div>
+        </div>
+
+        <div class="card policy-card">
+            <div class="toggle-container">
+                <label class="toggle-switch">
+                    <input type="checkbox" id="relaxationToggle" onchange="toggleRelaxation()">
+                    <span class="slider"></span>
+                </label>
+                <div>
+                    <h3 style="font-size: 1rem; font-weight: 800;">Medical Relaxation</h3>
+                    <p style="font-size: 0.8125rem; color: var(--text-muted);">Enable to lower requirement to 65% for special cases.</p>
+                </div>
+            </div>
+            <div id="policyBadge" class="policy-badge badge-standard">75% THRESHOLD</div>
+        </div>
+
+        <div id="loading" style="text-align: center; padding: 4rem 0;">
+            <i class="fas fa-circle-notch fa-spin" style="font-size: 2rem; color: var(--primary);"></i>
+            <p style="margin-top: 1rem; font-weight: 600; color: var(--text-muted);">Analyzing courses...</p>
+        </div>
+
+        <div id="reportGrid" class="report-grid"></div>
+
+        <div id="emptyState" style="display: none; text-align: center; padding: 5rem 0;">
+            <div style="font-size: 3rem; margin-bottom: 1.5rem;"></div>
+            <h2 style="font-size: 1.5rem; font-weight: 800;">No Courses Found</h2>
+            <p style="color: var(--text-muted);">Start by adding your course schedule in the dashboard.</p>
+            <a href="/student-manage-courses" style="display: inline-block; margin-top: 1.5rem; background: var(--primary); color: white; padding: 0.75rem 2rem; border-radius: 0.75rem; text-decoration: none; font-weight: 700;">Add First Course</a>
+        </div>
     </div>
 
-    <!-- Future Class Dates Modal -->
+    <!-- Modal -->
     <div id="datesModal" class="modal">
-        <div class="modal-content">
+        <div class="modal-card">
             <div class="modal-header">
-                <h2 id="modalTitle">Future Classes</h2>
-                <span class="close-modal" onclick="closeModal()">&times;</span>
+                <h2>Upcoming Schedule</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
             </div>
-            <div id="modalDescription" style="margin-bottom: 20px; font-size: 14px; color: #666;">
-                These are the expected class dates until the end of the semester.
-            </div>
-            <div class="date-list" id="dateList">
-                <!-- Dates will be populated here -->
-            </div>
-        </div>
-    </div>
-        <div class="header">
-            <a href="/student-dashboard" style="position: absolute; left: 20px; top: 20px; background: rgba(255, 255, 255, 0.2); border: 2px solid white; color: white; padding: 8px 15px; border-radius: 5px; text-decoration: none; transition: all 0.3s ease;" onmouseover="this.style.background='rgba(255, 255, 255, 0.3)'; this.style.transform='translateX(-3px)';" onmouseout="this.style.background='rgba(255, 255, 255, 0.2)'; this.style.transform='translateX(0)';">← Back</a>
-            <h1>📊 Your Attendance Report</h1>
-            <p>Check your attendance, exam eligibility, and classes you can skip</p>
-        </div>
-
-        <div class="content">
-            <div class="error-message" id="errorMessage"></div>
-
-            <div id="staleNotification" class="stale-notification">
-                <div class="stale-notification-content">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <div>
-                        <strong>Upcoming Changes Detected:</strong>
-                        <span>Academic calendar or holidays have been updated since your last report calculation.</span>
-                    </div>
-                </div>
-                <button id="refreshBtn" class="refresh-btn" onclick="refreshReport(this)">
-                    <i class="fas fa-sync-alt"></i>
-                    Refresh Report
-                </button>
-            </div>
-
-            <div class="info-box">
-                📌 This report shows:
-                <br>• Your current attendance and how many classes you can still skip
-                <br>• Eligibility for the next upcoming exam
-                <br>• Toggle medical/other relaxation to see 65% threshold instead of 75%
-            </div>
-
-            <!-- Medical/Other Relaxation Toggle -->
-            <div class="relaxation-toggle">
-                <div class="relaxation-toggle-info">
-                    <h3>🏥 Medical / Other Relaxation</h3>
-                    <p>Enable if you have medical or other valid reasons (reduces requirement from 75% to 65%)</p>
-                </div>
-                <div style="display: flex; align-items: center;">
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="relaxationToggle" onchange="toggleRelaxation()">
-                        <span class="toggle-slider"></span>
-                    </label>
-                    <span class="toggle-label" id="toggleLabel">OFF</span>
-                    <span class="threshold-display threshold-75" id="thresholdDisplay">75%</span>
-                </div>
-            </div>
-
-            <div class="loading" id="loadingSection">
-                <div class="spinner"></div>
-                <p>Loading your attendance report...</p>
-            </div>
-
-            <div id="reportContent" style="display: none;">
-                <div class="summary-section" id="summarySection">
-                    <h3>📈 Summary</h3>
-                    <div class="summary-stats" id="summaryStats">
-                    </div>
-                </div>
-
-                <div class="report-grid" id="reportGrid">
-                </div>
-
-                <div class="action-buttons">
-                    <button class="btn-update" onclick="refreshReport(this)">
-                        <i class="fas fa-sync-alt"></i> Refresh Report
-                    </button>
-                    <button class="btn-back" onclick="goBack()">← Go Back</button>
-                </div>
-
-                <div class="refresh-time" id="refreshTime"></div>
-            </div>
-
-            <div class="empty-state" id="emptyState" style="display: none;">
-                <div class="empty-state-icon">📭</div>
-                <p>No attendance data found. Please enter your attendance first.</p>
-            </div>
+            <div class="modal-body" id="modalDateList"></div>
         </div>
     </div>
 
     <script>
-        const loadingSection = document.getElementById('loadingSection');
-        const reportContent = document.getElementById('reportContent');
-        const emptyState = document.getElementById('emptyState');
-        const reportGrid = document.getElementById('reportGrid');
-        const summaryStats = document.getElementById('summaryStats');
-        const errorMessage = document.getElementById('errorMessage');
-        const refreshTime = document.getElementById('refreshTime');
-
         let currentReports = [];
         let relaxationEnabled = false;
 
-        // Load report on page load
-        document.addEventListener('DOMContentLoaded', loadAttendanceReport);
+        document.addEventListener('DOMContentLoaded', loadReport);
+
+        async function loadReport() {
+            const token = localStorage.getItem('jwtToken');
+            try {
+                const res = await fetch('/api/student/attendance-report', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                document.getElementById('loading').style.display = 'none';
+
+                if (data.reports && data.reports.length > 0) {
+                    currentReports = data.reports;
+                    if (data.reports.some(r => r.stale)) {
+                        document.getElementById('staleBanner').style.display = 'flex';
+                    }
+                    if (data.generatedAt) {
+                        document.getElementById('lastRefresh').textContent = `CALCULATED: ${new Date(data.generatedAt).toLocaleString()}`;
+                    }
+                    renderGrid();
+                } else {
+                    document.getElementById('emptyState').style.display = 'block';
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
 
         function toggleRelaxation() {
             relaxationEnabled = document.getElementById('relaxationToggle').checked;
-            const toggleLabel = document.getElementById('toggleLabel');
-            const thresholdDisplay = document.getElementById('thresholdDisplay');
-            
-            if (relaxationEnabled) {
-                toggleLabel.textContent = 'ON';
-                thresholdDisplay.textContent = '65%';
-                thresholdDisplay.className = 'threshold-display threshold-65';
-            } else {
-                toggleLabel.textContent = 'OFF';
-                thresholdDisplay.textContent = '75%';
-                thresholdDisplay.className = 'threshold-display threshold-75';
-            }
-            
-            // Re-render the report with new threshold
-            if (currentReports.length > 0) {
-                displayReport(currentReports, null);
-            }
+            const badge = document.getElementById('policyBadge');
+            badge.textContent = relaxationEnabled ? '65% THRESHOLD' : '75% THRESHOLD';
+            badge.className = `policy-badge ${relaxationEnabled ? 'badge-relaxed' : 'badge-standard'}`;
+            renderGrid();
         }
 
-        function loadAttendanceReport() {
-            const token = localStorage.getItem('jwtToken');
-
-            fetch('/api/student/attendance-report', {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                loadingSection.style.display = 'none';
-                if (data.reports && data.reports.length > 0) {
-                    currentReports = data.reports;
-                    
-                    // Check if any report is stale
-                    const isStale = data.reports.some(r => r.stale === true);
-                    const staleNotification = document.getElementById('staleNotification');
-                    if (isStale) {
-                        staleNotification.style.display = 'flex';
-                    } else {
-                        staleNotification.style.display = 'none';
-                    }
-
-                    displayReport(data.reports, data.generatedAt);
-                    reportContent.style.display = 'block';
-                    emptyState.style.display = 'none';
-                } else {
-                    emptyState.style.display = 'block';
-                }
-            })
-            .catch(error => {
-                loadingSection.style.display = 'none';
-                showError('Error loading attendance report: ' + error.message);
-            });
-        }
-
-        async function refreshReport(btn = null) {
-            const refreshBtn = btn || document.getElementById('refreshBtn');
-            const icon = refreshBtn ? refreshBtn.querySelector('i') : null;
-            const token = localStorage.getItem('jwtToken');
-            
-            // UI Feedback
-            if (refreshBtn) refreshBtn.disabled = true;
-            if (icon) icon.classList.add('spinning');
-            
-            // If called from the main content without the spinner overlay, we can show it
-            if (!refreshBtn || !refreshBtn.id === 'refreshBtn') {
-                loadingSection.style.display = 'block';
-                reportContent.style.display = 'none';
-            }
-            
-            try {
-                const response = await fetch('/api/student/attendance-report/refresh', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-                
-                if (response.ok) {
-                    // Reload the report data
-                    loadAttendanceReport();
-                } else {
-                    throw new Error('Failed to refresh report');
-                }
-            } catch (error) {
-                showError('Refresh failed: ' + error.message);
-                loadingSection.style.display = 'none';
-                reportContent.style.display = 'block';
-            } finally {
-                if (refreshBtn) refreshBtn.disabled = false;
-                if (icon) icon.classList.remove('spinning');
-            }
-        }
-
-        function formatDate(dateStr) {
-            if (!dateStr) return 'N/A';
-            const date = new Date(dateStr);
-            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        }
-
-        function getExamBadgeClass(examName) {
-            if (examName === 'CAT-1') return 'cat1';
-            if (examName === 'CAT-2') return 'cat2';
-            return 'fat';
-        }
-
-        function displayReport(reports, generatedAt) {
-            reportGrid.innerHTML = '';
-
-            let safeCount = 0, atRiskCount = 0, impossibleCount = 0;
+        function renderGrid() {
+            const grid = document.getElementById('reportGrid');
+            grid.innerHTML = '';
             const threshold = relaxationEnabled ? 65 : 75;
 
-            reports.forEach(report => {
-                // Recalculate status based on current threshold
-                let status;
-                if (report.currentPercentage >= threshold) {
-                    status = 'SAFE';
-                } else if (report.status === 'IMPOSSIBLE') {
-                    status = 'IMPOSSIBLE';
-                } else {
-                    status = 'AT_RISK';
-                }
+            currentReports.forEach(report => {
+                const status = report.currentPercentage >= threshold ? 'SAFE' : (report.status === 'IMPOSSIBLE' ? 'IMPOSSIBLE' : 'AT_RISK');
+                const canSkip = relaxationEnabled ? report.classesCanSkip65 : report.classesCanSkip75;
+                const isEligible = relaxationEnabled ? report.upcomingExamEligibleRelaxed : report.upcomingExamEligible;
+                const projected = (report.projectedAttendancePercentage || 0).toFixed(1);
 
-                const cardClass = status.toLowerCase().replace('_', '-');
                 const card = document.createElement('div');
-                card.className = `report-card ${cardClass}`;
-                
-                // Add click event to show dates
-                card.onclick = () => showDatesModal(report);
-
-                const statusText = status === 'SAFE' ? '✓ Safe' : 
-                                   status === 'AT_RISK' ? '⚠ At Risk' : '✗ Impossible';
-
-                // Count statuses
-                if (status === 'SAFE') safeCount++;
-                else if (status === 'AT_RISK') atRiskCount++;
-                else if (status === 'IMPOSSIBLE') impossibleCount++;
-
-                // Classes that can be skipped
-                const classesCanSkip = relaxationEnabled ? report.classesCanSkip65 : report.classesCanSkip75;
-                let skipInfoClass = 'skip-info';
-                if (classesCanSkip <= 0) {
-                    skipInfoClass += ' danger';
-                } else if (classesCanSkip <= 3) {
-                    skipInfoClass += ' warning';
-                }
-
-                // Upcoming exam section
-                let upcomingExamHtml = '';
-                if (report.upcomingExamName) {
-                    const isEligible = relaxationEnabled ? report.upcomingExamEligibleRelaxed : report.upcomingExamEligible;
-                    const examClass = isEligible ? 'eligible' : 'not-eligible';
-                    const badgeClass = getExamBadgeClass(report.upcomingExamName);
-                    
-                    const canSkip = relaxationEnabled ? report.classesCanSkip65 : report.classesCanSkip75;
-                    const projectedPercentage = (report.projectedAttendancePercentage || 0).toFixed(1);
-                    
-                    const eligibilityMessage = isEligible 
-                        ? `✓ You CAN be eligible! Attend ${report.minimumClassesToAttend} out of ${report.futureClassesAvailable} classes.`
-                        : `✗ You cannot achieve ${threshold} even with all remaining classes.`;
-                    
-                    upcomingExamHtml = `
-                        <div class="upcoming-exam ${examClass}">
-                            <div class="upcoming-exam-header">
-                                <div class="upcoming-exam-name">
-                                    📝 <span class="exam-badge ${badgeClass}">${report.upcomingExamName}</span> Upcoming
-                                </div>
-                                <span class="eligibility-status ${examClass}">
-                                    ${isEligible ? '✓ Eligible' : '✗ Not Eligible'}
-                                </span>
-                            </div>
-                            <div class="exam-dates">
-                                📅 ${formatDate(report.upcomingExamStartDate)}${report.upcomingExamEndDate ? ' - ' + formatDate(report.upcomingExamEndDate) : ''}
-                            </div>
-                            
-                            <div style="margin-top: 15px; padding: 15px; background: ${isEligible ? 'rgba(40, 167, 69, 0.1)' : 'rgba(220, 53, 69, 0.1)'}; border-radius: 6px; border-left: 4px solid ${isEligible ? '#28a745' : '#dc3545'};">
-                                <div style="font-size: 0.9em; color: #333; margin-bottom: 10px;">
-                                    ${eligibilityMessage}
-                                </div>
-                                
-                                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 12px;">
-                                    <div style="text-align: center; padding: 10px; background: white; border-radius: 6px;">
-                                        <div style="color: #666; font-size: 0.85em; margin-bottom: 4px;">Classes Upcoming</div>
-                                        <div style="font-weight: 700; font-size: 1.2em; color: #667eea;">${report.futureClassesAvailable}</div>
-                                    </div>
-                                    <div style="text-align: center; padding: 10px; background: white; border-radius: 6px;">
-                                        <div style="color: #666; font-size: 0.85em; margin-bottom: 4px;">Can Skip</div>
-                                        <div style="font-weight: 700; font-size: 1.2em; color: #667eea;">${canSkip}</div>
-                                    </div>
-                                    <div style="text-align: center; padding: 10px; background: white; border-radius: 6px;">
-                                        <div style="color: #666; font-size: 0.85em; margin-bottom: 4px;">Projected %</div>
-                                        <div style="font-weight: 700; font-size: 1.2em; color: #667eea;">${projectedPercentage}%</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                }
-
-                let warningMessage = '';
-                if (status === 'IMPOSSIBLE') {
-                    warningMessage = `<div class="warning-message">⚠️ You cannot achieve ${threshold}% even if you attend all remaining classes.</div>`;
-                } else if (status === 'AT_RISK' && report.minimumClassesToAttend > 0) {
-                    warningMessage = `<div class="warning-message">You must attend at least ${report.minimumClassesToAttend} out of ${report.futureClassesAvailable} remaining classes.</div>`;
-                }
-
+                card.className = 'course-card';
+                card.onclick = () => showModal(report);
                 card.innerHTML = `
-                    <div class="course-header">
-                        <div class="course-name">${report.courseName || 'Unknown'}</div>
-                        <div class="course-code">${report.courseCode}</div>
+                    <div class="course-card-header">
+                        <div class="course-info">
+                            <h3>${report.courseName || 'Course'}</h3>
+                            <p>${report.courseCode}</p>
+                        </div>
+                        <div class="percentage-display">
+                            <span class="pct-val">${report.currentPercentage.toFixed(1)}%</span>
+                            <div class="pct-lbl">CURRENT</div>
+                        </div>
                     </div>
+                    <div class="course-body">
+                        <div class="stat-line">
+                            <span class="stat-label">Classes Attended</span>
+                            <span class="stat-value">${report.classesAttended} / ${report.totalClassesConducted}</span>
+                        </div>
+                        <div class="stat-line">
+                            <span class="stat-label">Available to Skip</span>
+                            <span class="stat-value" style="color: ${canSkip <= 0 ? 'var(--danger)' : (canSkip <= 2 ? 'var(--warning)' : 'var(--success)')}">${canSkip} Classes</span>
+                        </div>
 
-                    <div class="percentage">${report.currentPercentage.toFixed(1)}%</div>
+                        ${report.upcomingExamName ? `
+                            <div class="exam-prediction">
+                                <div class="exam-header">
+                                    <span class="exam-name"><i class="fas fa-scroll"></i> ${report.upcomingExamName} Projection</span>
+                                    <span class="eligibility-check ${isEligible ? 'check-yes' : 'check-no'}">
+                                        ${isEligible ? 'ELIGIBLE' : 'NOT ELIGIBLE'}
+                                    </span>
+                                </div>
+                                <div class="exam-stats">
+                                    <div class="mini-stat"><span class="mini-val">${report.futureClassesAvailable}</span><span class="mini-lbl">Upcoming</span></div>
+                                    <div class="mini-stat"><span class="mini-val">${report.minimumClassesToAttend}</span><span class="mini-lbl">Must Attend</span></div>
+                                    <div class="mini-stat"><span class="mini-val">${projected}%</span><span class="mini-lbl">Target %</span></div>
+                                </div>
+                            </div>
+                        ` : ''}
 
-                    <div class="stat-row">
-                        <span class="stat-label">Classes Attended</span>
-                        <span class="stat-value">${report.classesAttended || 0} / ${report.totalClassesConducted || 0}</span>
+                        <div class="status-pill ${status.toLowerCase().replace('_', '-')}">
+                            <i class="fas ${status === 'SAFE' ? 'fa-check-circle' : (status === 'IMPOSSIBLE' ? 'fa-times-circle' : 'fa-exclamation-circle')}"></i>
+                            <span>${status.replace('_', ' ')}</span>
+                        </div>
                     </div>
-
-                    <div class="stat-row">
-                        <span class="stat-label">Future Classes Coming</span>
-                        <span class="stat-value highlight-green">${report.futureClassesAvailable}</span>
-                    </div>
-
-                    <div class="stat-row">
-                        <span class="stat-label">Min. Classes to Attend</span>
-                        <span class="stat-value ${report.minimumClassesToAttend > 0 ? 'highlight-orange' : 'highlight-green'}">${report.minimumClassesToAttend}</span>
-                    </div>
-
-                    <div class="${skipInfoClass}">
-                        <div class="skip-info-title">Classes You Can Skip (for ${threshold}%)</div>
-                        <div class="skip-info-value">${classesCanSkip >= 0 ? classesCanSkip : 0} classes</div>
-                    </div>
-
-                    <div class="status-badge ${cardClass}">${statusText}</div>
-                    ${warningMessage}
-                    ${upcomingExamHtml}
                 `;
-
-                reportGrid.appendChild(card);
+                grid.appendChild(card);
             });
+        }
 
-            // Display summary
-            summaryStats.innerHTML = `
-                <div class="summary-stat">
-                    <div class="summary-stat-value">${reports.length}</div>
-                    <div class="summary-stat-label">Courses</div>
-                </div>
-                <div class="summary-stat">
-                    <div class="summary-stat-value" style="color: #4caf50;">${safeCount}</div>
-                    <div class="summary-stat-label">Safe (≥${threshold}%)</div>
-                </div>
-                <div class="summary-stat">
-                    <div class="summary-stat-value" style="color: #ff9800;">${atRiskCount}</div>
-                    <div class="summary-stat-label">At Risk</div>
-                </div>
-                <div class="summary-stat">
-                    <div class="summary-stat-value" style="color: #f44336;">${impossibleCount}</div>
-                    <div class="summary-stat-label">Impossible</div>
-                </div>
-            `;
+        async function refreshReport(btn) {
+            const icon = btn.querySelector('i');
+            const span = btn.querySelector('span');
+            btn.disabled = true;
+            if (icon) icon.classList.add('spinning');
+            if (span) span.textContent = 'Syncing...';
 
-            // Display refresh time
-            if (generatedAt) {
-                const date = new Date(generatedAt);
-                refreshTime.textContent = `Report generated at: ${date.toLocaleString()}`;
+            try {
+                const res = await fetch('/api/student/attendance-report/refresh', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('jwtToken')}` }
+                });
+                if (res.ok) {
+                    document.getElementById('staleBanner').style.display = 'none';
+                    loadReport();
+                }
+            } catch (e) {} finally {
+                btn.disabled = false;
+                if (icon) icon.classList.remove('spinning');
+                if (span) span.textContent = 'Refresh Report';
             }
         }
 
-        function goBack() {
-            window.location.href = '/student-dashboard';
-        }
-
-        // Modal Functions
-        function showDatesModal(report) {
+        function showModal(report) {
             const modal = document.getElementById('datesModal');
-            const modalTitle = document.getElementById('modalTitle');
-            const dateList = document.getElementById('dateList');
-            const modalDesc = document.getElementById('modalDescription');
+            const list = document.getElementById('modalDateList');
+            list.innerHTML = '';
             
-            modalTitle.innerText = `${report.courseCode} - Future Classes`;
-            dateList.innerHTML = '';
-            
-            const dates = report.futureClassDates || [];
-            const datesUntilExam = report.futureClassDatesUntilExam || [];
-            
-            if (dates.length === 0) {
-                dateList.innerHTML = '<div style="text-align:center; padding: 20px; color: #999;">No future classes found.</div>';
+            if (!report.futureClassDates || report.futureClassDates.length === 0) {
+                list.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 2rem;">No upcoming classes found.</p>';
             } else {
-                dates.forEach(dateStr => {
-                    const date = new Date(dateStr);
-                    const formattedDate = date.toLocaleDateString('en-US', { 
-                        weekday: 'long', 
-                        year: 'numeric', 
-                        month: 'long', 
-                        day: 'numeric' 
-                    });
-                    const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
-                    
-                    const isBeforeExam = datesUntilExam.includes(dateStr);
-                    
-                    const item = document.createElement('div');
-                    item.className = 'date-item';
-                    
-                    let examFlagHtml = '';
-                    if (report.upcomingExamName && !isBeforeExam && datesUntilExam.length > 0) {
-                        // This class is after the upcoming exam
-                    }
-                    
-                    item.innerHTML = `
-                        <span class="date-text">${formattedDate}</span>
-                        <span class="day-name">${dayName}</span>
+                report.futureClassDates.forEach(dateStr => {
+                    const d = new Date(dateStr);
+                    const row = document.createElement('div');
+                    row.className = 'date-row';
+                    row.innerHTML = `
+                        <span class="date-val">${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                        <span class="date-day">${d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase()}</span>
                     `;
-                    dateList.appendChild(item);
+                    list.appendChild(row);
                 });
             }
-            
             modal.style.display = 'flex';
-            
-            // Close on click outside
-            window.onclick = function(event) {
-                if (event.target == modal) {
-                    closeModal();
-                }
-            }
         }
 
-        function closeModal() {
-            const modal = document.getElementById('datesModal');
-            modal.style.display = 'none';
-        }
-
-        function showError(message) {
-            errorMessage.textContent = message;
-            errorMessage.style.display = 'block';
-        }
+        function closeModal() { document.getElementById('datesModal').style.display = 'none'; }
+        window.onclick = (e) => { if(e.target.id === 'datesModal') closeModal(); }
     </script>
 </body>
 </html>

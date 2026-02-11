@@ -37,6 +37,15 @@ public class DateBasedAttendanceService {
     @Autowired
     private ObjectProvider<StudentService> studentServiceProvider;
 
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private AcademicCalendarRepository academicCalendarRepository;
+
+    @Autowired
+    private HolidayRepository holidayRepository;
+
     /**
      * Get attendance calendar for a specific course
      * Shows dates from last attendance update to today based on course schedule

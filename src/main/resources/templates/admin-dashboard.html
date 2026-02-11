@@ -1,397 +1,265 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - Attendance System</title>
+    <title>Admin Dashboard - AttenTrack</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        :root {
+            --primary: #1e293b;
+            --accent: #4f46e5;
+            --background: #f1f5f9;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --nav-bg: #0f172a;
         }
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: var(--background); color: var(--text-main); min-height: 100vh; }
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .header {
-            background: white;
-            border-radius: 15px;
-            padding: 25px 30px;
-            margin-bottom: 25px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        .navbar {
+            background: var(--nav-bg);
+            color: white;
+            padding: 1rem 2rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
         }
 
-        .header h1 {
-            color: #1e3c72;
-            font-size: 26px;
-        }
-
-        .header-right {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-
-        .admin-badge {
-            background: linear-gradient(135deg, #1e3c72, #2a5298);
-            color: white;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-weight: 600;
-            font-size: 14px;
-        }
+        .navbar-brand { font-size: 1.25rem; font-weight: 800; display: flex; align-items: center; gap: 0.75rem; }
+        .navbar-brand i { color: #818cf8; }
 
         .btn-logout {
-            background: #f44336;
+            background: rgba(255, 255, 255, 0.1);
             color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
-            cursor: pointer;
+            border: 1px solid rgba(255,255,255,0.2);
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
             font-weight: 600;
-            transition: all 0.3s ease;
+            cursor: pointer;
+            transition: all 0.2s;
         }
+        .btn-logout:hover { background: #ef4444; border-color: #ef4444; }
 
-        .btn-logout:hover {
-            background: #d32f2f;
-            transform: translateY(-2px);
-        }
+        .container { max-width: 1200px; margin: 3rem auto; padding: 0 1.5rem; }
+
+        .welcome-section { margin-bottom: 2.5rem; }
+        .welcome-section h1 { font-size: 2rem; font-weight: 800; letter-spacing: -0.025em; }
+        .welcome-section p { color: var(--text-muted); margin-top: 0.25rem; }
 
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 25px;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
         }
 
         .stat-card {
             background: white;
-            border-radius: 15px;
-            padding: 25px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
-            transition: transform 0.3s ease;
+            padding: 2rem;
+            border-radius: 1.25rem;
+            border: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            transition: transform 0.2s;
         }
-
-        .stat-card:hover {
-            transform: translateY(-5px);
-        }
+        .stat-card:hover { transform: translateY(-4px); }
 
         .stat-icon {
-            font-size: 40px;
-            margin-bottom: 15px;
+            width: 3rem; height: 3rem;
+            border-radius: 1rem;
+            background: #eef2ff;
+            color: var(--accent);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.25rem;
         }
 
-        .stat-value {
-            font-size: 32px;
-            font-weight: 700;
-            color: #1e3c72;
-            margin-bottom: 5px;
-        }
+        .stat-vals h3 { font-size: 1.5rem; font-weight: 800; }
+        .stat-vals p { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
 
-        .stat-label {
-            color: #666;
-            font-size: 14px;
-        }
-
-        .main-content {
+        .admin-actions {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 25px;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1.5rem;
         }
 
-        @media (max-width: 900px) {
-            .main-content {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .card {
+        .action-card {
             background: white;
-            border-radius: 15px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
-            overflow: hidden;
-        }
-
-        .card-header {
-            background: linear-gradient(135deg, #1e3c72, #2a5298);
-            color: white;
-            padding: 20px 25px;
-            font-size: 18px;
-            font-weight: 600;
-        }
-
-        .card-body {
-            padding: 25px;
-        }
-
-        .menu-list {
-            list-style: none;
-        }
-
-        .menu-item {
+            border-radius: 1.25rem;
+            padding: 2rem;
+            border: 1px solid #e2e8f0;
             display: flex;
-            align-items: center;
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 10px;
-            cursor: pointer;
-            transition: all 0.3s ease;
+            align-items: flex-start;
+            gap: 1.5rem;
             text-decoration: none;
-            color: #333;
+            color: inherit;
+            transition: all 0.2s;
         }
 
-        .menu-item:hover {
-            background: #f0f4ff;
-            transform: translateX(5px);
+        .action-card:hover {
+            border-color: var(--accent);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
         }
 
-        .menu-icon {
-            font-size: 24px;
-            margin-right: 15px;
+        .action-icon {
+            width: 3.5rem; height: 3.5rem;
+            border-radius: 1rem;
+            background: #f8fafc;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem;
+            color: var(--text-main);
+            transition: all 0.2s;
         }
 
-        .menu-text {
-            flex: 1;
-        }
+        .action-card:hover .action-icon { background: var(--accent); color: white; }
 
-        .menu-text h4 {
-            color: #1e3c72;
-            margin-bottom: 3px;
-        }
+        .action-info h2 { font-size: 1.25rem; font-weight: 800; margin-bottom: 0.5rem; }
+        .action-info p { font-size: 0.875rem; color: var(--text-muted); line-height: 1.5; }
 
-        .menu-text p {
-            color: #888;
-            font-size: 13px;
-        }
-
-        .arrow {
-            color: #1e3c72;
-            font-size: 20px;
-        }
-
-        .activity-item {
+        .system-status {
+            margin-top: 4rem;
+            padding: 2rem;
+            background: #0f172a;
+            border-radius: 1.5rem;
+            color: white;
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            padding: 12px 0;
-            border-bottom: 1px solid #eee;
-        }
-
-        .activity-item:last-child {
-            border-bottom: none;
-        }
-
-        .activity-icon {
-            width: 40px;
-            height: 40px;
-            background: #e3f2fd;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 15px;
-            font-size: 18px;
-        }
-
-        .activity-text {
-            flex: 1;
-        }
-
-        .activity-text h5 {
-            color: #333;
-            margin-bottom: 3px;
-            font-weight: 600;
-        }
-
-        .activity-text p {
-            color: #888;
-            font-size: 12px;
         }
     </style>
 </head>
 <body>
+    <div class="navbar">
+        <div class="navbar-brand">
+            <i class="fas fa-shield-alt"></i>
+            <span>AttenTrack Admin</span>
+        </div>
+        <button class="btn-logout" onclick="logout()">
+            <i class="fas fa-sign-out-alt"></i> Logout
+        </button>
+    </div>
+
     <div class="container">
-        <div class="header">
-            <h1>🛡️ Admin Dashboard</h1>
-            <div class="header-right">
-                <span class="admin-badge" id="adminName">Admin</span>
-                <a href="/admin/profile" style="color: white; text-decoration: none; margin-right: 15px; font-weight: 600;">👤 Profile</a>
-                <button class="btn-logout" onclick="logout()">Logout</button>
-            </div>
+        <div class="welcome-section">
+            <h1 id="adminName">Loading...</h1>
+            <p>Institutional oversight and system configuration.</p>
         </div>
 
         <div class="stats-grid">
             <div class="stat-card">
-                <div class="stat-icon">👥</div>
-                <div class="stat-value" id="totalStudents">-</div>
-                <div class="stat-label">Total Students</div>
+                <div class="stat-icon"><i class="fas fa-user-graduate"></i></div>
+                <div class="stat-vals">
+                    <h3 id="totalStudents">-</h3>
+                    <p>Total Students</p>
+                </div>
             </div>
             <div class="stat-card">
-                <div class="stat-icon">📚</div>
-                <div class="stat-value" id="totalCourses">-</div>
-                <div class="stat-label">Total Courses</div>
+                <div class="stat-icon"><i class="fas fa-book"></i></div>
+                <div class="stat-vals">
+                    <h3 id="totalCourses">-</h3>
+                    <p>System Courses</p>
+                </div>
             </div>
             <div class="stat-card">
-                <div class="stat-icon">📅</div>
-                <div class="stat-value" id="currentSemester">-</div>
-                <div class="stat-label">Current Academic Year</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon">🎉</div>
-                <div class="stat-value" id="totalHolidays">-</div>
-                <div class="stat-label">Holidays Configured</div>
+                <div class="stat-icon"><i class="fas fa-calendar-alt"></i></div>
+                <div class="stat-vals">
+                    <h3 id="upcomingEvents">-</h3>
+                    <p>Active Holidays</p>
+                </div>
             </div>
         </div>
 
-        <div class="main-content">
-            <div class="card">
-                <div class="card-header">⚙️ Admin Menu</div>
-                <div class="card-body">
-                    <ul class="menu-list">
-                        <a class="menu-item" href="/admin/academic-calendar">
-                            <span class="menu-icon">📆</span>
-                            <div class="menu-text">
-                                <h4>Academic Calendar</h4>
-                                <p>Configure semester dates, exam dates - changes auto-update all reports</p>
-                            </div>
-                            <span class="arrow">→</span>
-                        </a>
-                        <a class="menu-item" href="/admin/holidays">
-                            <span class="menu-icon">🎄</span>
-                            <div class="menu-text">
-                                <h4>Holiday Management</h4>
-                                <p>Add, edit, and remove holidays - automatically updates student reports</p>
-                            </div>
-                            <span class="arrow">→</span>
-                        </a>
-                        <a class="menu-item" href="/admin/students">
-                            <span class="menu-icon">👨‍🎓</span>
-                            <div class="menu-text">
-                                <h4>Student Management</h4>
-                                <p>View and manage student accounts</p>
-                            </div>
-                            <span class="arrow">→</span>
-                        </a>
-                        <a class="menu-item" href="/admin/reports">
-                            <span class="menu-icon">📊</span>
-                            <div class="menu-text">
-                                <h4>Reports</h4>
-                                <p>View system-wide attendance reports</p>
-                            </div>
-                            <span class="arrow">→</span>
-                        </a>
-                    </ul>
+        <div class="admin-actions">
+            <a href="/admin/students" class="action-card">
+                <div class="action-icon"><i class="fas fa-users-cog"></i></div>
+                <div class="action-info">
+                    <h2>Student Records</h2>
+                    <p>Search and manage student accounts, reset passwords, or view individual profiles.</p>
                 </div>
-            </div>
+            </a>
+            <a href="/admin/academic-calendar" class="action-card">
+                <div class="action-icon"><i class="fas fa-calendar-day"></i></div>
+                <div class="action-info">
+                    <h2>Academic Phases</h2>
+                    <p>Configure semester start/end dates and define examination periods for calculations.</p>
+                </div>
+            </a>
+            <a href="/admin/holidays" class="action-card">
+                <div class="action-icon"><i class="fas fa-umbrella-beach"></i></div>
+                <div class="action-info">
+                    <h2>Institutional Holidays</h2>
+                    <p>Add and manage university-wide holidays that impact attendance requirements.</p>
+                </div>
+            </a>
+            <a href="/admin/profile" class="action-card">
+                <div class="action-icon"><i class="fas fa-user-lock"></i></div>
+                <div class="action-info">
+                    <h2>Security & Settings</h2>
+                    <p>Update your administrative credentials and system notification preferences.</p>
+                </div>
+            </a>
+        </div>
 
-            <div class="card">
-                <div class="card-header">📋 Recent Activity</div>
-                <div class="card-body">
-                    <div class="activity-item">
-                        <div class="activity-icon">✅</div>
-                        <div class="activity-text">
-                            <h5>System Active</h5>
-                            <p>Attendance system running normally</p>
-                        </div>
-                    </div>
-                    <div class="activity-item">
-                        <div class="activity-icon">�</div>
-                        <div class="activity-text">
-                            <h5>Auto-Updated Reports</h5>
-                            <p>Reports regenerate when calendar/holidays change</p>
-                        </div>
-                    </div>
-                    <div class="activity-item">
-                        <div class="activity-icon">🎉</div>
-                        <div class="activity-text">
-                            <h5>Holiday Management</h5>
-                            <p>Updates instantly reflect in all student reports</p>
-                        </div>
-                    </div>
-                </div>
+        <div class="system-status">
+            <div>
+                <p style="font-size: 0.75rem; font-weight: 800; color: #818cf8; text-transform: uppercase;">System Health</p>
+                <h3 style="margin-top: 0.25rem;">Operational - All services synced</h3>
+            </div>
+            <div style="text-align: right;">
+                <p style="font-size: 0.75rem; color: #94a3b8;">Uptime</p>
+                <p style="font-weight: 700;">99.99%</p>
             </div>
         </div>
     </div>
 
     <script>
-        // Check authentication
-        function getJwtToken() {
-            let token = localStorage.getItem('jwtToken');
-            if (token) return token;
-            
-            const cookies = document.cookie.split(';');
-            for (let cookie of cookies) {
-                const [name, value] = cookie.trim().split('=');
-                if (name === 'jwt') {
-                    localStorage.setItem('jwtToken', value);
-                    return value;
-                }
-            }
-            return null;
-        }
+        const token = localStorage.getItem('jwtToken');
+        if (!token) window.location.href = '/login?mode=admin';
 
-        const token = getJwtToken();
-        if (!token) {
-            window.location.href = '/login?mode=admin';
-        }
+        document.addEventListener('DOMContentLoaded', () => {
+            loadDashboard();
+        });
 
-        // Set admin name
-        const username = localStorage.getItem('username') || 'Admin';
-        document.getElementById('adminName').textContent = '🔐 ' + username;
-
-        // Load dashboard stats
-        async function loadStats() {
+        async function loadDashboard() {
             try {
-                // Get admin stats (total students and courses)
+                // Fetch stats from academic calendar controller
                 const statsRes = await fetch('/api/admin/academic-calendar/stats', {
-                    headers: { 'Authorization': 'Bearer ' + token }
+                    headers: { 'Authorization': `Bearer ${token}` }
                 });
-                if (statsRes.ok) {
-                    const stats = await statsRes.json();
-                    document.getElementById('totalStudents').textContent = stats.totalStudents || 0;
-                    document.getElementById('totalCourses').textContent = stats.totalCourses || 0;
-                }
-
-                // Get academic calendar
-                const calendarRes = await fetch('/api/admin/academic-calendar/current', {
-                    headers: { 'Authorization': 'Bearer ' + token }
-                });
-                if (calendarRes.ok) {
-                    const calendar = await calendarRes.json();
-                    document.getElementById('currentSemester').textContent = calendar.academicYear || 'Not Set';
-                }
-
-                // Get holidays count
+                const statsData = await statsRes.json();
+                
+                // Fetch holidays to count them
                 const holidaysRes = await fetch('/api/admin/holidays', {
-                    headers: { 'Authorization': 'Bearer ' + token }
+                    headers: { 'Authorization': `Bearer ${token}` }
                 });
-                if (holidaysRes.ok) {
-                    const holidays = await holidaysRes.json();
-                    document.getElementById('totalHolidays').textContent = holidays.length;
-                }
-            } catch (error) {
-                console.error('Error loading stats:', error);
+                const holidaysData = await holidaysRes.json();
+                const activeHolidays = Array.isArray(holidaysData) ? holidaysData.length : 0;
+
+                // Fetch profile for the name
+                const profileRes = await fetch('/api/admin/profile', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const profileData = await profileRes.json();
+                
+                document.getElementById('adminName').textContent = `Welcome, ${profileData.username || 'Administrator'}`;
+                document.getElementById('totalStudents').textContent = statsData.totalStudents || 0;
+                document.getElementById('totalCourses').textContent = statsData.totalCourses || 0;
+                document.getElementById('upcomingEvents').textContent = activeHolidays;
+            } catch (e) {
+                console.error(e);
             }
         }
-
-        loadStats();
 
         function logout() {
-            localStorage.removeItem('jwtToken');
-            localStorage.removeItem('username');
-            document.cookie = 'jwt=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+            localStorage.clear();
             window.location.href = '/login';
         }
     </script>

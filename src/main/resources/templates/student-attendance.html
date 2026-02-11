@@ -1,532 +1,347 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enter Attendance - Student Portal</title>
+    <title>Today's Attendance - AttenTrack</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --success: #10b981;
+            --danger: #ef4444;
+            --background: #f1f5f9;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --nav-bg: #0f172a;
         }
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: var(--background); color: var(--text-main); min-height: 100vh; }
 
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            overflow: hidden;
-        }
-
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        .navbar {
+            background: var(--nav-bg);
             color: white;
-            padding: 30px;
-            text-align: center;
-            position: relative;
-        }
-
-        .header-back-btn {
-            position: absolute;
-            left: 20px;
-            top: 20px;
-            background: rgba(255, 255, 255, 0.2);
-            border: 2px solid white;
-            color: white;
-            padding: 8px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-            transition: all 0.3s ease;
-            text-decoration: none;
-        }
-
-        .header-back-btn:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: translateX(-3px);
-        }
-
-        .header h1 {
-            font-size: 28px;
-            margin-bottom: 10px;
-        }
-
-        .content {
-            padding: 40px;
-        }
-
-        .error-message {
-            background: #ffebee;
-            border-left: 4px solid #f44336;
-            color: #c62828;
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-            display: none;
-        }
-
-        .success-message {
-            background: #e8f5e9;
-            border-left: 4px solid #4caf50;
-            color: #2e7d32;
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-            display: none;
-        }
-
-        .info-box {
-            background: #e3f2fd;
-            border-left: 4px solid #2196f3;
-            color: #1565c0;
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-            font-size: 14px;
-        }
-
-        .attendance-list {
-            display: grid;
-            gap: 20px;
-        }
-
-        .course-card {
-            border: 1px solid #e0e0e0;
-            border-radius: 10px;
-            padding: 20px;
-            background: #f9f9f9;
-            transition: all 0.3s ease;
-        }
-
-        .course-card:hover {
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-            transform: translateY(-2px);
-        }
-
-        .course-header {
+            padding: 0.75rem 2rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #667eea;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
         }
 
-        .course-name {
-            font-size: 18px;
-            font-weight: 600;
-            color: #333;
-        }
+        .navbar-brand { font-size: 1.25rem; font-weight: 800; display: flex; align-items: center; gap: 0.75rem; }
+        .navbar-brand i { color: #818cf8; }
 
-        .course-code {
-            font-size: 12px;
-            color: #666;
-            background: #e0e0e0;
-            padding: 4px 10px;
-            border-radius: 5px;
-            margin-left: 10px;
-        }
+        .container { max-width: 800px; margin: 3rem auto; padding: 0 1.5rem; }
 
-        .input-group {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 15px;
-        }
+        .page-header { margin-bottom: 2rem; }
+        .page-header h1 { font-size: 1.875rem; font-weight: 800; letter-spacing: -0.025em; }
 
-        .form-group {
+        .date-banner {
+            background: white;
+            padding: 1rem 1.5rem;
+            border-radius: 1rem;
+            border: 1px solid #e2e8f0;
             display: flex;
-            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 2rem;
         }
 
-        .form-group label {
-            color: #555;
-            font-weight: 500;
-            margin-bottom: 8px;
-            font-size: 14px;
+        .date-display { display: flex; align-items: center; gap: 1rem; }
+        .date-display i { font-size: 1.5rem; color: var(--primary); }
+        .date-text h3 { font-size: 1rem; font-weight: 800; }
+        .date-text p { font-size: 0.8125rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }
+
+        .course-stack { display: flex; flex-direction: column; gap: 1.25rem; }
+
+        .attendance-card {
+            background: white;
+            border-radius: 1.25rem;
+            padding: 1.5rem;
+            border: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s;
         }
 
-        .form-group input {
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 5px;
-            font-size: 14px;
-            transition: border-color 0.3s ease;
-        }
+        .attendance-card:hover { border-color: var(--primary); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
 
-        .form-group input:focus {
-            outline: none;
-            border-color: #667eea;
-        }
+        .course-info h4 { font-size: 0.75rem; font-weight: 800; color: var(--primary); text-transform: uppercase; margin-bottom: 0.25rem; }
+        .course-info h2 { font-size: 1.125rem; font-weight: 700; color: var(--text-main); }
 
-        .percentage-display {
-            background: #fff9e6;
-            padding: 15px;
-            border-radius: 5px;
-            margin-top: 15px;
-            text-align: center;
-            border-left: 4px solid #ffd700;
-        }
+        .action-group { display: flex; gap: 0.75rem; }
 
-        .percentage-display p {
-            color: #666;
-            margin-bottom: 8px;
-            font-size: 14px;
-        }
-
-        .percentage-value {
-            font-size: 24px;
+        .att-btn {
+            border: 1px solid #e2e8f0;
+            background: white;
+            padding: 0.625rem 1.25rem;
+            border-radius: 0.75rem;
             font-weight: 700;
-            color: #ff9800;
-        }
-
-        .save-btn {
-            background: #4caf50;
-            color: white;
-            border: none;
-            padding: 12px 25px;
-            border-radius: 5px;
-            font-weight: 600;
+            font-size: 0.8125rem;
             cursor: pointer;
-            transition: all 0.3s ease;
-            margin-top: 15px;
-            width: 100%;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            min-width: 100px;
+            justify-content: center;
         }
 
-        .save-btn:hover {
-            background: #45a049;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
-        }
+        .btn-present:hover, .btn-present.active { background: var(--success); color: white; border-color: var(--success); }
+        .btn-absent:hover, .btn-absent.active { background: var(--danger); color: white; border-color: var(--danger); }
 
-        .empty-state {
-            text-align: center;
-            padding: 40px;
-            color: #999;
-        }
-
-        .empty-state-icon {
-            font-size: 60px;
-            margin-bottom: 20px;
-        }
-
-        .action-buttons {
-            text-align: center;
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 2px solid #eee;
-        }
-
-        button {
-            padding: 12px 30px;
-            margin: 0 10px;
-            border: none;
-            border-radius: 5px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .btn-view-report {
-            background: #2196f3;
-            color: white;
-        }
-
-        .btn-view-report:hover {
-            background: #0b7dda;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(33, 150, 243, 0.3);
-        }
-
-        .btn-back {
-            background: #757575;
-            color: white;
-        }
-
-        .btn-back:hover {
-            background: #616161;
-        }
-
-        .loading {
+        .status-badge {
+            font-size: 0.75rem;
+            font-weight: 800;
+            padding: 0.375rem 0.75rem;
+            border-radius: 2rem;
             display: none;
-            text-align: center;
-            padding: 40px;
         }
+        .status-present { display: inline-block; background: #ecfdf5; color: #059669; }
+        .status-absent { display: inline-block; background: #fef2f2; color: #dc2626; }
 
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 15px;
-        }
+        .loading-state { text-align: center; padding: 4rem; color: var(--text-muted); }
+        .empty-state { text-align: center; padding: 5rem 2rem; background: white; border-radius: 1.5rem; border: 1px dashed #cbd5e1; }
 
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        .btn-submit {
+            background: var(--primary);
+            color: white;
+            width: 100%;
+            padding: 1rem;
+            border-radius: 1rem;
+            font-weight: 800;
+            border: none;
+            cursor: pointer;
+            margin-top: 2rem;
+            box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
+            transition: all 0.2s;
         }
+        .btn-submit:hover { background: var(--primary-hover); transform: translateY(-1px); }
+        .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <a href="/student-dashboard" class="header-back-btn">← Back</a>
-            <h1>📊 Enter Your Attendance</h1>
-            <p>Record the number of classes attended for each course</p>
+    <div class="navbar">
+        <div class="navbar-brand">
+            <i class="fas fa-graduation-cap"></i>
+            <span>AttenTrack</span>
         </div>
-
-        <div class="content">
-            <div class="error-message" id="errorMessage"></div>
-            <div class="success-message" id="successMessage"></div>
-
-            <div class="info-box">
-                📌 Enter the total number of classes conducted and the number you attended for each course. This helps calculate your 75% attendance eligibility.
-            </div>
-
-
-
-            <div class="loading" id="loadingSection">
-                <div class="spinner"></div>
-                <p>Loading your courses...</p>
-            </div>
-
-            <div class="attendance-list" id="attendanceList">
-            </div>
-
-            <div class="empty-state" id="emptyState" style="display: none;">
-                <div class="empty-state-icon">📭</div>
-                <p>No courses found. Please add your courses first.</p>
-                <a href="/student-manage-courses" class="save-btn" style="width: 200px; margin-top: 20px; text-decoration: none; display: inline-block; text-align: center;">➕ Add Your First Course</a>
-            </div>
-
-            <div class="action-buttons">
-                <button class="btn-view-report" onclick="viewAttendanceReport()">📈 View Attendance Report</button>
-                <button class="btn-back" onclick="goBack()">← Go Back</button>
-            </div>
+        <div class="navbar-menu">
+            <a href="/student-dashboard" style="color: white; text-decoration: none; font-size: 0.875rem; font-weight: 700;">
+                <i class="fas fa-arrow-left"></i> Back
+            </a>
         </div>
     </div>
 
+    <div class="container">
+        <div class="page-header">
+            <h1>Daily Attendance</h1>
+            <p style="color: var(--text-muted);">Confirm your presence for today's sessions.</p>
+        </div>
+
+        <div class="date-banner">
+            <div class="date-display">
+                <i class="far fa-calendar-check"></i>
+                <div class="date-text">
+                    <h3 id="currentDateDisplay">Loading date...</h3>
+                    <p id="currentDayDisplay">Loading day...</p>
+                </div>
+            </div>
+            <div id="syncStatus" style="font-size: 0.75rem; font-weight: 700; color: var(--success);">
+                <i class="fas fa-circle" style="font-size: 0.5rem;"></i> LIVE SYNC ACTIVE
+            </div>
+        </div>
+
+        <div id="loading" class="loading-state">
+            <i class="fas fa-circle-notch fa-spin fa-2x"></i>
+            <p style="margin-top: 1rem; font-weight: 600;">Verifying schedule...</p>
+        </div>
+
+        <div id="attendanceContainer" class="course-stack" style="display: none;">
+            <!-- Courses added here -->
+        </div>
+
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;"></div>
+            <h2 style="font-weight: 800; margin-bottom: 0.5rem;">No Classes Scheduled</h2>
+            <p style="color: var(--text-muted);">Enjoy your free time! No attendance required today.</p>
+            <a href="/student-dashboard" style="display: inline-block; margin-top: 1.5rem; color: var(--primary); font-weight: 700; text-decoration: none;">Return Dashboard</a>
+        </div>
+
+        <button id="submitBtn" class="btn-submit" onclick="submitAttendance()" style="display: none;">
+            Save All Attendance
+        </button>
+    </div>
+
     <script>
-        const attendanceList = document.getElementById('attendanceList');
-        const emptyState = document.getElementById('emptyState');
-        const loadingSection = document.getElementById('loadingSection');
-        const errorMessage = document.getElementById('errorMessage');
-        const successMessage = document.getElementById('successMessage');
+        let attendanceData = {}; // courseId -> { date, attended }
+        const today = new Date();
+        const localDateStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
 
-        let courses = [];
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('currentDateDisplay').textContent = today.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+            document.getElementById('currentDayDisplay').textContent = today.toLocaleDateString('en-US', { weekday: 'long' });
+            loadSchedule();
+        });
 
-        // Helper function to get JWT token
-        function getJwtToken() {
-            let token = localStorage.getItem('jwtToken');
-            if (token) return token;
-            const cookies = document.cookie.split(';');
-            for (let cookie of cookies) {
-                const [name, value] = cookie.trim().split('=');
-                if (name === 'jwt') {
-                    localStorage.setItem('jwtToken', value);
-                    return value;
+        async function loadSchedule() {
+            const token = localStorage.getItem('jwtToken');
+            const container = document.getElementById('attendanceContainer');
+            const loader = document.getElementById('loading');
+            const empty = document.getElementById('emptyState');
+            const submitBtn = document.getElementById('submitBtn');
+
+            try {
+                // 1. Get all courses
+                const res = await fetch('/api/student/timetable', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                const courses = Array.isArray(data) ? data : (data.timetables || []);
+
+                if (courses.length === 0) {
+                    loader.style.display = 'none';
+                    empty.style.display = 'block';
+                    return;
                 }
-            }
-            return null;
-        }
 
-        // Check auth
-        const token = getJwtToken();
-        if (!token) {
-            window.location.href = '/login';
-        }
+                let coursesToday = 0;
+                container.innerHTML = '';
 
-        // Load courses on page load
-        document.addEventListener('DOMContentLoaded', loadCourses);
+                // 2. For each course, check calendar
+                for (const course of courses) {
+                    try {
+                        const calRes = await fetch(`/api/student/attendance/calendar/${course.courseId}`, {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        if (!calRes.ok) continue;
+                        
+                        const calendar = await calRes.json();
+                        
+                        // Find entry for today
+                        const todayEntry = calendar.attendanceDtos ? calendar.attendanceDtos.find(d => d.date === localDateStr) : null;
+                        
+                        if (todayEntry) {
+                            coursesToday++;
+                            const card = document.createElement('div');
+                            card.className = 'attendance-card';
+                            
+                            // Initialize status
+                            const currentStatus = todayEntry.attended;
+                            if (currentStatus !== null) {
+                                attendanceData[course.courseId] = { date: localDateStr, attended: currentStatus };
+                            }
 
-        function loadCourses() {
-            loadingSection.style.display = 'block';
-
-            fetch('/api/student/timetable', {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${token}`
+                            card.innerHTML = `
+                                <div class="course-info">
+                                    <h4>${course.courseCode}</h4>
+                                    <h2>${course.courseName}</h2>
+                                    <div id="badge-${course.courseId}" class="status-badge ${currentStatus === true ? 'status-present' : currentStatus === false ? 'status-absent' : ''}" style="display: ${currentStatus !== null ? 'inline-block' : 'none'}">
+                                        ${currentStatus === true ? 'PRESENT' : currentStatus === false ? 'ABSENT' : ''}
+                                    </div>
+                                </div>
+                                <div class="action-group">
+                                    <button id="btn-p-${course.courseId}" class="att-btn btn-present ${currentStatus === true ? 'active' : ''}" 
+                                            onclick="mark(${course.courseId}, true)">
+                                        <i class="fas fa-check"></i> Present
+                                    </button>
+                                    <button id="btn-a-${course.courseId}" class="att-btn btn-absent ${currentStatus === false ? 'active' : ''}" 
+                                            onclick="mark(${course.courseId}, false)">
+                                        <i class="fas fa-times"></i> Absent
+                                    </button>
+                                </div>
+                            `;
+                            container.appendChild(card);
+                        }
+                    } catch (err) {
+                        console.error(`Error loading calendar for ${course.courseCode}:`, err);
+                    }
                 }
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Failed to fetch courses');
-                }
-                return response.json();
-            })
-            .then(data => {
-                loadingSection.style.display = 'none';
-                console.log('Timetable data:', data);
-                if (data.timetables && data.timetables.length > 0) {
-                    courses = data.timetables;
-                    displayCourses();
-                    emptyState.style.display = 'none';
-                    attendanceList.style.display = 'grid';
+
+                loader.style.display = 'none';
+                if (coursesToday > 0) {
+                    container.style.display = 'flex';
+                    submitBtn.style.display = 'block';
                 } else {
-                    emptyState.style.display = 'block';
-                    attendanceList.style.display = 'none';
+                    empty.style.display = 'block';
                 }
-            })
-            .catch(error => {
-                loadingSection.style.display = 'none';
-                showError('Error loading courses: ' + error.message);
-                console.error('Error:', error);
-            });
-        }
 
-        function displayCourses() {
-            attendanceList.innerHTML = '';
-            courses.forEach((course, index) => {
-                const courseCard = document.createElement('div');
-                courseCard.className = 'course-card';
-                courseCard.innerHTML = `
-                    <div class="course-header">
-                        <div>
-                            <span class="course-name">${course.courseName || 'Unknown'}</span>
-                            <span class="course-code">${course.courseCode}</span>
-                        </div>
-                    </div>
-
-                    <div class="input-group">
-                        <div class="form-group">
-                            <label for="total-${index}">Total Classes Conducted</label>
-                            <input type="number" id="total-${index}" class="total-classes" 
-                                   min="0" placeholder="Enter total classes" data-course-code="${course.courseCode}">
-                        </div>
-                        <div class="form-group">
-                            <label for="attended-${index}">Classes Attended</label>
-                            <input type="number" id="attended-${index}" class="attended-classes" 
-                                   min="0" placeholder="Enter attended classes" data-course-code="${course.courseCode}">
-                        </div>
-                    </div>
-
-                    <div class="percentage-display" id="percentage-${index}" style="display: none;">
-                        <p>Current Attendance</p>
-                        <div class="percentage-value" id="percentage-value-${index}">-</div>
-                    </div>
-
-                    <div class="button-group" style="display: flex; gap: 10px;">
-                        <button class="save-btn" onclick="saveAttendance('${course.courseCode}', ${index})" style="flex: 1;">
-                            ✓ Save Attendance
-                        </button>
-                    </div>
-                `;
-                attendanceList.appendChild(courseCard);
-
-                // Add event listeners for percentage calculation
-                document.getElementById(`total-${index}`).addEventListener('change', () => updatePercentage(index));
-                document.getElementById(`attended-${index}`).addEventListener('change', () => updatePercentage(index));
-            });
-        }
-
-        function updatePercentage(index) {
-            const total = parseInt(document.getElementById(`total-${index}`).value) || 0;
-            const attended = parseInt(document.getElementById(`attended-${index}`).value) || 0;
-
-            if (total > 0) {
-                const percentage = ((attended / total) * 100).toFixed(1);
-                document.getElementById(`percentage-${index}`).style.display = 'block';
-                document.getElementById(`percentage-value-${index}`).textContent = percentage + '%';
+            } catch (e) {
+                console.error('Error loading schedule:', e);
+                loader.style.display = 'none';
+                empty.style.display = 'block';
+                empty.innerHTML = '<h2>Failed to load schedule</h2><p>Please try again later.</p>';
             }
         }
 
-        function saveAttendance(courseCode, index) {
-            const total = parseInt(document.getElementById(`total-${index}`).value);
-            const attended = parseInt(document.getElementById(`attended-${index}`).value);
-            const button = event.target;
+        function mark(courseId, status) {
+            attendanceData[courseId] = { date: localDateStr, attended: status };
+            
+            // UI Update
+            document.getElementById(`btn-p-${courseId}`).classList.toggle('active', status === true);
+            document.getElementById(`btn-a-${courseId}`).classList.toggle('active', status === false);
+            
+            const badge = document.getElementById(`badge-${courseId}`);
+            badge.className = `status-badge ${status === true ? 'status-present' : 'status-absent'}`;
+            badge.textContent = status === true ? 'PRESENT' : 'ABSENT';
+            badge.style.display = 'inline-block';
+        }
 
-            if (!total || !attended) {
-                showError('Please enter both total and attended classes');
+        async function submitAttendance() {
+            const btn = document.getElementById('submitBtn');
+            const token = localStorage.getItem('jwtToken');
+            
+            if (Object.keys(attendanceData).length === 0) {
+                alert('Please mark at least one class.');
                 return;
             }
 
-            if (attended > total) {
-                showError('Attended classes cannot exceed total classes');
-                return;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Saving All...';
+
+            let errors = 0;
+            
+            // Loop through each course and save
+            for (const [courseId, data] of Object.entries(attendanceData)) {
+                try {
+                    const res = await fetch(`/api/student/attendance/update/${courseId}`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify([{
+                            date: data.date,
+                            attended: data.attended
+                        }])
+                    });
+                    
+                    if (!res.ok) errors++;
+                } catch (e) {
+                    errors++;
+                }
             }
 
-            // Disable button and show loading
-            button.disabled = true;
-            button.textContent = '⏳ Saving...';
-
-            fetch('/api/student/attendance', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    courseCode: courseCode,
-                    totalClassesConducted: total,
-                    classesAttended: attended
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                showSuccess(`Attendance saved for ${courseCode}`);
-                button.disabled = false;
-                button.textContent = '✓ Save Attendance';
-            })
-            .catch(error => {
-                showError('Error saving attendance: ' + error.message);
-                button.disabled = false;
-                button.textContent = '✓ Save Attendance';
-            });
-        }
-
-        function viewAttendanceReport() {
-            window.location.href = '/student-attendance-report';
-        }
-
-        function openDateBasedAttendance(courseId) {
-            const courseIndex = courses.findIndex(c => c.courseId === courseId);
-            if (courseIndex >= 0) {
-                const course = courses[courseIndex];
-                localStorage.setItem('currentCourseCode', course.courseCode);
-                localStorage.setItem('currentCourseName', course.courseName);
-                localStorage.setItem('currentCourseData', JSON.stringify(course));
-            }
-            window.location.href = `/student-attendance-calendar?courseId=${courseId}`;
-        }
-
-        function goBack() {
-            window.location.href = '/student-dashboard';
-        }
-
-        function showError(message) {
-            errorMessage.textContent = message;
-            errorMessage.style.display = 'block';
-            successMessage.style.display = 'none';
-        }
-
-        function showSuccess(message) {
-            successMessage.textContent = message;
-            successMessage.style.display = 'block';
-            errorMessage.style.display = 'none';
-        }
-
-        // Modal functions removed - use student-manage-courses.html for course management
-
-        window.onclick = function(event) {
-            const modal = document.getElementById('addCourseModal');
-            if (event.target == modal) {
-                modal.style.display = 'none';
+            if (errors === 0) {
+                btn.innerHTML = '<i class="fas fa-check-double"></i> All Saved Successfully!';
+                btn.style.background = 'var(--success)';
+                btn.style.boxShadow = '0 4px 15px rgba(16, 185, 129, 0.3)';
+                setTimeout(() => {
+                    window.location.href = '/student-dashboard';
+                }, 1500);
+            } else {
+                btn.disabled = false;
+                btn.innerHTML = 'Save All Attendance (Retrying...)';
+                alert('Some records failed to save. Please try again.');
             }
         }
     </script>
-
-    <!-- Add Course Modal - Removed, use student-manage-courses.html instead -->
 </body>
 </html>

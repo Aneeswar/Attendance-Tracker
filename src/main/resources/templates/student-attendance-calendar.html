@@ -1,731 +1,331 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Date-Based Attendance - Student Portal</title>
+    <title>Course Calendar - AttenTrack</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --success: #10b981;
+            --danger: #ef4444;
+            --background: #f1f5f9;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --nav-bg: #0f172a;
         }
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: var(--background); color: var(--text-main); min-height: 100vh; }
 
         .navbar {
-            background: rgba(0, 0, 0, 0.8);
+            background: var(--nav-bg);
             color: white;
-            padding: 15px 30px;
+            padding: 0.75rem 2rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
         }
 
-        .navbar-brand {
-            font-size: 20px;
-            font-weight: 700;
-        }
+        .navbar-brand { font-size: 1.25rem; font-weight: 800; display: flex; align-items: center; gap: 0.75rem; }
+        .navbar-brand i { color: #818cf8; }
 
-        .navbar-menu {
-            display: flex;
-            gap: 20px;
-        }
+        .container { max-width: 1000px; margin: 3rem auto; padding: 0 1.5rem; }
 
-        .navbar-menu a {
-            color: white;
-            text-decoration: none;
-            font-size: 14px;
-            transition: color 0.3s ease;
-        }
-
-        .navbar-menu a:hover {
-            color: #667eea;
-        }
-
-        .container {
-            max-width: 1000px;
-            margin: 30px auto;
-            padding: 20px;
-        }
-
-        .page-header {
+        .calendar-card {
             background: white;
-            border-radius: 15px;
-            padding: 30px;
-            margin-bottom: 30px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            border-radius: 1.5rem;
+            padding: 2.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid #e2e8f0;
         }
 
-        .page-header h1 {
-            color: #333;
-            margin-bottom: 10px;
-        }
-
-        .page-header p {
-            color: #666;
-            font-size: 14px;
-        }
-
-        .calendar-container {
-            background: white;
-            border-radius: 15px;
-            padding: 30px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-        }
-
-        .calendar-info {
+        .calendar-controls {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            padding-bottom: 20px;
-            border-bottom: 2px solid #eee;
+            align-items: flex-end;
+            margin-bottom: 2rem;
+            gap: 1.5rem;
         }
 
-        .course-info h2 {
-            color: #333;
-            font-size: 20px;
-            margin-bottom: 5px;
+        .form-group { flex: 1; }
+        .form-group label { display: block; font-size: 0.75rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.5rem; }
+        
+        select {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border-radius: 0.75rem;
+            border: 1px solid #e2e8f0;
+            font-family: inherit;
+            font-size: 0.9375rem;
+            background: #f8fafc;
         }
 
-        .course-info p {
-            color: #666;
-            font-size: 13px;
+        .calendar-header {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            text-align: center;
+            margin-bottom: 1rem;
         }
 
-        .class-schedule {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .class-day {
-            background: #e3f2fd;
-            color: #1565c0;
-            padding: 8px 15px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-        }
+        .calendar-header div { font-size: 0.75rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; }
 
         .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 0.5rem;
+        }
+
+        .calendar-day {
+            aspect-ratio: 1;
+            background: #f8fafc;
+            border-radius: 0.75rem;
+            padding: 0.5rem;
             display: flex;
             flex-direction: column;
-            gap: 15px;
-            margin-bottom: 30px;
-        }
-
-        .date-row {
-            display: flex;
-            justify-content: space-between;
             align-items: center;
-            background: #f9f9f9;
-            padding: 20px;
-            border-radius: 10px;
-            border: 1px solid #eee;
-            transition: all 0.3s ease;
-        }
-
-        .date-row:hover {
-            background: #f5f5f5;
-            border-color: #ddd;
-        }
-
-        .date-info {
-            display: flex;
-            gap: 20px;
-            align-items: center;
-            flex: 1;
-        }
-
-        .date-display {
-            min-width: 120px;
-        }
-
-        .date-display .date {
-            font-size: 18px;
-            font-weight: 700;
-            color: #333;
-        }
-
-        .date-display .day {
-            font-size: 12px;
-            color: #999;
-        }
-
-        .toggle-buttons {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-
-        .toggle-btn {
-            padding: 10px 20px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 14px;
-            transition: all 0.3s ease;
-            min-width: 100px;
-            text-align: center;
-        }
-
-        .toggle-btn.present {
-            background: #c8e6c9;
-            border-color: #4caf50;
-            color: #2e7d32;
-        }
-
-        .toggle-btn.absent {
-            background: #ffcdd2;
-            border-color: #f44336;
-            color: #c62828;
-        }
-
-        .toggle-btn.inactive {
-            background: white;
-            border-color: #ddd;
-            color: #999;
-        }
-
-        .toggle-btn:hover:not(.inactive) {
-            transform: translateY(-2px);
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
-        }
-
-        .summary {
-            background: #f9f9f9;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 30px;
-        }
-
-        .summary-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 0;
-            border-bottom: 1px solid #eee;
-        }
-
-        .summary-row:last-child {
-            border-bottom: none;
-        }
-
-        .summary-label {
-            color: #666;
-            font-weight: 600;
-        }
-
-        .summary-value {
-            color: #333;
-            font-size: 18px;
-            font-weight: 700;
-        }
-
-        .summary-value.attended {
-            color: #4caf50;
-        }
-
-        .summary-value.percentage {
-            color: #1565c0;
-            font-size: 20px;
-        }
-
-        .button-group {
-            display: flex;
-            gap: 15px;
             justify-content: center;
-        }
-
-        .btn {
-            padding: 14px 30px;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
+            position: relative;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.2s;
+            border: 1px solid transparent;
         }
 
-        .btn-primary {
-            background: linear-gradient(135deg, #1e88e5, #1565c0);
-            color: white;
-        }
+        .calendar-day.empty { background: transparent; cursor: default; }
+        .calendar-day.has-class { background: white; border-color: #e2e8f0; }
+        .calendar-day.has-class:hover { border-color: var(--primary); transform: scale(1.05); z-index: 2; }
 
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(21, 101, 192, 0.3);
-        }
+        .day-num { font-size: 0.9375rem; font-weight: 700; }
+        .status-dot { width: 6px; height: 6px; border-radius: 50%; margin-top: 0.25rem; }
+        
+        .status-present { background: var(--success); box-shadow: 0 0 8px #10b98188; }
+        .status-absent { background: var(--danger); box-shadow: 0 0 8px #ef444488; }
+        .status-none { background: #cbd5e1; }
 
-        .btn-secondary {
-            background: #f5f5f5;
-            color: #666;
-            border: 2px solid #ddd;
-        }
-
-        .btn-secondary:hover {
-            background: #eee;
-        }
-
-        .btn:disabled {
-            opacity: 0.7;
-            cursor: not-allowed;
-            transform: none !important;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 40px;
-        }
-
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 4px solid #e0e0e0;
-            border-top-color: #667eea;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
+        .day-classes-info {
+            position: absolute;
+            bottom: 4px;
+            font-size: 0.625rem;
+            font-weight: 800;
+            color: var(--primary);
         }
 
         .legend {
             display: flex;
-            gap: 20px;
+            gap: 1.5rem;
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #f1f5f9;
             justify-content: center;
-            margin: 20px 0;
-            padding: 15px;
-            background: #f9f9f9;
-            border-radius: 8px;
-            flex-wrap: wrap;
         }
 
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 13px;
-        }
+        .legend-item { display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); }
+        .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
 
-        .legend-dot {
-            width: 20px;
-            height: 20px;
-            border-radius: 4px;
-            border: 2px solid;
-        }
-
-        .legend-dot.attended {
-            background: #c8e6c9;
-            border-color: #4caf50;
-        }
-
-        .legend-dot.not-attended {
-            background: #ffcdd2;
-            border-color: #f44336;
-        }
-
-        .legend-dot.unmarked {
-            background: #f5f5f5;
-            border-color: #bbb;
-        }
-
-        .message {
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            display: none;
-        }
-
-        .message.success {
-            background: #c8e6c9;
-            color: #2e7d32;
-            border-left: 4px solid #4caf50;
-            display: block;
-        }
-
-        .message.error {
-            background: #ffcdd2;
-            color: #c62828;
-            border-left: 4px solid #f44336;
-            display: block;
-        }
-
-        footer {
-            text-align: center;
+        /* Dialog/Tooltip style tooltip */
+        .day-tooltip {
+            position: absolute;
+            bottom: 110%;
+            background: var(--nav-bg);
             color: white;
-            padding: 20px;
-            font-size: 13px;
-            margin-top: 40px;
+            padding: 0.75rem 1rem;
+            border-radius: 0.75rem;
+            width: 140px;
+            text-align: center;
+            display: none;
+            z-index: 100;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3);
         }
+        .day-tooltip::after {
+            content: "";
+            position: absolute;
+            top: 100%; left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: var(--nav-bg);
+        }
+        .calendar-day:hover .day-tooltip { display: block; }
     </style>
 </head>
 <body>
     <div class="navbar">
-        <div class="navbar-brand">📚 Student Attendance Portal</div>
+        <div class="navbar-brand">
+            <i class="fas fa-graduation-cap"></i>
+            <span>AttenTrack</span>
+        </div>
         <div class="navbar-menu">
-            <a href="/student-dashboard">Dashboard</a>
-            <a href="#" onclick="logout()">Logout</a>
+            <a href="/student-dashboard" style="color: white; text-decoration: none; font-size: 0.875rem; font-weight: 700;">
+                <i class="fas fa-arrow-left"></i> Dashboard
+            </a>
         </div>
     </div>
 
     <div class="container">
-        <div class="page-header">
-            <h1>📅 Date-Based Attendance Tracking</h1>
-            <p>Mark the specific dates you attended each class for more accurate tracking</p>
-        </div>
-
-        <div class="calendar-container">
-            <div id="loading" class="loading">
-                <div class="spinner"></div>
-                <p>Loading calendar...</p>
-            </div>
-
-            <div id="content" style="display: none;">
-                <div id="message" class="message"></div>
-
-                <div class="calendar-info">
-                    <div class="course-info">
-                        <h2 id="courseName">Course Name</h2>
-                        <p id="courseCode">Code</p>
-                    </div>
-                    <div>
-                        <strong>Class Schedule:</strong>
-                        <div class="class-schedule" id="classSchedule"></div>
-                    </div>
+        <div class="calendar-card">
+            <div class="calendar-controls">
+                <div class="form-group">
+                    <label>Select Course</label>
+                    <select id="courseSelect" onchange="loadCalendar()">
+                        <option value="">Choose a course...</option>
+                    </select>
                 </div>
-
-                <div class="legend">
-                    <div class="legend-item">
-                        <div class="legend-dot attended"></div>
-                        <span>Present (✓)</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-dot not-attended"></div>
-                        <span>Absent (✗)</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-dot unmarked"></div>
-                        <span>Not Marked</span>
-                    </div>
+                <div class="form-group" style="max-width: 150px;">
+                    <label>Month</label>
+                    <select id="monthSelect" onchange="loadCalendar()">
+                        <option value="0">January</option>
+                        <option value="1">February</option>
+                        <option value="2">March</option>
+                        <option value="3">April</option>
+                        <option value="4">May</option>
+                        <option value="5">June</option>
+                        <option value="6">July</option>
+                        <option value="7">August</option>
+                        <option value="8">September</option>
+                        <option value="9">October</option>
+                        <option value="10">November</option>
+                        <option value="11">December</option>
+                    </select>
                 </div>
-
-                <div class="summary">
-                    <div class="summary-row">
-                        <span class="summary-label">📅 Date Range:</span>
-                        <span class="summary-value" id="dateRange">Loading...</span>
-                    </div>
-                    <div class="summary-row">
-                        <span class="summary-label">📍 Total Class Days:</span>
-                        <span class="summary-value" id="totalDays">0</span>
-                    </div>
-                    <div class="summary-row">
-                        <span class="summary-label">✅ Days Attended:</span>
-                        <span class="summary-value attended" id="daysAttended">0</span>
-                    </div>
-                    <div class="summary-row">
-                        <span class="summary-label">📊 Attendance Percentage:</span>
-                        <span class="summary-value percentage" id="percentage">0%</span>
-                    </div>
-                </div>
-
-                <div class="calendar-grid" id="calendarGrid"></div>
-
-                <div class="button-group">
-                    <button class="btn btn-secondary" onclick="goBack()">← Back</button>
-                    <button class="btn btn-primary" onclick="saveAttendance()" id="saveBtn">💾 Save Attendance</button>
+                <div class="form-group" style="max-width: 120px;">
+                    <label>Year</label>
+                    <select id="yearSelect" onchange="loadCalendar()">
+                        <option value="2024">2024</option>
+                        <option value="2025">2025</option>
+                    </select>
                 </div>
             </div>
-        </div>
 
-        <footer>
-            <p>&copy; 2024 Student Attendance System. All rights reserved.</p>
-        </footer>
+            <div class="calendar-header">
+                <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+            </div>
+
+            <div id="calendarGrid" class="calendar-grid">
+                <!-- Days injected here -->
+            </div>
+
+            <div class="legend">
+                <div class="legend-item"><div class="legend-dot status-present"></div> Present</div>
+                <div class="legend-item"><div class="legend-dot status-absent"></div> Absent</div>
+                <div class="legend-item"><div class="legend-dot" style="background: #cbd5e1;"></div> Scheduled</div>
+            </div>
+        </div>
     </div>
 
     <script>
-        let currentCourseId = null;
-        let attendanceData = [];
-
-        // Get course ID from URL
-        const urlParams = new URLSearchParams(window.location.search);
-        currentCourseId = urlParams.get('courseId');
-
-        if (!currentCourseId) {
-            document.getElementById('message').textContent = 'No course selected. Please go back and select a course.';
-            document.getElementById('message').className = 'message error';
-            document.getElementById('content').style.display = 'block';
-            document.getElementById('loading').style.display = 'none';
-            return;
-        }
-
-        // Check authentication
-        const token = localStorage.getItem('jwtToken');
-        if (!token) {
-            window.location.href = '/login';
-        }
-
-        document.addEventListener('DOMContentLoaded', loadCalendar);
-
-        function loadCalendar() {
-            // Get course details from localStorage if available
-            const courseData = localStorage.getItem('currentCourseData');
-            
-            if (courseData) {
-                const course = JSON.parse(courseData);
-                document.querySelector('.course-info h2').textContent = course.courseCode;
-                document.querySelector('.course-info p').textContent = course.courseName;
-            }
-            
-            // Generate calendar for current month
-            generateMonthCalendar();
-            document.getElementById('loading').style.display = 'none';
-        }
-        
-        function generateMonthCalendar() {
-            const monthCalendar = document.getElementById('monthCalendar');
-            if (!monthCalendar) return;
-            
+        document.addEventListener('DOMContentLoaded', () => {
             const now = new Date();
-            const year = now.getFullYear();
-            const month = now.getMonth();
-            const firstDay = new Date(year, month, 1);
-            const lastDay = new Date(year, month + 1, 0);
-            const daysInMonth = lastDay.getDate();
-            const startingDayOfWeek = firstDay.getDay();
-            
-            let html = '<table class="calendar-table"><tr><th>Sun</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th></tr><tr>';
-            
-            // Empty cells before first day
-            for (let i = 0; i < startingDayOfWeek; i++) {
-                html += '<td></td>';
+            document.getElementById('monthSelect').value = now.getMonth();
+            document.getElementById('yearSelect').value = now.getFullYear();
+            loadCourses();
+        });
+
+        async function loadCourses() {
+            const token = localStorage.getItem('jwtToken');
+            try {
+                const res = await fetch('/api/student/timetable', { headers: { 'Authorization': `Bearer ${token}` } });
+                const data = await res.json();
+                const courses = Array.isArray(data) ? data : (data.timetables || []);
+                const select = document.getElementById('courseSelect');
+                courses.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c.courseId;
+                    opt.textContent = c.courseCode;
+                    select.appendChild(opt);
+                });
+            } catch (e) {}
+        }
+
+        async function loadCalendar() {
+            const cid = document.getElementById('courseSelect').value;
+            const month = parseInt(document.getElementById('monthSelect').value);
+            const year = parseInt(document.getElementById('yearSelect').value);
+
+            if (!cid) return;
+
+            const grid = document.getElementById('calendarGrid');
+            grid.innerHTML = '';
+
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+            for (let i = 0; i < firstDay; i++) {
+                const div = document.createElement('div');
+                div.className = 'calendar-day empty';
+                grid.appendChild(div);
             }
-            
-            // Days of month
-            for (let day = 1; day <= daysInMonth; day++) {
-                const date = new Date(year, month, day);
-                const dayOfWeek = date.getDay();
+
+            try {
+                const res = await fetch(`/api/student/attendance/calendar/${cid}`, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('jwtToken')}` }
+                });
+                const calendarData = await res.json();
+                const allDates = calendarData.attendanceDtos || [];
                 
-                // Skip Sundays and Mondays for marking attendance
-                const isWorkingDay = dayOfWeek !== 0 && dayOfWeek !== 1;
-                const dayClass = isWorkingDay ? 'working-day' : 'non-working-day';
-                
-                html += `<td class="${dayClass}" data-date="${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}" 
-                        onclick="toggleDateSelection('${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}')">
-                        ${day}
-                    </td>`;
-                
-                if (dayOfWeek === 6) {
-                    html += '</tr><tr>';
+                const attMap = {};
+                allDates.forEach(d => {
+                    const parts = d.date.split('-');
+                    const y = parseInt(parts[0]);
+                    const m = parseInt(parts[1]) - 1; 
+                    const dayNum = parseInt(parts[2]);
+                    if (m === month && y === year) {
+                        attMap[dayNum] = d;
+                    }
+                });
+
+                for (let d = 1; d <= daysInMonth; d++) {
+                    const dayDiv = document.createElement('div');
+                    dayDiv.className = 'calendar-day has-class';
+                    const record = attMap[d];
+                    
+                    let statusClass = 'status-none';
+                    let statusText = 'Scheduled';
+                    if (record) {
+                        if (record.attended === true) { statusClass = 'status-present'; statusText = 'Present'; }
+                        else if (record.attended === false) { statusClass = 'status-absent'; statusText = 'Absent'; }
+                    } else {
+                        // Check if it's even a class day
+                        // This calendar logic could be smarter, but for now we follow the existing behavior
+                        dayDiv.className = 'calendar-day'; 
+                        statusText = 'No Class';
+                    }
+
+                    dayDiv.innerHTML = `
+                        <span class="day-num">${d}</span>
+                        <div class="status-dot ${statusClass}"></div>
+                        <div class="day-tooltip">
+                            ${statusText}
+                            <div style="font-size: 0.625rem; opacity: 0.7; margin-top: 2px;">Click to toggle</div>
+                        </div>
+                    `;
+                    
+                    dayDiv.onclick = () => toggleAttendance(cid, d, month, year, record);
+                    grid.appendChild(dayDiv);
                 }
-            }
-            
-            // Empty cells after last day
-            const endingDayOfWeek = lastDay.getDay();
-            for (let i = endingDayOfWeek; i < 6; i++) {
-                html += '<td></td>';
-            }
-            
-            html += '</tr></table>';
-            monthCalendar.innerHTML = html;
-        }
-        
-        function toggleDateSelection(dateStr) {
-            const cell = document.querySelector(`[data-date="${dateStr}"]`);
-            if (cell && !cell.classList.contains('non-working-day')) {
-                cell.classList.toggle('selected-date');
-            }
-        }
-            // Update course info
-            document.getElementById('courseName').textContent = data.courseName || data.courseCode;
-            document.getElementById('courseCode').textContent = `Code: ${data.courseCode}`;
-
-            // Update class schedule
-            const scheduleDiv = document.getElementById('classSchedule');
-            scheduleDiv.innerHTML = data.classScheduleDays
-                .map(day => `<div class="class-day">${day.substring(0, 3)}</div>`)
-                .join('');
-
-            // Update date range
-            const startDate = new Date(data.startDate).toLocaleDateString();
-            const endDate = new Date(data.endDate).toLocaleDateString();
-            document.getElementById('dateRange').textContent = `${startDate} to ${endDate}`;
-
-            // Update summary
-            document.getElementById('totalDays').textContent = data.totalDaysAvailable;
-            document.getElementById('daysAttended').textContent = data.totalDaysAttended;
-            const percentage = data.totalDaysAvailable > 0 
-                ? Math.round((data.totalDaysAttended / data.totalDaysAvailable) * 100)
-                : 0;
-            document.getElementById('percentage').textContent = `${percentage}%`;
-
-            // Render date rows with toggle buttons
-            const calendarGrid = document.getElementById('calendarGrid');
-            calendarGrid.innerHTML = '';
-            attendanceData = data.attendanceDates;
-
-            data.attendanceDates.forEach((attendance, index) => {
-                const row = createDateRow(attendance, index);
-                calendarGrid.appendChild(row);
-            });
-
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('content').style.display = 'block';
+            } catch (e) { console.error('Error loading calendar:', e); }
         }
 
-        function createDateRow(attendance, index) {
-            const row = document.createElement('div');
-            const date = new Date(attendance.date);
-            const dateStr = date.getDate().toString().padStart(2, '0');
-            const monthStr = (date.getMonth() + 1).toString().padStart(2, '0');
-            const yearStr = date.getFullYear();
-            const dayStr = date.toLocaleDateString('en-US', { weekday: 'long' });
-            const formattedDate = `${monthStr}/${dateStr}/${yearStr}`;
+        async function toggleAttendance(cid, d, month, year, record) {
+            const dateStr = `${year}-${String(month+1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+            const newStatus = (record && record.attended === true) ? false : true;
 
-            row.className = 'date-row';
-            row.innerHTML = `
-                <div class="date-info">
-                    <div class="date-display">
-                        <div class="date">${formattedDate}</div>
-                        <div class="day">${dayStr}</div>
-                    </div>
-                </div>
-                <div class="toggle-buttons">
-                    <button class="toggle-btn present-btn" onclick="setAttendance(${index}, true)" data-index="${index}">
-                        ✓ Present
-                    </button>
-                    <button class="toggle-btn absent-btn" onclick="setAttendance(${index}, false)" data-index="${index}">
-                        ✗ Absent
-                    </button>
-                </div>
-            `;
-
-            // Update button states based on current attendance
-            updateRowButtonStates(row, attendance.attended);
-            row.setAttribute('data-index', index);
-
-            return row;
-        }
-
-        function updateRowButtonStates(row, attended) {
-            const presentBtn = row.querySelector('.present-btn');
-            const absentBtn = row.querySelector('.absent-btn');
-
-            presentBtn.className = 'toggle-btn present-btn';
-            absentBtn.className = 'toggle-btn absent-btn';
-
-            if (attended === true) {
-                presentBtn.classList.add('present');
-                absentBtn.classList.add('inactive');
-            } else if (attended === false) {
-                presentBtn.classList.add('inactive');
-                absentBtn.classList.add('absent');
-            } else {
-                presentBtn.classList.add('inactive');
-                absentBtn.classList.add('inactive');
-            }
-        }
-
-        function saveAttendance() {
-            const selectedDates = document.querySelectorAll('.selected-date');
-            
-            if (selectedDates.length === 0) {
-                showMessage('Please select at least one date', 'error');
-                return;
-            }
-
-            const courseCode = localStorage.getItem('currentCourseCode') || 'UNKNOWN';
-            const token = localStorage.getItem('jwtToken') || localStorage.getItem('token');
-            
-            if (!token) {
-                showMessage('Not authenticated. Please login again.', 'error');
-                return;
-            }
-
-            document.getElementById('saveBtn').disabled = true;
-            document.getElementById('saveBtn').textContent = 'Saving...';
-
-            // Save as single attendance record
-            fetch('/api/student/attendance', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    courseCode: courseCode,
-                    totalConducted: selectedDates.length,
-                    attended: selectedDates.length,
-                    markedDates: Array.from(selectedDates).map(cell => cell.getAttribute('data-date'))
-                })
-            })
-            .then(response => {
-                if (!response.ok) {
-                    return response.text().then(text => {
-                        throw new Error(`Server error: ${response.status}`);
-                    });
-                }
-                return response.json();
-            })
-            .then(data => {
-                showMessage('✅ Attendance marked successfully!', 'success');
-                setTimeout(() => {
-                    window.location.href = '/student-attendance';
-                }, 1500);
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showMessage('Failed to save attendance: ' + error.message, 'error');
-                document.getElementById('saveBtn').disabled = false;
-                document.getElementById('saveBtn').textContent = '💾 Save Attendance';
-            });
-        }
-
-        function setAttendance(index, present) {
-            // Set attendance for the clicked row
-            attendanceData[index].attended = present;
-
-            // Update all row button states
-            const rows = document.querySelectorAll('.date-row');
-            rows.forEach((row, i) => {
-                if (i === index) {
-                    updateRowButtonStates(row, present);
-                }
-            });
-
-            // Update summary
-            const attended = attendanceData.filter(d => d.attended === true).length;
-            const total = attendanceData.filter(d => d.attended !== null).length;
-            document.getElementById('daysAttended').textContent = attended;
-            const percentage = total > 0 ? Math.round((attended / total) * 100) : 0;
-            document.getElementById('percentage').textContent = `${percentage}%`;
-        }
-
-        function showMessage(text, type) {
-            const msgDiv = document.getElementById('message');
-            msgDiv.textContent = text;
-            msgDiv.className = `message ${type}`;
-        }
-
-        function goBack() {
-            window.location.href = '/student-attendance';
-        }
-
-        function logout() {
-            localStorage.removeItem('jwtToken');
-            localStorage.removeItem('username');
-            document.cookie = 'jwt=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-            window.location.href = '/login';
+            try {
+                const res = await fetch(`/api/student/attendance/update/${cid}`, {
+                    method: 'POST',
+                    headers: { 
+                        'Authorization': `Bearer ${localStorage.getItem('jwtToken')}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify([{ date: dateStr, attended: newStatus }])
+                });
+                if (res.ok) loadCalendar();
+            } catch (e) { console.error('Error toggling attendance:', e); }
         }
     </script>
 </body>

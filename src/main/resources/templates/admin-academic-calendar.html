@@ -1,323 +1,351 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Academic Calendar - Admin</title>
+    <title>Academic Calendar - AttenTrack Admin</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            min-height: 100vh;
-            padding: 20px;
+        :root {
+            --primary: #0f172a;
+            --accent: #4f46e5;
+            --background: #f1f5f9;
+            --white: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
         }
-        .container { max-width: 900px; margin: 0 auto; }
-        .header {
-            background: white;
-            border-radius: 15px;
-            padding: 25px 30px;
-            margin-bottom: 25px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: var(--background); color: var(--text-main); min-height: 100vh; }
+
+        .navbar {
+            background: var(--primary);
+            color: white;
+            padding: 1rem 2rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
         }
-        .header h1 { color: #1e3c72; font-size: 24px; }
-        .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.3s; }
-        .btn-back { background: #757575; color: white; text-decoration: none; }
-        .btn-back:hover { background: #616161; }
+
+        .navbar-brand { font-size: 1.25rem; font-weight: 800; display: flex; align-items: center; gap: 0.75rem; }
+        .navbar-brand i { color: #818cf8; }
+
+        .container { max-width: 1200px; margin: 2rem auto; padding: 0 1.5rem; }
+
+        .config-grid {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 2rem;
+        }
+
         .card {
             background: white;
-            border-radius: 15px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            border-radius: 1rem;
+            border: 1px solid #e2e8f0;
+            margin-bottom: 2rem;
             overflow: hidden;
-            margin-bottom: 25px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
+
         .card-header {
-            background: linear-gradient(135deg, #1e3c72, #2a5298);
-            color: white;
-            padding: 20px 25px;
-            font-size: 18px;
-            font-weight: 600;
+            padding: 1.5rem;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
         }
-        .card-header.exam-header {
-            background: linear-gradient(135deg, #e65100, #ff9800);
-        }
-        .card-body { padding: 30px; }
-        .form-group { margin-bottom: 25px; }
-        .form-group label { display: block; font-weight: 600; color: #555; margin-bottom: 10px; font-size: 14px; }
+
+        .card-header h2 { font-size: 1.125rem; font-weight: 800; }
+        .card-header i { color: var(--accent); }
+
+        .card-body { padding: 1.5rem; }
+
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
+        
+        .form-group { margin-bottom: 1.5rem; }
+        .form-group label { display: block; font-size: 0.8125rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.5rem; }
         .form-group input {
             width: 100%;
-            padding: 14px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 15px;
+            padding: 0.75rem;
+            border-radius: 0.75rem;
+            border: 1px solid #e2e8f0;
+            font-size: 0.875rem;
+            background: #f8fafc;
+            font-family: inherit;
         }
-        .form-group input:focus { outline: none; border-color: #1e3c72; }
-        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; }
-        .btn-save { background: #4caf50; color: white; width: 100%; padding: 15px; font-size: 16px; margin-top: 10px; }
-        .btn-save:hover { background: #43a047; }
-        .info-box {
-            background: #e3f2fd;
-            border-left: 4px solid #2196f3;
-            color: #1565c0;
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 25px;
-            font-size: 14px;
+
+        .info-panel {
+            background: #f8fafc;
+            border-radius: 1rem;
+            padding: 1.25rem;
+            border: 1px dashed #e2e8f0;
+            margin-bottom: 1.5rem;
         }
-        .info-box.warning {
-            background: #fff3e0;
-            border-left-color: #ff9800;
-            color: #e65100;
+        .info-panel h4 { font-size: 0.875rem; font-weight: 800; margin-bottom: 0.5rem; color: var(--accent); }
+        .info-panel p { font-size: 0.8125rem; color: var(--text-muted); line-height: 1.5; }
+
+        .summary-card {
+            background: var(--primary);
+            color: white;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            position: sticky;
+            top: 5rem;
         }
-        .current-settings {
-            background: #f5f5f5;
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 25px;
+        .summary-card h3 { font-size: 1rem; font-weight: 800; margin-bottom: 1.25rem; color: #818cf8; }
+
+        .summary-item {
+            padding: 1rem 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
         }
-        .current-settings h3 { color: #333; margin-bottom: 15px; font-size: 16px; }
-        .setting-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #e0e0e0; }
-        .setting-item:last-child { border-bottom: none; }
-        .setting-label { color: #666; }
-        .setting-value { font-weight: 600; color: #1e3c72; }
-        .error { background: #ffebee; border-left: 4px solid #f44336; color: #c62828; padding: 15px; border-radius: 5px; margin-bottom: 20px; display: none; }
-        .success { background: #e8f5e9; border-left: 4px solid #4caf50; color: #2e7d32; padding: 15px; border-radius: 5px; margin-bottom: 20px; display: none; }
-        .exam-section { margin-top: 20px; padding-top: 20px; border-top: 2px dashed #e0e0e0; }
-        .exam-section h4 { color: #e65100; margin-bottom: 15px; font-size: 15px; }
+        .summary-item:last-child { border-bottom: none; }
+        .summary-label { font-size: 0.75rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; margin-bottom: 0.25rem; }
+        .summary-value { font-size: 0.9375rem; font-weight: 600; }
+
+        .btn-save {
+            width: 100%;
+            padding: 1rem;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 0.75rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+        }
+        .btn-save:hover { background: #4338ca; transform: translateY(-1px); }
+
         .exam-badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 15px;
-            font-size: 12px;
-            font-weight: 600;
-            margin-left: 10px;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.5rem;
+            font-size: 0.7rem;
+            font-weight: 800;
+            margin-right: 0.5rem;
         }
-        .exam-badge.cat1 { background: #bbdefb; color: #1565c0; }
-        .exam-badge.cat2 { background: #c8e6c9; color: #2e7d32; }
-        .exam-badge.fat { background: #ffcdd2; color: #c62828; }
+        .badge-cat1 { background: #e0f2fe; color: #0369a1; }
+        .badge-cat2 { background: #dcfce7; color: #15803d; }
+        .badge-fat { background: #fee2e2; color: #b91c1c; }
+
+        @media (max-width: 1024px) {
+            .config-grid { grid-template-columns: 1fr; }
+            .summary-card { position: static; }
+        }
     </style>
 </head>
 <body>
+    <div class="navbar">
+        <div class="navbar-brand">
+            <i class="fas fa-calendar-alt"></i>
+            <span>AttenTrack Admin</span>
+        </div>
+        <div>
+            <a href="/admin-dashboard" style="color: white; text-decoration: none; font-size: 0.875rem; font-weight: 700;">
+                <i class="fas fa-arrow-left"></i> Dashboard
+            </a>
+        </div>
+    </div>
+
     <div class="container">
-        <div class="header">
-            <h1>📆 Academic Calendar</h1>
-            <a href="/admin-dashboard" class="btn btn-back">← Back to Dashboard</a>
-        </div>
-
-        <div class="error" id="error"></div>
-        <div class="success" id="success"></div>
-
-        <!-- Semester Settings Card -->
-        <div class="card">
-            <div class="card-header">⚙️ Semester Settings</div>
-            <div class="card-body">
-                <div class="info-box">
-                    📌 Set the academic year and semester dates. This is used to calculate working days and attendance projections.
-                </div>
-
-                <div class="current-settings" id="currentSettings">
-                    <h3>Current Settings</h3>
-                    <div class="setting-item">
-                        <span class="setting-label">Academic Year</span>
-                        <span class="setting-value" id="currentYear">Not Set</span>
+        <div class="config-grid">
+            <div class="config-forms">
+                <!-- Semester Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-graduation-cap"></i>
+                        <h2>Semester Configuration</h2>
                     </div>
-                    <div class="setting-item">
-                        <span class="setting-label">Semester Start</span>
-                        <span class="setting-value" id="currentStart">Not Set</span>
-                    </div>
-                    <div class="setting-item">
-                        <span class="setting-label">Semester End</span>
-                        <span class="setting-value" id="currentEnd">Not Set</span>
-                    </div>
-                </div>
-
-                <form id="calendarForm">
-                    <div class="form-group">
-                        <label for="academicYear">Academic Year</label>
-                        <input type="text" id="academicYear" placeholder="e.g., 2025-2026">
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="semesterStart">Semester Start Date</label>
-                            <input type="date" id="semesterStart">
+                    <div class="card-body">
+                        <div class="info-panel">
+                            <h4>Core Timeline</h4>
+                            <p>Define the operational dates for the current academic session. These dates serve as the boundary for all attendance calculations and holiday overrides.</p>
                         </div>
                         <div class="form-group">
-                            <label for="semesterEnd">Semester End Date</label>
-                            <input type="date" id="semesterEnd">
+                            <label>Academic Year</label>
+                            <input type="text" id="academicYear" placeholder="e.g., 2024 - 2025 Winter">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Teaching Commencement</label>
+                                <input type="date" id="semesterStart">
+                            </div>
+                            <div class="form-group">
+                                <label>Instructional End Date</label>
+                                <input type="date" id="semesterEnd">
+                            </div>
                         </div>
                     </div>
-                </form>
+                </div>
+
+                <!-- Exams Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-file-signature"></i>
+                        <h2>Examination Windows</h2>
+                    </div>
+                    <div class="card-body">
+                        <!-- CAT 1 -->
+                        <div style="margin-bottom: 2rem;">
+                            <h3 style="font-size: 0.875rem; font-weight: 800; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                                <span class="exam-badge badge-cat1">CAT 1</span> Continuous Assessment Test 1
+                            </h3>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Start Date</label>
+                                    <input type="date" id="cat1Start">
+                                </div>
+                                <div class="form-group">
+                                    <label>End Date</label>
+                                    <input type="date" id="cat1End">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- CAT 2 -->
+                        <div style="margin-bottom: 2rem;">
+                            <h3 style="font-size: 0.875rem; font-weight: 800; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                                <span class="exam-badge badge-cat2">CAT 2</span> Continuous Assessment Test 2
+                            </h3>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Start Date</label>
+                                    <input type="date" id="cat2Start">
+                                </div>
+                                <div class="form-group">
+                                    <label>End Date</label>
+                                    <input type="date" id="cat2End">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- FAT -->
+                        <div>
+                            <h3 style="font-size: 0.875rem; font-weight: 800; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                                <span class="exam-badge badge-fat">FAT</span> Final Assessment Test
+                            </h3>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Commencement Date</label>
+                                    <input type="date" id="fatStart">
+                                </div>
+                                <div class="form-group">
+                                    <label>Closing Date (Optional)</label>
+                                    <input type="date" id="fatEnd">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn-save" onclick="saveCalendar()">
+                    <i class="fas fa-cloud-upload-alt"></i> Update Academic Calendar
+                </button>
             </div>
-        </div>
 
-        <!-- Exam Dates Card -->
-        <div class="card">
-            <div class="card-header exam-header">📝 Exam Date Ranges</div>
-            <div class="card-body">
-                <div class="info-box warning">
-                    ⚠️ Set the exam date ranges for CAT-1, CAT-2, and FAT. Students will see their eligibility based on these dates and their attendance percentage (75% standard, 65% with medical/other relaxation).
-                </div>
+            <!-- Summary Sidebar -->
+            <div class="summary-section">
+                <div class="summary-card">
+                    <h3>Active Configuration</h3>
+                    
+                    <div class="summary-item">
+                        <div class="summary-label">Academic Session</div>
+                        <div class="summary-value" id="currentYear">Loading...</div>
+                    </div>
 
-                <div class="current-settings">
-                    <h3>Current Exam Dates</h3>
-                    <div class="setting-item">
-                        <span class="setting-label">CAT-1 <span class="exam-badge cat1">CAT-1</span></span>
-                        <span class="setting-value" id="currentCat1">Not Set</span>
+                    <div class="summary-item">
+                        <div class="summary-label">Semester Span</div>
+                        <div class="summary-value" id="currentSpan">Loading...</div>
                     </div>
-                    <div class="setting-item">
-                        <span class="setting-label">CAT-2 <span class="exam-badge cat2">CAT-2</span></span>
-                        <span class="setting-value" id="currentCat2">Not Set</span>
-                    </div>
-                    <div class="setting-item">
-                        <span class="setting-label">FAT <span class="exam-badge fat">FAT</span></span>
-                        <span class="setting-value" id="currentFat">Not Set</span>
-                    </div>
-                </div>
 
-                <!-- CAT-1 -->
-                <div class="exam-section">
-                    <h4>🔵 CAT-1 Exam Dates</h4>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="cat1Start">CAT-1 Start Date</label>
-                            <input type="date" id="cat1Start">
-                        </div>
-                        <div class="form-group">
-                            <label for="cat1End">CAT-1 End Date</label>
-                            <input type="date" id="cat1End">
-                        </div>
+                    <div class="summary-item">
+                        <div class="summary-label">CAT-1 Schedule</div>
+                        <div class="summary-value" id="currentCat1">---</div>
+                    </div>
+
+                    <div class="summary-item">
+                        <div class="summary-label">CAT-2 Schedule</div>
+                        <div class="summary-value" id="currentCat2">---</div>
+                    </div>
+
+                    <div class="summary-item">
+                        <div class="summary-label">FAT Schedule</div>
+                        <div class="summary-value" id="currentFat">---</div>
+                    </div>
+
+                    <div style="margin-top: 1.5rem; font-size: 0.75rem; color: #94a3b8; line-height: 1.4;">
+                        <i class="fas fa-info-circle"></i> Changes to these dates will trigger a global recalculation of attendance percentages for all students.
                     </div>
                 </div>
-
-                <!-- CAT-2 -->
-                <div class="exam-section">
-                    <h4>🟢 CAT-2 Exam Dates</h4>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="cat2Start">CAT-2 Start Date</label>
-                            <input type="date" id="cat2Start">
-                        </div>
-                        <div class="form-group">
-                            <label for="cat2End">CAT-2 End Date</label>
-                            <input type="date" id="cat2End">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- FAT -->
-                <div class="exam-section">
-                    <h4>🔴 FAT Exam Date</h4>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="fatStart">FAT Start Date</label>
-                            <input type="date" id="fatStart">
-                        </div>
-                        <div class="form-group">
-                            <label for="fatEnd">FAT End Date (Optional)</label>
-                            <input type="date" id="fatEnd" placeholder="Optional">
-                        </div>
-                    </div>
-                    <p style="color: #888; font-size: 12px; margin-top: 5px;">💡 For FAT, only start date is required. End date is optional.</p>
-                </div>
-
-                <button type="button" class="btn btn-save" onclick="saveCalendar()">💾 Save All Settings</button>
             </div>
         </div>
     </div>
 
     <script>
-        function getToken() {
-            return localStorage.getItem('jwtToken');
-        }
-
-        const token = getToken();
+        const token = localStorage.getItem('jwtToken');
         if (!token) window.location.href = '/login?mode=admin';
+
+        document.addEventListener('DOMContentLoaded', loadCalendar);
 
         async function loadCalendar() {
             try {
                 const res = await fetch('/api/admin/academic-calendar/current', {
-                    headers: { 'Authorization': 'Bearer ' + token }
+                    headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (res.ok) {
-                    const calendar = await res.json();
+                    const c = await res.json();
                     
-                    // Semester settings
-                    document.getElementById('currentYear').textContent = calendar.academicYear || 'Not Set';
-                    document.getElementById('currentStart').textContent = calendar.semesterStartDate || 'Not Set';
-                    // Use examStartDate or semesterEndDate (both should be the same due to JSON mapping)
-                    const semesterEnd = calendar.semesterEndDate || calendar.examStartDate || 'Not Set';
-                    document.getElementById('currentEnd').textContent = semesterEnd;
+                    // Update Summary
+                    document.getElementById('currentYear').textContent = c.academicYear || 'Not Configured';
+                    if(c.semesterStartDate) {
+                        document.getElementById('currentSpan').textContent = `${c.semesterStartDate} to ${c.semesterEndDate || c.examStartDate}`;
+                    }
+                    
+                    if(c.cat1StartDate) document.getElementById('currentCat1').textContent = `${c.cat1StartDate} - ${c.cat1EndDate}`;
+                    if(c.cat2StartDate) document.getElementById('currentCat2').textContent = `${c.cat2StartDate} - ${c.cat2EndDate}`;
+                    if(c.fatStartDate) document.getElementById('currentFat').textContent = `${c.fatStartDate} - ${c.fatEndDate || 'End'}`;
 
-                    if (calendar.academicYear && calendar.academicYear !== 'Not Set') {
-                        document.getElementById('academicYear').value = calendar.academicYear;
-                        document.getElementById('semesterStart').value = calendar.semesterStartDate || '';
-                        document.getElementById('semesterEnd').value = calendar.semesterEndDate || calendar.examStartDate || '';
-                    }
-                    
-                    // Exam dates
-                    if (calendar.cat1StartDate) {
-                        document.getElementById('currentCat1').textContent = `${calendar.cat1StartDate} to ${calendar.cat1EndDate}`;
-                        document.getElementById('cat1Start').value = calendar.cat1StartDate;
-                        document.getElementById('cat1End').value = calendar.cat1EndDate;
-                    }
-                    
-                    if (calendar.cat2StartDate) {
-                        document.getElementById('currentCat2').textContent = `${calendar.cat2StartDate} to ${calendar.cat2EndDate}`;
-                        document.getElementById('cat2Start').value = calendar.cat2StartDate;
-                        document.getElementById('cat2End').value = calendar.cat2EndDate;
-                    }
-                    
-                    if (calendar.fatStartDate) {
-                        document.getElementById('currentFat').textContent = `${calendar.fatStartDate} to ${calendar.fatEndDate}`;
-                        document.getElementById('fatStart').value = calendar.fatStartDate;
-                        document.getElementById('fatEnd').value = calendar.fatEndDate;
-                    }
+                    // Fill Form
+                    document.getElementById('academicYear').value = c.academicYear || '';
+                    document.getElementById('semesterStart').value = c.semesterStartDate || '';
+                    document.getElementById('semesterEnd').value = c.semesterEndDate || c.examStartDate || '';
+                    document.getElementById('cat1Start').value = c.cat1StartDate || '';
+                    document.getElementById('cat1End').value = c.cat1EndDate || '';
+                    document.getElementById('cat2Start').value = c.cat2StartDate || '';
+                    document.getElementById('cat2End').value = c.cat2EndDate || '';
+                    document.getElementById('fatStart').value = c.fatStartDate || '';
+                    document.getElementById('fatEnd').value = c.fatEndDate || '';
                 }
             } catch (e) {
-                console.log('No existing calendar');
+                console.error('Error loading calendar:', e);
             }
         }
 
         async function saveCalendar() {
-            const academicYear = document.getElementById('academicYear').value.trim();
-            const semesterStartDate = document.getElementById('semesterStart').value;
-            const semesterEndDate = document.getElementById('semesterEnd').value;
-            
-            // Exam dates
-            const cat1StartDate = document.getElementById('cat1Start').value || null;
-            const cat1EndDate = document.getElementById('cat1End').value || null;
-            const cat2StartDate = document.getElementById('cat2Start').value || null;
-            const cat2EndDate = document.getElementById('cat2End').value || null;
-            const fatStartDate = document.getElementById('fatStart').value || null;
-            const fatEndDate = document.getElementById('fatEnd').value || null;
+            const data = {
+                academicYear: document.getElementById('academicYear').value,
+                semesterStartDate: document.getElementById('semesterStart').value,
+                examStartDate: document.getElementById('semesterEnd').value, // Maps to examStartDate in DTO
+                cat1StartDate: document.getElementById('cat1Start').value || null,
+                cat1EndDate: document.getElementById('cat1End').value || null,
+                cat2StartDate: document.getElementById('cat2Start').value || null,
+                cat2EndDate: document.getElementById('cat2End').value || null,
+                fatStartDate: document.getElementById('fatStart').value || null,
+                fatEndDate: document.getElementById('fatEnd').value || null
+            };
 
-            if (!academicYear || !semesterStartDate || !semesterEndDate) {
-                showError('Please fill in academic year and semester dates');
-                return;
-            }
-
-            if (new Date(semesterEndDate) <= new Date(semesterStartDate)) {
-                showError('Semester end date must be after start date');
-                return;
-            }
-            
-            // Validate exam date ranges
-            if (cat1StartDate && cat1EndDate && new Date(cat1EndDate) < new Date(cat1StartDate)) {
-                showError('CAT-1 end date must be on or after start date');
-                return;
-            }
-            if (cat2StartDate && cat2EndDate && new Date(cat2EndDate) < new Date(cat2StartDate)) {
-                showError('CAT-2 end date must be on or after start date');
-                return;
-            }
-            // FAT end date is optional, only validate if both are provided
-            if (fatStartDate && fatEndDate && new Date(fatEndDate) < new Date(fatStartDate)) {
-                showError('FAT end date must be on or after start date');
+            if(!data.academicYear || !data.semesterStartDate || !data.examStartDate) {
+                alert('Please fill in the core semester dates.');
                 return;
             }
 
@@ -326,50 +354,22 @@
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + token
+                        'Authorization': `Bearer ${token}`
                     },
-                    body: JSON.stringify({ 
-                        academicYear, 
-                        semesterStartDate, 
-                        semesterEndDate,
-                        cat1StartDate,
-                        cat1EndDate,
-                        cat2StartDate,
-                        cat2EndDate,
-                        fatStartDate,
-                        fatEndDate
-                    })
+                    body: JSON.stringify(data)
                 });
 
-                if (res.ok) {
-                    showSuccess('Calendar and exam dates saved successfully');
+                if(res.ok) {
+                    alert('Academic Calendar updated successfully!');
                     loadCalendar();
                 } else {
                     const err = await res.text();
-                    showError(err || 'Failed to save settings');
+                    alert('Error: ' + err);
                 }
             } catch (e) {
-                showError('Error: ' + e.message);
+                alert('Connection error. Please try again.');
             }
         }
-
-        function showError(msg) {
-            const el = document.getElementById('error');
-            el.textContent = msg;
-            el.style.display = 'block';
-            document.getElementById('success').style.display = 'none';
-            setTimeout(() => el.style.display = 'none', 5000);
-        }
-
-        function showSuccess(msg) {
-            const el = document.getElementById('success');
-            el.textContent = msg;
-            el.style.display = 'block';
-            document.getElementById('error').style.display = 'none';
-            setTimeout(() => el.style.display = 'none', 5000);
-        }
-
-        loadCalendar();
     </script>
 </body>
 </html>
