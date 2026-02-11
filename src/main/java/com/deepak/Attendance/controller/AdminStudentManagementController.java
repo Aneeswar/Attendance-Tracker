@@ -50,7 +50,7 @@ public class AdminStudentManagementController {
             Sort.Direction direction = sortDir.equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC;
             Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
             
-            Page<User> students = userRepository.findByRole("ROLE_STUDENT", pageable);
+            Page<User> students = userRepository.findByRole("STUDENT", pageable);
             
             List<Map<String, Object>> studentList = students.getContent().stream()
                     .map(student -> {
@@ -150,7 +150,7 @@ public class AdminStudentManagementController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> searchStudents(@RequestParam String q) {
         try {
-            List<User> students = userRepository.findByRoleAndSearchTerm("ROLE_STUDENT", q);
+            List<User> students = userRepository.findByRoleAndSearchTerm("STUDENT", q);
             
             List<Map<String, Object>> studentList = students.stream()
                     .map(student -> {
@@ -240,7 +240,7 @@ public class AdminStudentManagementController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> getOverallAttendanceStats() {
         try {
-            List<User> allStudents = userRepository.findByRole("ROLE_STUDENT");
+            List<User> allStudents = userRepository.findByRole("STUDENT");
             List<AttendanceReport> allReports = attendanceReportRepository.findAll();
             
             // Calculate statistics
@@ -356,7 +356,7 @@ public class AdminStudentManagementController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> getAttendanceSummaryReport() {
         try {
-            List<User> students = userRepository.findByRole("ROLE_STUDENT");
+            List<User> students = userRepository.findByRole("STUDENT");
             List<Map<String, Object>> summaryList = new ArrayList<>();
             
             for (User student : students) {

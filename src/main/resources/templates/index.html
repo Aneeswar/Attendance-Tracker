@@ -119,6 +119,13 @@
             line-height: 1.1;
         }
 
+        .hero-content h1 span {
+            display: block;
+            background: linear-gradient(to right, #ffffff, #c7d2fe);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
         .hero-content p {
             font-size: 1.25rem;
             margin-bottom: 3rem;
@@ -336,21 +343,18 @@
         <div class="navbar-menu">
             <a href="#features">Features</a>
             <a href="#about">For Users</a>
+            <a href="/register" style="background: var(--primary); color: white; border-radius: 2rem;">Get Started</a>
         </div>
     </div>
 
     <div class="hero-section">
         <div class="hero-content">
-            <h1>Stay Ahead of Your Attendance</h1>
-            <p>Smart, date-based tracking with predictive analytics to ensure you're always eligible for your exams.</p>
+            <h1>Stay Ahead of Your <span>Attendance</span></h1>
+            <p>Smart, date-based tracking with predictive analytics to ensure you're always eligible for your exams. Manage courses, track holidays, and predict success.</p>
             <div class="cta-buttons">
                 <a href="/login?mode=student" class="cta-btn btn-primary">
                     <i class="fas fa-user-graduate"></i>
-                    Student Login
-                </a>
-                <a href="/register" class="cta-btn btn-outline">
-                    <i class="fas fa-user-plus"></i>
-                    Register
+                    Student Portal
                 </a>
                 <a href="/login?mode=admin" class="cta-btn btn-outline">
                     <i class="fas fa-user-shield"></i>
