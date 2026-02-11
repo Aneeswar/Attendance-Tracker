@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Attendance Report - Student Portal</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
             margin: 0;
@@ -61,6 +62,61 @@
             border-radius: 5px;
             margin-bottom: 20px;
             font-size: 14px;
+        }
+
+        .stale-notification {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            color: #e65100;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            display: none; /* Hidden by default */
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .stale-notification-content {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .refresh-btn {
+            background: #ff9800;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 5px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .refresh-btn:hover {
+            background: #f57c00;
+            transform: scale(1.05);
+        }
+
+        .refresh-btn:active {
+            transform: scale(0.95);
+        }
+
+        .refresh-btn i {
+            font-size: 16px;
+        }
+
+        .spinning {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
         }
 
         /* Toggle Switch for Medical/Other Relaxation */
@@ -500,10 +556,135 @@
             font-size: 13px;
             margin-top: 15px;
         }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.6);
+            backdrop-filter: blur(5px);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            animation: modalFadeIn 0.3s ease;
+        }
+
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .modal-header {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            font-size: 20px;
+            color: #333;
+        }
+
+        .close-modal {
+            font-size: 28px;
+            font-weight: bold;
+            color: #999;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .close-modal:hover {
+            color: #333;
+        }
+
+        .date-list {
+            list-style: none;
+        }
+
+        .date-item {
+            padding: 12px 15px;
+            border-bottom: 1px solid #f5f5f5;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.2s;
+        }
+
+        .date-item:hover {
+            background-color: #f9f9f9;
+        }
+
+        .date-item:last-child {
+            border-bottom: none;
+        }
+
+        .date-text {
+            font-weight: 500;
+            color: #444;
+        }
+
+        .day-name {
+            font-size: 0.85em;
+            color: #777;
+            background: #eee;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+
+        .exam-flag {
+            font-size: 0.75em;
+            color: white;
+            background: #f44336;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 10px;
+            font-weight: bold;
+        }
+
+        .report-card {
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
     <div class="container">
+        <!-- ... existing content ... -->
+    </div>
+
+    <!-- Future Class Dates Modal -->
+    <div id="datesModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Future Classes</h2>
+                <span class="close-modal" onclick="closeModal()">&times;</span>
+            </div>
+            <div id="modalDescription" style="margin-bottom: 20px; font-size: 14px; color: #666;">
+                These are the expected class dates until the end of the semester.
+            </div>
+            <div class="date-list" id="dateList">
+                <!-- Dates will be populated here -->
+            </div>
+        </div>
+    </div>
         <div class="header">
             <a href="/student-dashboard" style="position: absolute; left: 20px; top: 20px; background: rgba(255, 255, 255, 0.2); border: 2px solid white; color: white; padding: 8px 15px; border-radius: 5px; text-decoration: none; transition: all 0.3s ease;" onmouseover="this.style.background='rgba(255, 255, 255, 0.3)'; this.style.transform='translateX(-3px)';" onmouseout="this.style.background='rgba(255, 255, 255, 0.2)'; this.style.transform='translateX(0)';">← Back</a>
             <h1>📊 Your Attendance Report</h1>
@@ -512,6 +693,20 @@
 
         <div class="content">
             <div class="error-message" id="errorMessage"></div>
+
+            <div id="staleNotification" class="stale-notification">
+                <div class="stale-notification-content">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <div>
+                        <strong>Upcoming Changes Detected:</strong>
+                        <span>Academic calendar or holidays have been updated since your last report calculation.</span>
+                    </div>
+                </div>
+                <button id="refreshBtn" class="refresh-btn" onclick="refreshReport(this)">
+                    <i class="fas fa-sync-alt"></i>
+                    Refresh Report
+                </button>
+            </div>
 
             <div class="info-box">
                 📌 This report shows:
@@ -552,7 +747,9 @@
                 </div>
 
                 <div class="action-buttons">
-                    <button class="btn-update" onclick="refreshReport()">🔄 Refresh Report</button>
+                    <button class="btn-update" onclick="refreshReport(this)">
+                        <i class="fas fa-sync-alt"></i> Refresh Report
+                    </button>
                     <button class="btn-back" onclick="goBack()">← Go Back</button>
                 </div>
 
@@ -616,6 +813,16 @@
                 loadingSection.style.display = 'none';
                 if (data.reports && data.reports.length > 0) {
                     currentReports = data.reports;
+                    
+                    // Check if any report is stale
+                    const isStale = data.reports.some(r => r.stale === true);
+                    const staleNotification = document.getElementById('staleNotification');
+                    if (isStale) {
+                        staleNotification.style.display = 'flex';
+                    } else {
+                        staleNotification.style.display = 'none';
+                    }
+
                     displayReport(data.reports, data.generatedAt);
                     reportContent.style.display = 'block';
                     emptyState.style.display = 'none';
@@ -627,6 +834,45 @@
                 loadingSection.style.display = 'none';
                 showError('Error loading attendance report: ' + error.message);
             });
+        }
+
+        async function refreshReport(btn = null) {
+            const refreshBtn = btn || document.getElementById('refreshBtn');
+            const icon = refreshBtn ? refreshBtn.querySelector('i') : null;
+            const token = localStorage.getItem('jwtToken');
+            
+            // UI Feedback
+            if (refreshBtn) refreshBtn.disabled = true;
+            if (icon) icon.classList.add('spinning');
+            
+            // If called from the main content without the spinner overlay, we can show it
+            if (!refreshBtn || !refreshBtn.id === 'refreshBtn') {
+                loadingSection.style.display = 'block';
+                reportContent.style.display = 'none';
+            }
+            
+            try {
+                const response = await fetch('/api/student/attendance-report/refresh', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    // Reload the report data
+                    loadAttendanceReport();
+                } else {
+                    throw new Error('Failed to refresh report');
+                }
+            } catch (error) {
+                showError('Refresh failed: ' + error.message);
+                loadingSection.style.display = 'none';
+                reportContent.style.display = 'block';
+            } finally {
+                if (refreshBtn) refreshBtn.disabled = false;
+                if (icon) icon.classList.remove('spinning');
+            }
         }
 
         function formatDate(dateStr) {
@@ -661,6 +907,9 @@
                 const cardClass = status.toLowerCase().replace('_', '-');
                 const card = document.createElement('div');
                 card.className = `report-card ${cardClass}`;
+                
+                // Add click event to show dates
+                card.onclick = () => showDatesModal(report);
 
                 const statusText = status === 'SAFE' ? '✓ Safe' : 
                                    status === 'AT_RISK' ? '⚠ At Risk' : '✗ Impossible';
@@ -801,14 +1050,67 @@
             }
         }
 
-        function refreshReport() {
-            loadingSection.style.display = 'block';
-            reportContent.style.display = 'none';
-            loadAttendanceReport();
-        }
-
         function goBack() {
             window.location.href = '/student-dashboard';
+        }
+
+        // Modal Functions
+        function showDatesModal(report) {
+            const modal = document.getElementById('datesModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const dateList = document.getElementById('dateList');
+            const modalDesc = document.getElementById('modalDescription');
+            
+            modalTitle.innerText = `${report.courseCode} - Future Classes`;
+            dateList.innerHTML = '';
+            
+            const dates = report.futureClassDates || [];
+            const datesUntilExam = report.futureClassDatesUntilExam || [];
+            
+            if (dates.length === 0) {
+                dateList.innerHTML = '<div style="text-align:center; padding: 20px; color: #999;">No future classes found.</div>';
+            } else {
+                dates.forEach(dateStr => {
+                    const date = new Date(dateStr);
+                    const formattedDate = date.toLocaleDateString('en-US', { 
+                        weekday: 'long', 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                    });
+                    const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+                    
+                    const isBeforeExam = datesUntilExam.includes(dateStr);
+                    
+                    const item = document.createElement('div');
+                    item.className = 'date-item';
+                    
+                    let examFlagHtml = '';
+                    if (report.upcomingExamName && !isBeforeExam && datesUntilExam.length > 0) {
+                        // This class is after the upcoming exam
+                    }
+                    
+                    item.innerHTML = `
+                        <span class="date-text">${formattedDate}</span>
+                        <span class="day-name">${dayName}</span>
+                    `;
+                    dateList.appendChild(item);
+                });
+            }
+            
+            modal.style.display = 'flex';
+            
+            // Close on click outside
+            window.onclick = function(event) {
+                if (event.target == modal) {
+                    closeModal();
+                }
+            }
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('datesModal');
+            modal.style.display = 'none';
         }
 
         function showError(message) {

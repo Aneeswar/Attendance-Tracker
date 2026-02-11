@@ -49,13 +49,13 @@ public class HolidayService {
 
         Holiday saved = holidayRepository.save(holiday);
         
-        // Recalculate attendance reports for all students when holiday is added
-        log.info("Holiday added on {}. Recalculating attendance reports for all students.", dto.getDate());
+        // Mark all attendance reports as stale when holiday is added
+        log.info("Holiday added on {}. Marking all attendance reports as stale.", dto.getDate());
         studentServiceProvider.ifAvailable(studentService -> {
             try {
-                studentService.recalculateAttendanceReportsForAllStudents();
+                studentService.markAllAttendanceReportsAsStale();
             } catch (Exception e) {
-                log.error("Error recalculating reports after holiday addition", e);
+                log.error("Error marking reports as stale after holiday addition", e);
             }
         });
         
@@ -93,14 +93,14 @@ public class HolidayService {
             currentDate = currentDate.plusDays(1);
         }
         
-        // Recalculate attendance reports for all students when holidays are added in bulk
+        // Mark all attendance reports as stale when holidays are added in bulk
         if (!addedHolidays.isEmpty()) {
-            log.info("Holidays added (date range: {} to {}). Recalculating attendance reports for all students.", startDate, endDate);
+            log.info("Holidays added (date range: {} to {}). Marking all attendance reports as stale.", startDate, endDate);
             studentServiceProvider.ifAvailable(studentService -> {
                 try {
-                    studentService.recalculateAttendanceReportsForAllStudents();
+                    studentService.markAllAttendanceReportsAsStale();
                 } catch (Exception e) {
-                    log.error("Error recalculating reports after bulk holiday addition", e);
+                    log.error("Error marking reports as stale after bulk holiday addition", e);
                 }
             });
         }
@@ -131,14 +131,14 @@ public class HolidayService {
                 .filter(h -> h != null)
                 .collect(Collectors.toList());
         
-        // Recalculate attendance reports for all students when holidays are added in bulk
+        // Mark all attendance reports as stale when holidays are added in bulk
         if (!savedHolidays.isEmpty()) {
-            log.info("Bulk added {} holidays. Recalculating attendance reports for all students.", savedHolidays.size());
+            log.info("Bulk added {} holidays. Marking all attendance reports as stale.", savedHolidays.size());
             studentServiceProvider.ifAvailable(studentService -> {
                 try {
-                    studentService.recalculateAttendanceReportsForAllStudents();
+                    studentService.markAllAttendanceReportsAsStale();
                 } catch (Exception e) {
-                    log.error("Error recalculating reports after bulk holiday addition", e);
+                    log.error("Error marking reports as stale after bulk holiday addition", e);
                 }
             });
         }
@@ -161,13 +161,13 @@ public class HolidayService {
         Holiday holiday = holidayRepository.findById(id).get();
         holidayRepository.deleteById(id);
         
-        // Recalculate attendance reports for all students when holiday is deleted
-        log.info("Holiday deleted (date: {}). Recalculating attendance reports for all students.", holiday.getDate());
+        // Mark all attendance reports as stale when holiday is deleted
+        log.info("Holiday deleted (date: {}). Marking all attendance reports as stale.", holiday.getDate());
         studentServiceProvider.ifAvailable(studentService -> {
             try {
-                studentService.recalculateAttendanceReportsForAllStudents();
+                studentService.markAllAttendanceReportsAsStale();
             } catch (Exception e) {
-                log.error("Error recalculating reports after holiday deletion", e);
+                log.error("Error marking reports as stale after holiday deletion", e);
             }
         });
     }

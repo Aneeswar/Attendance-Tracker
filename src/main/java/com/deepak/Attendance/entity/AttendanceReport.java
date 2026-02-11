@@ -91,6 +91,9 @@ public class AttendanceReport {
     @Column
     private Double projectedAttendancePercentage;
 
+    @Column(nullable = false)
+    private Boolean isStale = false;
+
     // Metadata
     @Column(nullable = false, columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
     private LocalDateTime calculatedAt;

@@ -200,6 +200,30 @@ public class StudentController {
     }
 
     /**
+     * Refresh attendance report for all courses
+     * POST /api/student/attendance-report/refresh
+     */
+    @PostMapping("/attendance-report/refresh")
+    @PreAuthorize("hasRole('STUDENT')")
+    public ResponseEntity<?> refreshAttendanceReport(@RequestHeader("Authorization") String authHeader) {
+        try {
+            Long userId = extractUserIdFromToken(authHeader);
+            studentService.refreshAttendanceReports(userId);
+            
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Attendance reports refreshed successfully");
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error refreshing attendance report", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new HashMap<String, String>() {{
+                        put("error", "Failed to refresh attendance report");
+                    }});
+        }
+    }
+
+    /**
      * Get holidays list (accessible by students)
      * GET /api/student/holidays
      */

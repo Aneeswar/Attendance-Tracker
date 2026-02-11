@@ -1,5 +1,6 @@
 package com.deepak.Attendance.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -25,6 +26,10 @@ public class AttendanceReportDTO {
     private Integer totalClassesConducted;
     private Integer classesAttended;
     
+    // Future class dates list
+    private java.util.List<LocalDate> futureClassDates;
+    private java.util.List<LocalDate> futureClassDatesUntilExam;
+    
     // Upcoming exam information (only the next upcoming exam)
     private String upcomingExamName; // CAT-1, CAT-2, or FAT
     private LocalDate upcomingExamStartDate;
@@ -32,6 +37,9 @@ public class AttendanceReportDTO {
     private boolean upcomingExamEligible; // For 75% (can achieve if attend required classes)
     private boolean upcomingExamEligibleRelaxed; // For 65% (can achieve if attend required classes)
     private Double projectedAttendancePercentage; // Projected % if all remaining classes are attended
+    
+    @JsonProperty("stale")
+    private boolean isStale;
     
     // Constructor for basic report (backward compatibility)
     public AttendanceReportDTO(String courseCode, String courseName, Double currentPercentage, 

@@ -24,10 +24,9 @@ public class WorkingDayService {
     /**
      * Determines if a given date is a valid working day
      * A valid working day:
-     * - Is between semester start and exam start
+     * - Is between semester start and exam start (inclusive)
      * - Is Tuesday to Saturday only
      * - Is NOT in the holidays table
-     * - The last working day before exam date must be excluded
      *
      * @param date The date to check
      * @return true if it's a valid working day, false otherwise
@@ -42,12 +41,8 @@ public class WorkingDayService {
         LocalDate examStart = calendar.get().getExamStartDate();
 
         // Check if date is within academic period
+        // User requested that the exam start date (semester end date) be considered a working day
         if (date.isBefore(semesterStart) || date.isAfter(examStart)) {
-            return false;
-        }
-
-        // Check if date is the exam start date (excluded)
-        if (date.equals(examStart)) {
             return false;
         }
 
@@ -84,7 +79,8 @@ public class WorkingDayService {
                 .map(Holiday::getDate)
                 .collect(Collectors.toSet());
 
-        return semesterStart.datesUntil(examStart)
+        // Use plusDays(1) to include the examStart day itself
+        return semesterStart.datesUntil(examStart.plusDays(1))
                 .filter(date -> isValidWorkingDayInternal(date, semesterStart, examStart, holidays))
                 .collect(Collectors.toList());
     }
@@ -101,13 +97,14 @@ public class WorkingDayService {
         }
 
         LocalDate examStart = calendar.get().getExamStartDate();
-        LocalDate dayBefore = examStart.minusDays(1);
+        // User requested that the exam start date (semester end date) be considered the last working day
+        LocalDate current = examStart;
 
-        while (dayBefore.isAfter(calendar.get().getSemesterStartDate())) {
-            if (isWorkingDay(dayBefore)) {
-                return dayBefore;
+        while (!current.isBefore(calendar.get().getSemesterStartDate())) {
+            if (isWorkingDay(current)) {
+                return current;
             }
-            dayBefore = dayBefore.minusDays(1);
+            current = current.minusDays(1);
         }
 
         return null;
@@ -152,10 +149,6 @@ public class WorkingDayService {
     }
 
     private boolean isValidWorkingDayInternal(LocalDate date, LocalDate semesterStart, LocalDate examStart, Set<LocalDate> holidays) {
-        // Check if date is the exam start date (excluded)
-        if (date.equals(examStart)) {
-            return false;
-        }
 
         // Check if it's a valid day of week (Tuesday to Saturday)
         DayOfWeek dayOfWeek = date.getDayOfWeek();

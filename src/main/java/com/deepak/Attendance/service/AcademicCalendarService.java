@@ -3,7 +3,6 @@ package com.deepak.Attendance.service;
 import com.deepak.Attendance.dto.AcademicCalendarDTO;
 import com.deepak.Attendance.entity.AcademicCalendar;
 import com.deepak.Attendance.repository.AcademicCalendarRepository;
-import com.deepak.Attendance.repository.AttendanceReportRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,8 +19,6 @@ public class AcademicCalendarService {
     @Autowired
     private AcademicCalendarRepository academicCalendarRepository;
     
-    @Autowired
-    private AttendanceReportRepository attendanceReportRepository;
     
     @Autowired
     private ObjectProvider<StudentService> studentServiceProvider;
@@ -43,11 +40,6 @@ public class AcademicCalendarService {
         // Delete all existing records and create a new one (only one active at a time)
         academicCalendarRepository.deleteAll();
         
-        // Clear all cached attendance reports when calendar changes
-        // This ensures reports will be recalculated with new exam dates
-        log.info("Clearing all cached attendance reports due to calendar update");
-        attendanceReportRepository.deleteAll();
-
         AcademicCalendar calendar = new AcademicCalendar();
         calendar.setAcademicYear(dto.getAcademicYear());
         calendar.setSemesterStartDate(dto.getSemesterStartDate());
@@ -64,13 +56,13 @@ public class AcademicCalendarService {
         AcademicCalendar saved = academicCalendarRepository.save(calendar);
         log.info("Academic Calendar saved with ID: {}", saved.getId());
         
-        // Recalculate attendance reports for all students with new exam dates and holidays
-        log.info("Academic calendar updated. Recalculating attendance reports for all students.");
+        // Mark all attendance reports as stale when academic calendar is updated
+        log.info("Academic calendar updated. Marking all attendance reports as stale.");
         studentServiceProvider.ifAvailable(studentService -> {
             try {
-                studentService.recalculateAttendanceReportsForAllStudents();
+                studentService.markAllAttendanceReportsAsStale();
             } catch (Exception e) {
-                log.error("Error recalculating reports after academic calendar update", e);
+                log.error("Error marking reports as stale after academic calendar update", e);
             }
         });
         

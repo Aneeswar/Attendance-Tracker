@@ -239,6 +239,10 @@ public class StudentService {
             
             report.setClassesCanSkip75(cached.getClassesCanSkip75());
             report.setClassesCanSkip65(cached.getClassesCanSkip65());
+            report.setStale(cached.getIsStale());
+            
+            // Populate future class dates for the UI
+            report.setFutureClassDates(attendanceCalculationService.getFutureClassDates(cached.getCourse()));
             
             if (cached.getUpcomingExamName() != null) {
                 report.setUpcomingExamName(cached.getUpcomingExamName());
@@ -251,6 +255,10 @@ public class StudentService {
                 report.setClassesCanSkip75(cached.getClassesCanSkipUntilExam75() != null ? cached.getClassesCanSkipUntilExam75() : cached.getClassesCanSkip75());
                 report.setClassesCanSkip65(cached.getClassesCanSkipUntilExam65() != null ? cached.getClassesCanSkipUntilExam65() : cached.getClassesCanSkip65());
                 report.setProjectedAttendancePercentage(cached.getProjectedAttendancePercentage());
+                
+                // Populate future class dates until exam
+                report.setFutureClassDatesUntilExam(attendanceCalculationService.getFutureClassDatesUntilDate(
+                    cached.getCourse(), cached.getUpcomingExamStartDate(), cached.getUpcomingExamName()));
             }
             
             reports.add(report);
@@ -407,6 +415,9 @@ public class StudentService {
                 cachedReport.setUpcomingExamEligible65(false);
             }
             
+            // Mark as not stale since we just recalculated
+            cachedReport.setIsStale(false);
+            
             attendanceReportRepository.save(cachedReport);
             log.info("Cached attendance report for course: {}", course.getCourseCode());
             
@@ -414,6 +425,28 @@ public class StudentService {
             log.warn("Failed to cache attendance report for course: {}", course.getCourseCode(), e);
             // Don't fail the save - just log the error
         }
+    }
+
+    /**
+     * Refresh attendance reports for a specific student's courses
+     */
+    @Transactional
+    public void refreshAttendanceReports(Long userId) {
+        log.info("Refreshing attendance reports for user: {}", userId);
+        List<Course> courses = courseRepository.findByUserId(userId);
+        for (Course course : courses) {
+            calculateAndCacheAttendanceReport(course);
+        }
+    }
+
+    /**
+     * Mark all attendance reports as stale.
+     * Called when holidays or academic calendar changes to avoid heavy immediate recalculation
+     */
+    @Transactional
+    public void markAllAttendanceReportsAsStale() {
+        log.info("Marking all attendance reports as stale due to configuration change");
+        attendanceReportRepository.markAllReportsAsStale();
     }
 
     /**
