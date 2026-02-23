@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: attentrack-service
+  namespace: default
+spec:
+  selector:
+    app: attentrack
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8081
+  type: LoadBalancer # Exposes the application using an AWS ELB
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: attentrack-deployment
+  namespace: default
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: attentrack
+  template:
+    metadata:
+      labels:
+        app: attentrack
+    spec:
+      containers:
+        - name: attentrack
+          image: 009806199260.dkr.ecr.ap-south-1.amazonaws.com/attentrack:latest
+          ports:
+            - containerPort: 8081
+          env:
+            - name: DB_HOST
+              value: "attentrack-cluster-db.chimcyaq4b8e.ap-south-1.rds.amazonaws.com"
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_NAME
+              value: "attentrack"
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials
+                  key: username
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials
+                  key: password
+          # Liveness and Readiness probes (best practice)
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8081
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8081
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"

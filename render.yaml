@@ -1,6 +1,0 @@
-services:
-  - type: web
-    name: attendance-app
-    runtime: docker
-    plan: free
-

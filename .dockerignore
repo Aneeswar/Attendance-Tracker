@@ -8,8 +8,5 @@ target/
 *.swp
 *.swo
 *~
-.mvn/wrapper/maven-wrapper.jar
-mvnw
-mvnw.cmd
 README.md
 HELP.md

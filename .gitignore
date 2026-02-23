@@ -48,6 +48,25 @@ application.properties.example
 
 ### Logs ###
 logs/
+
+### Terraform ###
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+.terraform.lock.hcl
+crash.log
+crash.log.*
+
+### Kubernetes Secrets ###
+k8s/db-secret.yaml
+*secret.yaml
+!*secret.yaml-template
+
+### OS Files ###
+.DS_Store
+Thumbs.db
 *.log
 *.log.*
 
@@ -63,3 +82,23 @@ Thumbs.db
 venv/
 ENV/
 env/
+
+
+# Local .terraform directories
+**/.terraform/*
+
+# .tfstate files
+*.tfstate
+*.tfstate.*
+
+# .tfvars files with secrets 
+# SECURITY BEST PRACTICE: Keep secrets out of git history!
+*.tfvars
+*.tfvars.json
+
+# Crash log files
+crash.log
+crash.log.*
+
+# Terraform plugin cache
+.terraform.lock.hcl

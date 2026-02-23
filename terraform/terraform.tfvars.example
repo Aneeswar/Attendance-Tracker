@@ -1,0 +1,6 @@
+# SECURITY WARNING: Never commit these values to version control! 
+# Copy this file to 'terraform.tfvars' and update the values before running 'terraform apply'.
+
+db_name     = "attentrack"
+db_username = "dbadmin"
+db_password = "replace_with_a_secure_one_locally" # Do not commit to git!
