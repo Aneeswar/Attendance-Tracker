@@ -6,7 +6,7 @@ resource "aws_ecr_repository" "attentrack" {
     scan_on_push = true
   }
 
-  force_delete = false # Protection against accidental deletion
+  force_delete = true # Set to true to allow destruction even if it contains images
 
   tags = {
     Name        = "attentrack-ecr"

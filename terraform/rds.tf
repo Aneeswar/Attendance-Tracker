@@ -54,8 +54,8 @@ resource "aws_db_instance" "postgresql" {
   publicly_accessible     = false
   multi_az                = true
   backup_retention_period = 7
-  skip_final_snapshot     = false
-  deletion_protection     = true
+  skip_final_snapshot     = true # Set to true to allow destruction
+  deletion_protection     = false # Set to false to allow destruction
 
   tags = {
     Name        = "${var.cluster_name}-db"

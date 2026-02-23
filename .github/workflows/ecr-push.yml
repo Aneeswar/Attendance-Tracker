@@ -46,13 +46,16 @@ jobs:
         # 1. Connect to EKS
         aws eks update-kubeconfig --region ap-south-1 --name attentrack-cluster
         
-        # 2. Apply Kubernetes Infrastructure changes (Deployment and Service)
-        # Note: We apply ONLY the non-secret file to avoid errors with missing secrets
+        # 2. AUTO-DISCOVER RDS ENDPOINT
+        RDS_ENDPOINT=$(aws rds describe-db-instances --db-instance-identifier attentrack-cluster-db --query "DBInstances[0].Endpoint.Address" --output text)
+        echo "Found RDS Endpoint: $RDS_ENDPOINT"
+
+        # 3. Apply Kubernetes Infrastructure changes
         kubectl apply -f k8s/deployment_and_service.yaml
         
-        # 3. Specifically update the container image to the new unique tag
-        # This ensures the new code is deployed regardless of what is in the YAML
+        # 4. Inject the discovered RDS Endpoint and the new Image Tag
+        kubectl set env deployment/attentrack-deployment DB_HOST=$RDS_ENDPOINT
         kubectl set image deployment/attentrack-deployment attentrack=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
         
-        # 4. Wait for the rollout to finish
+        # 5. Wait for rollout
         kubectl rollout status deployment/attentrack-deployment

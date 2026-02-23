@@ -29,13 +29,13 @@ spec:
     spec:
       containers:
         - name: attentrack
-          image: 009806199260.dkr.ecr.ap-south-1.amazonaws.com/attentrack:latest
+          image: REPLACEME_ECR_REPO_URL:latest # CI/CD will inject correct tag
           imagePullPolicy: Always
           ports:
             - containerPort: 8081
           env:
             - name: DB_HOST
-              value: "attentrack-cluster-db.chimcyaq4b8e.ap-south-1.rds.amazonaws.com"
+              value: "REPLACEME_RDS_ENDPOINT" # CI/CD will inject correct endpoint
             - name: DB_PORT
               value: "5432"
             - name: DB_NAME
