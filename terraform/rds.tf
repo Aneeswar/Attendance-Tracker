@@ -52,10 +52,10 @@ resource "aws_db_instance" "postgresql" {
   vpc_security_group_ids  = [aws_security_group.rds.id]
 
   publicly_accessible     = false
-  multi_az                = false
+  multi_az                = true
   backup_retention_period = 7
-  skip_final_snapshot     = true
-  deletion_protection     = false
+  skip_final_snapshot     = false
+  deletion_protection     = true
 
   tags = {
     Name        = "${var.cluster_name}-db"

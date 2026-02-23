@@ -30,6 +30,7 @@ spec:
       containers:
         - name: attentrack
           image: 009806199260.dkr.ecr.ap-south-1.amazonaws.com/attentrack:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 8081
           env:

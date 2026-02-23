@@ -6,7 +6,7 @@ resource "aws_ecr_repository" "attentrack" {
     scan_on_push = true
   }
 
-  force_delete = true # Easier for environment cleanup/re-creation
+  force_delete = false # Protection against accidental deletion
 
   tags = {
     Name        = "attentrack-ecr"

@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   build:
-    name: Build & Push
+    name: Build, Push & Deploy
     runs-on: ubuntu-latest
     environment: production
 
@@ -28,16 +28,21 @@ jobs:
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v2
 
-    - name: Build, tag, and push image to Amazon ECR
+    - name: Build, tag, and push image
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         ECR_REPOSITORY: attentrack
         IMAGE_TAG: ${{ github.sha }}
       run: |
         docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-        docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
-    # Additional steps could be added here to deploy to EKS or update the K8s manifest
-    # For now, it focuses on building and pushing the image
+    - name: Update Deployment
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: attentrack
+        IMAGE_TAG: ${{ github.sha }}
+      run: |
+        aws eks update-kubeconfig --region ap-south-1 --name attentrack-cluster
+        kubectl set image deployment/attentrack-deployment attentrack=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        kubectl rollout status deployment/attentrack-deployment

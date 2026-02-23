@@ -16,7 +16,7 @@ module "vpc" {
   intra_subnets   = ["10.0.201.0/24", "10.0.202.0/24"]
 
   enable_nat_gateway = true
-  single_nat_gateway = true # Set to true for dev costs or false for production high availability
+  single_nat_gateway = false # Set to false for production high availability
   enable_vpn_gateway = false
 
   # Required EKS tags
