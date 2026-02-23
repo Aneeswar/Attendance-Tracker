@@ -32,6 +32,22 @@ module "eks" {
   # (Requires access_entries update in newer versions of module 19.16+)
   enable_cluster_creator_admin_permissions = true
 
+  access_entries = var.github_actions_iam_arn != "" ? {
+    github_actions = {
+      # Remove system:masters group as EKS Access Entries handle permissions via policy associations
+      principal_arn     = var.github_actions_iam_arn
+
+      policy_associations = {
+        admin = {
+          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+          access_scope = {
+            type       = "cluster"
+          }
+        }
+      }
+    }
+  } : {}
+
   tags = {
     Environment = var.environment
     Terraform   = "true"

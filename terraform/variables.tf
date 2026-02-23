@@ -22,6 +22,12 @@ variable "environment" {
   default     = "production"
 }
 
+variable "github_actions_iam_arn" {
+  description = "IAM ARN of the user/role used in GitHub Actions"
+  type        = string
+  default     = "" # Empty by default
+}
+
 # --- Database Credentials ---
 # SECURITY BEST PRACTICE: Never hardcode default values for production credentials.
 # Pass these via environment variables (TF_VAR_db_password), a secure 

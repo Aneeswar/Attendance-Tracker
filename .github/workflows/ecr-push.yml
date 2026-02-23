@@ -1,4 +1,4 @@
-name: Build and Push to ECR
+name: Build, Push & Deploy to EKS
 
 on:
   push:
@@ -43,6 +43,12 @@ jobs:
         ECR_REPOSITORY: attentrack
         IMAGE_TAG: ${{ github.sha }}
       run: |
+        # Get the cluster access token and update kubeconfig
         aws eks update-kubeconfig --region ap-south-1 --name attentrack-cluster
+        
+        # Verify connectivity
+        kubectl get nodes || (echo "Failed to authenticate with cluster" && exit 1)
+        
+        # Set new image
         kubectl set image deployment/attentrack-deployment attentrack=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
         kubectl rollout status deployment/attentrack-deployment
