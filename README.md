@@ -39,13 +39,37 @@ A comprehensive Spring Boot-based attendance tracking and management system for 
 - **Semester Configuration**: Configure different semesters with unique exam dates and holidays
 - **Student Management**: View and manage student accounts and enrollment
 
-## 🛠️ Technology Stack
+## � Monitoring
+
+The application is integrated with **Prometheus** and **Grafana** for real-time monitoring.
+
+### Features
+- **Application Metrics**: Scrapes JVM, HTTP request latency, JDBC connections, and Hibernate statistics.
+- **Custom Metrics**: Ready for business-specific metrics via Micrometer.
+- **Kubernetes Auto-Discovery**: Prometheus automatically scrapes any pod with the annotation `prometheus.io/scrape: "true"`.
+
+### Setup
+1. **Application side**: `spring-boot-starter-actuator` and `micrometer-registry-prometheus` are included in `pom.xml`.
+2. **Kubernetes Deployment**: The pod annotations in `k8s/deployment_and_service.yaml` enable scraping.
+3. **Monitoring Stack**: Apply the monitoring manifests:
+   ```bash
+   kubectl apply -f k8s/monitoring.yaml
+   ```
+4. **Accessing Dashboards**:
+   - **Prometheus**: Accessible via the `prometheus-service` (Port 80).
+   - **Grafana**: Accessible via the `grafana-service` (Port 80). Default credentials: `admin` / `admin`.
+
+## �🛠️ Technology Stack
 
 - **Backend**: 
   - Spring Boot 4.0.2
   - Spring Security with JWT Authentication
   - Spring Data JPA
   - PostgreSQL 16.9
+- **Monitoring**:
+  - Prometheus (Metrics collection)
+  - Grafana (Visualization & Dashboards)
+  - Actuator (Prometheus registry)
   
 - **Frontend**: 
   - HTML5, CSS3, JavaScript

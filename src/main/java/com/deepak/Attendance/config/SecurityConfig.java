@@ -59,6 +59,8 @@ public class SecurityConfig {
                         // Public pages - no auth required
                         .requestMatchers("/", "/index.html", "/login", "/register").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
+                        // Monitoring
+                        .requestMatchers("/actuator/**").permitAll()
                         // CAPTCHA images - public (served as static files)
                         .requestMatchers("/captcha-images/**").permitAll()
                         // CAPTCHA image endpoint must be public (loaded via img src)
