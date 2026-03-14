@@ -30,6 +30,12 @@ public class AttendanceReportDTO {
     private java.util.List<LocalDate> futureClassDates;
     private java.util.List<LocalDate> futureClassDatesUntilExam;
     
+    // Multi-exam report data
+    private ExamEligibilityDTO cat1Report;
+    private ExamEligibilityDTO cat2Report;
+    private ExamEligibilityDTO fatReport;
+    private String mainReportExam; // Which one is the main report (CAT-1, CAT-2, or FAT)
+    
     // Upcoming exam information (only the next upcoming exam)
     private String upcomingExamName; // CAT-1, CAT-2, or FAT
     private LocalDate upcomingExamStartDate;

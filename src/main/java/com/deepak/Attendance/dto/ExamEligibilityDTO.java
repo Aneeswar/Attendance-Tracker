@@ -9,29 +9,27 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ExamEligibilityDTO {
-    private String courseCode;
-    private String courseName;
-    private Double currentPercentage;
+    private String examName;
+    private LocalDate examStartDate;
+    private LocalDate examEndDate;
+    private LocalDate attendanceCutoffDate;
     
-    // CAT-1 Eligibility
-    private boolean cat1Eligible;
-    private boolean cat1Upcoming; // true if exam hasn't started yet
-    private LocalDate cat1StartDate;
-    private LocalDate cat1EndDate;
+    private boolean eligible75;
+    private boolean eligible65;
     
-    // CAT-2 Eligibility
-    private boolean cat2Eligible;
-    private boolean cat2Upcoming;
-    private LocalDate cat2StartDate;
-    private LocalDate cat2EndDate;
+    private Integer futureClassesUntilExam;
+    private Integer minimumClassesToAttend75;
+    private Integer minimumClassesToAttend65;
+    private Integer classesCanSkip75;
+    private Integer classesCanSkip65;
     
-    // FAT Eligibility
-    private boolean fatEligible;
-    private boolean fatUpcoming;
-    private LocalDate fatStartDate;
-    private LocalDate fatEndDate;
+    private Double projectedPercentage;
+    private Double targetPercentage75;
+    private Double targetPercentage65;
+    private java.util.List<LocalDate> futureClassDates;
     
-    // Relaxation info (for medical/other cases)
-    private boolean withRelaxation;
-    private Double requiredPercentage; // 75% or 65%
+    private boolean isAvailable; // Whether the exam dates are set and calculation is possible
+    private boolean isUpcoming; // Has it started yet?
+    private boolean isOngoing; // Is it currently happening?
+    private boolean isCompleted; // Is it finished?
 }

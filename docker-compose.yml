@@ -1,8 +1,18 @@
 version: '3.8'
 
 services:
+  app:
+    build: .
+    ports:
+      - "8080:8081"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+    restart: always
+
   prometheus:
     image: prom/prometheus:latest
+    profiles:
+      - monitoring
     ports:
       - "9090:9090"
     volumes:
@@ -10,6 +20,8 @@ services:
 
   grafana:
     image: grafana/grafana:latest
+    profiles:
+      - monitoring
     ports:
       - "3000:3000"
     environment:

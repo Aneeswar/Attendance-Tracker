@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-demo
+data:
+  gf_admin_pass: "YWRtaW4=" # Base64-encoded "admin"
+
+  #COnfig used for to store url,username and password for grafana admin user. 
+  #This is used in monitoring.yaml to set the admin password for Grafana. 
+  #The password is base64-encoded for security reasons, and can be decoded using standard base64 decoding methods.

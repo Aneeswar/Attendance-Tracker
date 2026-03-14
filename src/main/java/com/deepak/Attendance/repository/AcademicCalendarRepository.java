@@ -10,4 +10,6 @@ import java.util.Optional;
 @Repository
 public interface AcademicCalendarRepository extends JpaRepository<AcademicCalendar, Long> {
     Optional<AcademicCalendar> findBySemesterStartDateLessThanEqualAndExamStartDateGreaterThanEqual(LocalDate today, LocalDate today1);
+    
+    Optional<AcademicCalendar> findFirstByOrderByCreatedAtDesc();
 }

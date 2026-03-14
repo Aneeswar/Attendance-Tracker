@@ -129,13 +129,16 @@ The application will start on `http://localhost:8081`
 For a quick setup using Docker and Docker Compose:
 
 ```bash
-# Build and start all services
+# Build and start the application only (Monitoring detached)
 docker-compose up --build
+
+# Run everything (Application + Monitoring)
+docker-compose --profile monitoring up --build
 
 # Run in background
 docker-compose up -d
 ```
-The application will be available at `http://localhost:8080` (configured in `docker-compose.yml`).
+The application will be available at `http://localhost:8080`.
 
 ## 📖 Usage Guide
 

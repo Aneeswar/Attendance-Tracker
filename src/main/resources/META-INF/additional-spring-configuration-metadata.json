@@ -20,5 +20,10 @@
     "type": "java.lang.Boolean",
     "description": "Enable mock mode for OCR (set to true for development without tessdata)",
     "defaultValue": false
+  },
+  {
+    "name": "management.endpoint.prometheus.enabled",
+    "type": "java.lang.String",
+    "description": "A description for 'management.endpoint.prometheus.enabled'"
   }
 ]}

@@ -260,11 +260,91 @@ public class StudentService {
                 report.setFutureClassDatesUntilExam(attendanceCalculationService.getFutureClassDatesUntilDate(
                     cached.getCourse(), cached.getUpcomingExamStartDate(), cached.getUpcomingExamName()));
             }
+
+            // Populate multi-exam reports
+            AcademicCalendar calendar = academicCalendarRepository.findFirstByOrderByCreatedAtDesc().orElse(null);
+            if (calendar != null) {
+                Set<LocalDate> holidays = new HashSet<>(holidayService.getAllHolidays().stream().map(h -> h.getDate()).toList());
+                
+                report.setCat1Report(calculateExamEligibility(cached.getCourse(), "CAT-1", calendar.getCat1StartDate(), calendar.getCat1EndDate(), cached.getClassesAttended(), cached.getTotalClassesConducted(), holidays));
+                report.setCat2Report(calculateExamEligibility(cached.getCourse(), "CAT-2", calendar.getCat2StartDate(), calendar.getCat2EndDate(), cached.getClassesAttended(), cached.getTotalClassesConducted(), holidays));
+                // Use calendar.getExamStartDate() as the Instructional End Date for FAT analysis
+                report.setFatReport(calculateExamEligibility(cached.getCourse(), "FAT", calendar.getExamStartDate(), calendar.getFatEndDate(), cached.getClassesAttended(), cached.getTotalClassesConducted(), holidays));
+                
+                // Determine main report exam
+                LocalDate today = LocalDate.now();
+                if (calendar.getCat1StartDate() != null && !today.isAfter(calendar.getCat1EndDate())) {
+                    report.setMainReportExam("CAT-1");
+                } else if (calendar.getCat2StartDate() != null && !today.isAfter(calendar.getCat2EndDate())) {
+                    report.setMainReportExam("CAT-2");
+                } else {
+                    report.setMainReportExam("FAT");
+                }
+            }
             
             reports.add(report);
         }
 
         return reports;
+    }
+
+    private com.deepak.Attendance.dto.ExamEligibilityDTO calculateExamEligibility(Course course, String examType, LocalDate start, LocalDate end, int attended, int totalConducted, Set<LocalDate> holidays) {
+        if (start == null) return null;
+        
+        com.deepak.Attendance.dto.ExamEligibilityDTO dto = new com.deepak.Attendance.dto.ExamEligibilityDTO();
+        dto.setExamName(examType);
+        dto.setExamStartDate(start);
+        dto.setExamEndDate(end);
+        dto.setAvailable(true);
+        
+        LocalDate today = LocalDate.now();
+        dto.setUpcoming(today.isBefore(start));
+        dto.setOngoing(end != null && !today.isBefore(start) && !today.isAfter(end));
+        dto.setCompleted(end != null && today.isAfter(end));
+        
+        LocalDate cutoff = attendanceCalculationService.getAttendanceCutoffDate(start, examType, holidays);
+        dto.setAttendanceCutoffDate(cutoff);
+        
+        int futureUntilExam = attendanceCalculationService.calculateFutureClassesAvailableUntilDate(course, start, examType);
+        int totalUntilExam = totalConducted + futureUntilExam;
+        dto.setFutureClassesUntilExam(futureUntilExam);
+        
+        // Use existing logic pattern for min classes
+        int min75 = attended;
+        for (int a = attended; a <= attended + futureUntilExam; a++) {
+            double pct = totalUntilExam > 0 ? (double) a / totalUntilExam * 100 : 0;
+            if (Math.ceil(pct) >= 75.0) { min75 = a; break; }
+        }
+        int add75 = Math.max(0, min75 - attended);
+        dto.setMinimumClassesToAttend75(add75);
+        dto.setClassesCanSkip75(Math.max(0, futureUntilExam - add75));
+        dto.setEligible75(add75 <= futureUntilExam);
+        
+        // Calculate target percentage if all skip classes are used (75%)
+        int totalAttended75 = attended + add75;
+        double targetVal75 = totalUntilExam > 0 ? (double) totalAttended75 / totalUntilExam * 100 : 0;
+        dto.setTargetPercentage75(Math.ceil(targetVal75));
+        
+        int min65 = attended;
+        for (int a = attended; a <= attended + futureUntilExam; a++) {
+            double pct = totalUntilExam > 0 ? (double) a / totalUntilExam * 100 : 0;
+            if (Math.ceil(pct) >= 65.0) { min65 = a; break; }
+        }
+        int add65 = Math.max(0, min65 - attended);
+        dto.setMinimumClassesToAttend65(add65);
+        dto.setClassesCanSkip65(Math.max(0, futureUntilExam - add65));
+        dto.setEligible65(add65 <= futureUntilExam);
+
+        // Calculate target percentage if all skip classes are used (65%)
+        int totalAttended65 = attended + add65;
+        double targetVal65 = totalUntilExam > 0 ? (double) totalAttended65 / totalUntilExam * 100 : 0;
+        dto.setTargetPercentage65(Math.ceil(targetVal65));
+        
+        double projected = totalUntilExam > 0 ? (double) (attended + futureUntilExam) / totalUntilExam * 100 : 0;
+        dto.setProjectedPercentage(Math.ceil(projected));
+        dto.setFutureClassDates(attendanceCalculationService.getFutureClassDatesUntilDate(course, start, examType));
+        
+        return dto;
     }
 
     /**

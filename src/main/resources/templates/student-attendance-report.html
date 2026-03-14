@@ -268,6 +268,42 @@
         .mini-val { display: block; font-weight: 800; font-size: 1rem; color: var(--primary); }
         .mini-lbl { font-size: 0.625rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; }
 
+        /* Multi-Exam Selector Styles */
+        .exam-selector {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+            margin-top: 1rem;
+            border-top: 1px solid #f1f5f9;
+            padding-top: 1rem;
+        }
+
+        .exam-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            padding: 0.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .exam-card:hover { border-color: var(--primary); transform: translateY(-1px); }
+        .exam-card.active { border-color: var(--primary); background: #eef2ff; }
+        
+        .exam-card-name { font-weight: 800; font-size: 0.625rem; display: block; margin-bottom: 0.125rem; color: var(--text-muted); }
+        .exam-card-status { font-size: 0.5rem; font-weight: 700; padding: 0.125rem 0.25rem; border-radius: 0.25rem; text-transform: uppercase; }
+        .status-upcoming { background: #e0f2fe; color: #0369a1; }
+        .status-ongoing { background: #fefce8; color: #a16207; }
+        .status-completed { background: #f1f5f9; color: #475569; }
+
+        .cutoff-info {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 0.5rem;
+            font-weight: 600;
+        }
+
         /* Modal */
         .modal {
             display: none;
@@ -382,12 +418,23 @@
 
     <!-- Modal -->
     <div id="datesModal" class="modal">
-        <div class="modal-card">
+        <div class="modal-card" style="max-width: 500px;">
             <div class="modal-header">
-                <h2>Upcoming Schedule</h2>
+                <div>
+                    <h2 id="modalTitle">Course Details</h2>
+                    <div id="modalSubtitle" style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;"></div>
+                </div>
                 <button class="close-btn" onclick="closeModal()">&times;</button>
             </div>
-            <div class="modal-body" id="modalDateList"></div>
+            <div class="modal-body">
+                <div id="modalExamInfo" class="exam-prediction" style="margin-top: 0; margin-bottom: 1.5rem; border-style: solid; background: #fdfdfd; display: none;">
+                    <!-- Exam specific details go here -->
+                </div>
+                <h3 style="font-size: 0.875rem; font-weight: 800; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fas fa-calendar-alt"></i> ALL UPCOMING CLASSES
+                </h3>
+                <div id="modalDateList"></div>
+            </div>
         </div>
     </div>
 
@@ -437,54 +484,91 @@
             const threshold = relaxationEnabled ? 65 : 75;
 
             currentReports.forEach(report => {
-                const status = report.currentPercentage >= threshold ? 'SAFE' : (report.status === 'IMPOSSIBLE' ? 'IMPOSSIBLE' : 'AT_RISK');
+                const roundedPercentage = Math.ceil(report.currentPercentage);
+                const status = roundedPercentage >= threshold ? 'SAFE' : (report.status === 'IMPOSSIBLE' ? 'IMPOSSIBLE' : 'AT_RISK');
                 const canSkip = relaxationEnabled ? report.classesCanSkip65 : report.classesCanSkip75;
-                const isEligible = relaxationEnabled ? report.upcomingExamEligibleRelaxed : report.upcomingExamEligible;
-                const projected = (report.projectedAttendancePercentage || 0).toFixed(1);
+                
+                // Get main report details
+                let mainExam = report.cat1Report;
+                if (report.mainReportExam === 'CAT-2') mainExam = report.cat2Report;
+                if (report.mainReportExam === 'FAT') mainExam = report.fatReport;
+
+                if (!mainExam || !mainExam.available) {
+                    // Fallback if the selected main exam is not available
+                    mainExam = report.cat1Report || report.cat2Report || report.fatReport;
+                }
+
+                const hasMainExam = mainExam && mainExam.available;
+                const isEligible = hasMainExam ? (relaxationEnabled ? mainExam.eligible65 : mainExam.eligible75) : false;
+                const projected = hasMainExam ? Math.ceil(mainExam.projectedPercentage || 0) : '0';
+                const cutoffStr = (hasMainExam && mainExam.attendanceCutoffDate) ? new Date(mainExam.attendanceCutoffDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : 'N/A';
+                const examNameInCard = hasMainExam ? (mainExam.examName || report.mainReportExam) : 'Exam';
 
                 const card = document.createElement('div');
                 card.className = 'course-card';
-                card.onclick = () => showModal(report);
                 card.innerHTML = `
-                    <div class="course-card-header">
+                    <div class="course-card-header" onclick="showModal(currentReports.find(r => r.courseId === ${report.courseId}), '${report.mainReportExam}')">
                         <div class="course-info">
                             <h3>${report.courseName || 'Course'}</h3>
                             <p>${report.courseCode}</p>
                         </div>
                         <div class="percentage-display">
-                            <span class="pct-val">${report.currentPercentage.toFixed(1)}%</span>
+                            <span class="pct-val">${Math.ceil(report.currentPercentage)}%</span>
                             <div class="pct-lbl">CURRENT</div>
                         </div>
                     </div>
                     <div class="course-body">
-                        <div class="stat-line">
-                            <span class="stat-label">Classes Attended</span>
-                            <span class="stat-value">${report.classesAttended} / ${report.totalClassesConducted}</span>
-                        </div>
-                        <div class="stat-line">
-                            <span class="stat-label">Available to Skip</span>
-                            <span class="stat-value" style="color: ${canSkip <= 0 ? 'var(--danger)' : (canSkip <= 2 ? 'var(--warning)' : 'var(--success)')}">${canSkip} Classes</span>
-                        </div>
+                        <div onclick="showModal(currentReports.find(r => r.courseId === ${report.courseId}), '${report.mainReportExam}')">
+                            <div class="stat-line">
+                                <span class="stat-label">Classes Attended</span>
+                                <span class="stat-value">${report.classesAttended} / ${report.totalClassesConducted}</span>
+                            </div>
+                            <div class="stat-line">
+                                <span class="stat-label">Available to Skip</span>
+                                <span class="stat-value" style="color: ${canSkip <= 0 ? 'var(--danger)' : (canSkip <= 2 ? 'var(--warning)' : 'var(--success)')}">${canSkip} Classes</span>
+                            </div>
 
-                        ${report.upcomingExamName ? `
+                            ${hasMainExam ? `
                             <div class="exam-prediction">
                                 <div class="exam-header">
-                                    <span class="exam-name"><i class="fas fa-scroll"></i> ${report.upcomingExamName} Projection</span>
+                                    <span class="exam-name"><i class="fas fa-scroll"></i> ${examNameInCard} Standing</span>
                                     <span class="eligibility-check ${isEligible ? 'check-yes' : 'check-no'}">
                                         ${isEligible ? 'ELIGIBLE' : 'NOT ELIGIBLE'}
                                     </span>
                                 </div>
                                 <div class="exam-stats">
-                                    <div class="mini-stat"><span class="mini-val">${report.futureClassesAvailable}</span><span class="mini-lbl">Upcoming</span></div>
-                                    <div class="mini-stat"><span class="mini-val">${report.minimumClassesToAttend}</span><span class="mini-lbl">Must Attend</span></div>
-                                    <div class="mini-stat"><span class="mini-val">${projected}%</span><span class="mini-lbl">Target %</span></div>
+                                    <div class="mini-stat"><span class="mini-val">${mainExam.futureClassesUntilExam}</span><span class="mini-lbl">Upcoming</span></div>
+                                    <div class="mini-stat"><span class="mini-val">${relaxationEnabled ? mainExam.minimumClassesToAttend65 : mainExam.minimumClassesToAttend75}</span><span class="mini-lbl">Must Attend</span></div>
+                                    <div class="mini-stat"><span class="mini-val">${relaxationEnabled ? Math.ceil(mainExam.targetPercentage65) : Math.ceil(mainExam.targetPercentage75)}%</span><span class="mini-lbl">After Skip %</span></div>
+                                </div>
+                                <div class="cutoff-info">
+                                    <i class="fas fa-clock"></i> Attendance up to: ${cutoffStr}
                                 </div>
                             </div>
-                        ` : ''}
+                            ` : `
+                            <div class="exam-prediction" style="text-align: center; padding: 1.5rem;">
+                                <p style="font-size: 0.8125rem; color: var(--text-muted); font-weight: 600;">Academic calendar not configured.</p>
+                            </div>
+                            `}
+                        </div>
+
+                        <div class="exam-selector">
+                            ${['CAT-1', 'CAT-2', 'FAT'].map(exam => {
+                                const examData = report[exam.toLowerCase().replace('-', '') + 'Report'];
+                                if (!examData || !examData.available) return '';
+                                const status = examData.upcoming ? 'upcoming' : (examData.ongoing ? 'ongoing' : 'completed');
+                                return `
+                                    <div class="exam-card ${report.mainReportExam === exam ? 'active' : ''}" onclick="showModal(currentReports.find(r => r.courseId === ${report.courseId}), '${exam}')">
+                                        <span class="exam-card-name">${exam}</span>
+                                        <span class="exam-card-status status-${status}">${status}</span>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
 
                         <div class="status-pill ${status.toLowerCase().replace('_', '-')}">
                             <i class="fas ${status === 'SAFE' ? 'fa-check-circle' : (status === 'IMPOSSIBLE' ? 'fa-times-circle' : 'fa-exclamation-circle')}"></i>
-                            <span>${status.replace('_', ' ')}</span>
+                            <span>Semester ${status.replace('_', ' ')}</span>
                         </div>
                     </div>
                 `;
@@ -515,21 +599,69 @@
             }
         }
 
-        function showModal(report) {
+        function showModal(report, examType) {
             const modal = document.getElementById('datesModal');
             const list = document.getElementById('modalDateList');
-            list.innerHTML = '';
+            const info = document.getElementById('modalExamInfo');
+            const title = document.getElementById('modalTitle');
+            const subtitle = document.getElementById('modalSubtitle');
             
-            if (!report.futureClassDates || report.futureClassDates.length === 0) {
-                list.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 2rem;">No upcoming classes found.</p>';
+            title.textContent = report.courseName || 'Course Detail';
+            subtitle.textContent = `${report.courseCode} ${examType ? '• ' + examType : ''}`;
+
+            let datesToShow = [];
+            list.innerHTML = '';
+            info.style.display = 'none';
+
+            if (examType) {
+                const exam = report[examType.toLowerCase().replace('-', '') + 'Report'];
+                if (exam && exam.available) {
+                    info.style.display = 'block';
+                    const isEligible = relaxationEnabled ? exam.eligible65 : exam.eligible75;
+                    const minToAttend = relaxationEnabled ? exam.minimumClassesToAttend65 : exam.minimumClassesToAttend75;
+                    const cutoffStr = exam.attendanceCutoffDate ? new Date(exam.attendanceCutoffDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A';
+                    
+                    // Use the dates specific to this exam from the specialized report DTO
+                    datesToShow = exam.futureClassDates || [];
+
+                    info.innerHTML = `
+                        <div class="exam-header">
+                            <span class="exam-name"><i class="fas fa-scroll"></i> ${examType} Analysis</span>
+                            <span class="eligibility-check ${isEligible ? 'check-yes' : 'check-no'}">
+                                ${isEligible ? 'ELIGIBLE' : 'NOT ELIGIBLE'}
+                            </span>
+                        </div>
+                        <div class="exam-stats">
+                            <div class="mini-stat"><span class="mini-val">${exam.futureClassesUntilExam}</span><span class="mini-lbl">Upcoming</span></div>
+                            <div class="mini-stat"><span class="mini-val">${minToAttend}</span><span class="mini-lbl">Must Attend</span></div>
+                            <div class="mini-stat"><span class="mini-val">${relaxationEnabled ? Math.ceil(exam.targetPercentage65) : Math.ceil(exam.targetPercentage75)}%</span><span class="mini-lbl">After Skip %</span></div>
+                        </div>
+                        <p class="cutoff-info">
+                            <i class="fas fa-info-circle"></i> Attendance calculated up to: <span style="color: var(--primary)">${cutoffStr}</span>
+                        </p>
+                    `;
+                } else if (exam && !exam.available) {
+                    info.style.display = 'block';
+                    info.innerHTML = `<p style="text-align: center; color: var(--text-muted); font-weight: 700; font-size: 0.875rem;">${examType} details not yet available.</p>`;
+                }
             } else {
-                report.futureClassDates.forEach(dateStr => {
+                // Fallback to general dates if no exam type specified
+                datesToShow = report.futureClassDates || [];
+            }
+
+            if (datesToShow.length === 0) {
+                list.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 2rem; font-weight: 700;">No upcoming classes found.</p>';
+            } else {
+                datesToShow.forEach((dateStr, index) => {
                     const d = new Date(dateStr);
                     const row = document.createElement('div');
                     row.className = 'date-row';
                     row.innerHTML = `
-                        <span class="date-val">${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                        <span class="date-day">${d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase()}</span>
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 800; background: #f1f5f9; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; border-radius: 4px;">${index + 1}</span>
+                            <span class="date-val">${d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                        </div>
+                        <span class="date-day">${d.toLocaleDateString('en-GB', { weekday: 'short' }).toUpperCase()}</span>
                     `;
                     list.appendChild(row);
                 });

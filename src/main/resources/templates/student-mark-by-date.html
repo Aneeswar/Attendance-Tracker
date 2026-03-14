@@ -355,7 +355,27 @@
                     btn.classList.replace('btn-primary', 'btn-success');
                     btn.innerHTML = '<i class="fas fa-check"></i> Saved Successfully!';
                     setTimeout(() => {
-                        window.location.href = '/student-dashboard';
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fas fa-save"></i> Save All Changes';
+                        btn.classList.replace('btn-success', 'btn-primary');
+                        
+                        // Reset the subject selection to default
+                        const courseSelect = document.getElementById('courseSelect');
+                        if (courseSelect) {
+                            courseSelect.value = "";
+                            // Clear the attendance grid/date stack as no course is selected
+                            const stack = document.getElementById('dateStack');
+                            const bar = document.getElementById('saveBar');
+                            const empty = document.getElementById('emptyState');
+                            
+                            if (stack) stack.innerHTML = "";
+                            if (bar) bar.style.display = "none";
+                            if (empty) {
+                                empty.style.display = 'block';
+                                empty.textContent = 'Select a course to view and mark attendance records.';
+                            }
+                            attendanceData = {};
+                        }
                     }, 1500);
                 } else {
                     throw new Error('Save failed');

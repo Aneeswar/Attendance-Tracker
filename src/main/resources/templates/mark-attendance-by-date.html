@@ -319,6 +319,23 @@
                         btn.classList.replace('btn-success', 'btn-primary');
                         btn.innerHTML = '<i class="fas fa-save"></i> Save All Changes';
                         btn.disabled = false;
+                        
+                        // Reset subject selection
+                        const courseSelect = document.getElementById('courseSelect');
+                        if (courseSelect) {
+                            courseSelect.value = "";
+                            // Clear date stack/empty state
+                            const stack = document.getElementById('dateStack');
+                            const empty = document.getElementById('emptyState');
+                            const bar = document.getElementById('saveBar');
+                            if (stack) stack.innerHTML = '';
+                            if (empty) {
+                                empty.style.display = 'block';
+                                empty.textContent = 'Select a course and date range to begin.';
+                            }
+                            if (bar) bar.style.display = 'none';
+                        }
+                        attendanceData = {};
                     }, 3000);
                 }
             } catch (e) { btn.disabled = false; }

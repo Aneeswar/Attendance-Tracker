@@ -334,7 +334,14 @@
                 btn.style.background = 'var(--success)';
                 btn.style.boxShadow = '0 4px 15px rgba(16, 185, 129, 0.3)';
                 setTimeout(() => {
-                    window.location.href = '/student-dashboard';
+                    // Reset button instead of redirecting
+                    btn.disabled = false;
+                    btn.innerHTML = 'Save All Attendance';
+                    btn.style.background = ''; // Reset to default CSS
+                    btn.style.boxShadow = '';
+                    
+                    // Optional: re-load to show current state from server
+                    loadSchedule();
                 }, 1500);
             } else {
                 btn.disabled = false;

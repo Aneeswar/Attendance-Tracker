@@ -162,7 +162,10 @@ spec:
             - containerPort: 3000
           env:
             - name: GF_SECURITY_ADMIN_PASSWORD
-              value: "admin" # Replace in production!
+              valueFrom:
+                configMapkeyRef:
+                  name: grafana-demo
+                  key: gf_admin_pass
           volumeMounts:
             - name: grafana-datasources
               mountPath: /etc/grafana/provisioning/datasources
