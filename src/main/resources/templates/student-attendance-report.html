@@ -599,8 +599,41 @@
             }
         }
 
+        let skippedDates = new Set();
+        let currentModalReport = null;
+        let currentModalExamType = null;
+        let whatIfModeActive = false;
+
         function showModal(report, examType) {
+            currentModalReport = report;
+            currentModalExamType = examType;
+            skippedDates.clear(); 
+            whatIfModeActive = false; // Reset mode every time modal opens
+            
             const modal = document.getElementById('datesModal');
+            renderModalContent();
+            modal.style.display = 'flex';
+        }
+
+        function enableWhatIfMode() {
+            whatIfModeActive = true;
+            renderModalContent();
+        }
+
+        function toggleSkipDate(dateStr) {
+            if (!whatIfModeActive) return; // Only allow skipping if mode is active
+            
+            if (skippedDates.has(dateStr)) {
+                skippedDates.delete(dateStr);
+            } else {
+                skippedDates.add(dateStr);
+            }
+            renderModalContent();
+        }
+
+        function renderModalContent() {
+            const report = currentModalReport;
+            const examType = currentModalExamType;
             const list = document.getElementById('modalDateList');
             const info = document.getElementById('modalExamInfo');
             const title = document.getElementById('modalTitle');
@@ -617,35 +650,91 @@
                 const exam = report[examType.toLowerCase().replace('-', '') + 'Report'];
                 if (exam && exam.available) {
                     info.style.display = 'block';
-                    const isEligible = relaxationEnabled ? exam.eligible65 : exam.eligible75;
-                    const minToAttend = relaxationEnabled ? exam.minimumClassesToAttend65 : exam.minimumClassesToAttend75;
-                    const cutoffStr = exam.attendanceCutoffDate ? new Date(exam.attendanceCutoffDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A';
                     
-                    // Use the dates specific to this exam from the specialized report DTO
+                    const threshold = relaxationEnabled ? 65 : 75;
+                    const cutoffStr = exam.attendanceCutoffDate ? new Date(exam.attendanceCutoffDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A';
                     datesToShow = exam.futureClassDates || [];
 
-                    info.innerHTML = `
-                        <div class="exam-header">
-                            <span class="exam-name"><i class="fas fa-scroll"></i> ${examType} Analysis</span>
-                            <span class="eligibility-check ${isEligible ? 'check-yes' : 'check-no'}">
-                                ${isEligible ? 'ELIGIBLE' : 'NOT ELIGIBLE'}
-                            </span>
-                        </div>
-                        <div class="exam-stats">
-                            <div class="mini-stat"><span class="mini-val">${exam.futureClassesUntilExam}</span><span class="mini-lbl">Upcoming</span></div>
-                            <div class="mini-stat"><span class="mini-val">${minToAttend}</span><span class="mini-lbl">Must Attend</span></div>
-                            <div class="mini-stat"><span class="mini-val">${relaxationEnabled ? Math.ceil(exam.targetPercentage65) : Math.ceil(exam.targetPercentage75)}%</span><span class="mini-lbl">After Skip %</span></div>
-                        </div>
-                        <p class="cutoff-info">
-                            <i class="fas fa-info-circle"></i> Attendance calculated up to: <span style="color: var(--primary)">${cutoffStr}</span>
-                        </p>
-                    `;
+                    if (!whatIfModeActive) {
+                        // DEFAULT VIEW: Standard Static Info
+                        const isEligible = relaxationEnabled ? exam.eligible75 : exam.eligible65; // Logic fixed to use exam properties directly
+                        const minToAttend = relaxationEnabled ? exam.minimumClassesToAttend65 : exam.minimumClassesToAttend75;
+                        
+                        info.innerHTML = `
+                            <div class="exam-header">
+                                <span class="exam-name"><i class="fas fa-scroll"></i> ${examType} Status</span>
+                                <span class="eligibility-check ${(relaxationEnabled ? exam.eligible65 : exam.eligible75) ? 'check-yes' : 'check-no'}">
+                                    ${(relaxationEnabled ? exam.eligible65 : exam.eligible75) ? 'ELIGIBLE' : 'NOT ELIGIBLE'}
+                                </span>
+                            </div>
+                            <div class="exam-stats">
+                                <div class="mini-stat"><span class="mini-val">${exam.futureClassesUntilExam}</span><span class="mini-lbl">Upcoming</span></div>
+                                <div class="mini-stat"><span class="mini-val">${minToAttend}</span><span class="mini-lbl">Must Attend</span></div>
+                                <div class="mini-stat"><span class="mini-val">${relaxationEnabled ? Math.ceil(exam.targetPercentage65) : Math.ceil(exam.targetPercentage75)}%</span><span class="mini-lbl">Final %</span></div>
+                            </div>
+                            <p class="cutoff-info">
+                                <i class="fas fa-info-circle"></i> Attendance calculated up to: <span style="color: var(--primary)">${cutoffStr}</span>
+                            </p>
+                            <div style="margin-top: 1.25rem; border-top: 1px solid #eee; padding-top: 1rem;">
+                                <button onclick="enableWhatIfMode()" class="btn-predict" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.75rem; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: white; border: none; padding: 0.875rem; border-radius: 12px; font-weight: 800; font-size: 0.8125rem; letter-spacing: 0.025em; cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.1), 0 2px 4px -1px rgba(79, 70, 229, 0.06); transform: translateY(0);">
+                                    <div style="background: rgba(255,255,255,0.2); width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px;">
+                                        <i class="fas fa-magic" style="font-size: 0.9rem;"></i>
+                                    </div>
+                                    <span>SIMULATE FOR UNPLANNED ABSENCE</span>
+                                </button>
+                                <p style="text-align: center; font-size: 0.65rem; color: var(--text-muted); margin-top: 0.75rem; font-weight: 600;">
+                                    <i class="fas fa-info-circle"></i> Practice "What-If" scenarios without affecting real data
+                                </p>
+                            </div>
+                        `;
+                    } else {
+                        // WHAT-IF MODE: Active Prediction
+                        const totalConducted = report.totalClassesConducted;
+                        const classesAttended = report.classesAttended;
+                        const futureOriginal = exam.futureClassesUntilExam;
+                        const skippedCount = skippedDates.size;
+                        
+                        const whatIfTotal = totalConducted + futureOriginal;
+                        const whatIfAttended = classesAttended + (futureOriginal - skippedCount);
+                        const whatIfPercentage = whatIfTotal > 0 ? (whatIfAttended / whatIfTotal * 100) : 0;
+                        const isEligible = Math.ceil(whatIfPercentage) >= threshold;
+
+                        info.innerHTML = `
+                            <div class="exam-header" style="background: #f5f3ff; margin: -1.25rem -1.25rem 1rem -1.25rem; padding: 1rem 1.25rem; border-bottom: 2px solid #ddd6fe;">
+                                <div style="display: flex; flex-direction: column;">
+                                    <span class="exam-name" style="color: #6366f1; font-weight: 800; display: flex; align-items: center; gap: 0.5rem;">
+                                        <i class="fas fa-microchip"></i> SIMULATION ACTIVE
+                                    </span>
+                                    <span style="font-size: 0.65rem; color: #7c3aed; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Interactive Prediction Mode</span>
+                                </div>
+                                <span class="eligibility-check ${isEligible ? 'check-yes' : 'check-no'}" style="padding: 0.5rem 1rem; font-size: 1rem;">
+                                    ${isEligible ? 'SAFE' : 'SHORTAGE'}
+                                </span>
+                            </div>
+                            <div class="exam-stats" style="background: white; border: 2px solid #ddd6fe; border-radius: 12px; margin-bottom: 1rem;">
+                                <div class="mini-stat"><span class="mini-val">${futureOriginal - skippedCount}</span><span class="mini-lbl">Plan Attend</span></div>
+                                <div class="mini-stat" style="background: #fff1f2; border-left: 1px solid #ddd6fe; border-right: 1px solid #ddd6fe;">
+                                    <span class="mini-val" style="color: #e11d48">${skippedCount}</span>
+                                    <span class="mini-lbl" style="color: #e11d48">Choosing Skip</span>
+                                </div>
+                                <div class="mini-stat"><span class="mini-val" style="color: ${isEligible ? 'var(--success)' : 'var(--danger)'}">${Math.ceil(whatIfPercentage)}%</span><span class="mini-lbl">New Final</span></div>
+                            </div>
+                            
+                            <div style="display: flex; gap: 0.75rem; margin-top: 0.5rem;">
+                                <button onclick="whatIfModeActive=false; skippedDates.clear(); renderModalContent();" class="btn" style="flex: 1; height: 38px; background: #f1f5f9; color: #64748b; font-weight: 700; border-radius: 10px; font-size: 0.75rem; border: none; cursor: pointer;">
+                                    <i class="fas fa-times"></i> RESET
+                                </button>
+                                <button onclick="whatIfModeActive=false; renderModalContent();" class="btn" style="flex: 2; height: 38px; background: #6366f1; color: white; font-weight: 700; border-radius: 10px; font-size: 0.75rem; border: none; cursor: pointer; box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.2);">
+                                    <i class="fas fa-check"></i> VIEW SUMMARY
+                                </button>
+                            </div>
+                        `;
+                    }
                 } else if (exam && !exam.available) {
                     info.style.display = 'block';
                     info.innerHTML = `<p style="text-align: center; color: var(--text-muted); font-weight: 700; font-size: 0.875rem;">${examType} details not yet available.</p>`;
                 }
             } else {
-                // Fallback to general dates if no exam type specified
                 datesToShow = report.futureClassDates || [];
             }
 
@@ -653,20 +742,37 @@
                 list.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 2rem; font-weight: 700;">No upcoming classes found.</p>';
             } else {
                 datesToShow.forEach((dateStr, index) => {
+                    const isSkipped = skippedDates.has(dateStr);
                     const d = new Date(dateStr);
                     const row = document.createElement('div');
                     row.className = 'date-row';
+                    
+                    if (whatIfModeActive) {
+                        row.style.cursor = 'pointer';
+                        row.style.transition = 'all 0.2s ease';
+                        if (isSkipped) {
+                            row.style.background = '#fff1f2';
+                            row.style.borderColor = '#fda4af';
+                        }
+                        row.onclick = () => toggleSkipDate(dateStr);
+                    }
+                    
                     row.innerHTML = `
                         <div style="display: flex; align-items: center; gap: 0.75rem;">
-                            <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 800; background: #f1f5f9; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; border-radius: 4px;">${index + 1}</span>
-                            <span class="date-val">${d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                            <span style="font-size: 0.75rem; color: ${isSkipped ? '#e11d48' : 'var(--text-muted)'}; font-weight: 800; background: ${isSkipped ? '#ffe4e6' : '#f1f5f9'}; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; border-radius: 4px;">${index + 1}</span>
+                            <div style="display: flex; flex-direction: column;">
+                                <span class="date-val" style="${isSkipped ? 'text-decoration: line-through; color: #e11d48;' : ''}">${d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                                ${whatIfModeActive ? `<span style="font-size: 0.65rem; color: ${isSkipped ? '#f43f5e' : 'var(--text-muted)'}; font-weight: 700;">${isSkipped ? 'PLANNED SKIP' : 'WILL ATTEND'}</span>` : ''}
+                            </div>
                         </div>
-                        <span class="date-day">${d.toLocaleDateString('en-GB', { weekday: 'short' }).toUpperCase()}</span>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                             <span class="date-day" style="${isSkipped ? 'color: #e11d48;' : ''}">${d.toLocaleDateString('en-GB', { weekday: 'short' }).toUpperCase()}</span>
+                             ${whatIfModeActive ? `<i class="fas ${isSkipped ? 'fa-minus-circle' : 'fa-plus-circle'}" style="color: ${isSkipped ? '#e11d48' : 'var(--success)'}"></i>` : ''}
+                        </div>
                     `;
                     list.appendChild(row);
                 });
             }
-            modal.style.display = 'flex';
         }
 
         function closeModal() { document.getElementById('datesModal').style.display = 'none'; }

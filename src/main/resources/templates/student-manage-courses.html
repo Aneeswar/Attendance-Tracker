@@ -186,6 +186,7 @@
         }
 
         .edit-btn:hover { color: var(--primary); border-color: var(--primary); background: #eef2ff; }
+        .auto-gen-btn:hover { color: var(--success); border-color: var(--success); background: #ecfdf5; }
         .delete-btn:hover { color: var(--danger); border-color: var(--danger); background: #fef2f2; }
 
         /* Modal Styles */
@@ -567,6 +568,9 @@
                             <button class="action-btn edit-btn" onclick="openEditModal(${course.courseId})">
                                 <i class="fas fa-edit"></i> Edit
                             </button>
+                            <button class="action-btn auto-gen-btn" onclick="autoGenerateAttendance(${course.courseId})" title="Mark all days as present until today">
+                                <i class="fas fa-magic"></i> Auto-Fill
+                            </button>
                             <button class="action-btn delete-btn" onclick="deleteCourse(${course.courseId}, '${course.courseCode}')">
                                 <i class="fas fa-trash-alt"></i>
                             </button>
@@ -753,6 +757,39 @@
                 });
                 if (res.ok) loadCourses();
             } catch (e) {}
+        }
+
+        async function autoGenerateAttendance(courseId) {
+            const course = windowCoursesData[courseId];
+            if (!course.courseStartDate) {
+                alert('Please set a course start date in the Edit menu first.');
+                return;
+            }
+
+            if (!confirm(`This will mark "Present" for all ${course.courseCode} classes from ${course.courseStartDate} until today. Continue?`)) {
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/student/courses/${courseId}/auto-generate-attendance`, {
+                    method: 'POST',
+                    headers: { 
+                        'Authorization': `Bearer ${localStorage.getItem('jwtToken')}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (res.ok) {
+                    const result = await res.json();
+                    alert(`Successfully marked ${result.count} classes as present!`);
+                    loadCourses();
+                } else {
+                    const err = await res.json();
+                    alert(err.error || 'Auto-fill failed');
+                }
+            } catch (e) {
+                alert('Connection error');
+            }
         }
     </script>
 </body>

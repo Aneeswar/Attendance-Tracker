@@ -242,10 +242,12 @@ public class AttendanceCalculationService {
             }
         }
 
-        // Get already marked dates
+        // Get already marked dates (both present and absent)
+        // We look back to the course start date to be accurate
+        LocalDate searchStart = course.getCourseStartDate() != null ? course.getCourseStartDate() : today.minusMonths(6);
         Set<LocalDate> markedDates = new HashSet<>(
             dateBasedAttendanceRepository.findByCourseIdAndAttendanceDateBetweenOrderByAttendanceDateAsc(
-                course.getId(), today.minusMonths(6), today
+                course.getId(), searchStart, today
             ).stream().map(DateBasedAttendance::getAttendanceDate).toList()
         );
 

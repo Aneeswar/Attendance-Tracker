@@ -341,6 +341,36 @@ public class StudentController {
     }
 
     /**
+     * Auto-generate "Present" attendance for a course since its start date
+     * POST /api/student/courses/{courseId}/auto-generate-attendance
+     */
+    @PostMapping("/courses/{courseId}/auto-generate-attendance")
+    @PreAuthorize("hasRole('STUDENT')")
+    public ResponseEntity<?> autoGenerateAttendance(@PathVariable Long courseId,
+                                                   @RequestHeader("Authorization") String authHeader) {
+        try {
+            Long userId = extractUserIdFromToken(authHeader);
+            int count = studentService.autoGeneratePresentAttendance(userId, courseId);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Auto-generation successful");
+            response.put("count", count);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new HashMap<String, String>() {{
+                        put("error", e.getMessage());
+                    }});
+        } catch (Exception e) {
+            log.error("Error auto-generating attendance", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new HashMap<String, String>() {{
+                        put("error", "Auto-generation failed");
+                    }});
+        }
+    }
+
+    /**
      * Delete a course
      * DELETE /api/student/courses/{courseId}
      */

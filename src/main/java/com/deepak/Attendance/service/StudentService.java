@@ -704,6 +704,64 @@ public class StudentService {
     }
 
     /**
+     * Auto-generate "Present" attendance from course start date until today
+     */
+    @Transactional
+    public int autoGeneratePresentAttendance(Long userId, Long courseId) {
+        Optional<Course> courseOpt = courseRepository.findById(courseId);
+        if (courseOpt.isEmpty() || !courseOpt.get().getUserId().equals(userId)) {
+            throw new IllegalArgumentException("Course not found or unauthorized");
+        }
+
+        Course course = courseOpt.get();
+        if (course.getCourseStartDate() == null) {
+            throw new IllegalArgumentException("Course start date is not set");
+        }
+
+        LocalDate start = course.getCourseStartDate();
+        LocalDate today = LocalDate.now();
+        if (start.isAfter(today)) {
+            return 0; // Future course
+        }
+
+        // Get all holidays to exclude them
+        Set<LocalDate> holidays = new HashSet<>(holidayService.getAllHolidays().stream().map(h -> h.getDate()).toList());
+        
+        // Get valid working days for this course's timetable
+        Map<String, Integer> schedule = new HashMap<>();
+        for (TimetableEntry entry : course.getTimetableEntries()) {
+            schedule.put(entry.getDayOfWeek().toUpperCase(), entry.getClassesCount());
+        }
+
+        int count = 0;
+        LocalDate current = start;
+        while (!current.isAfter(today)) {
+            String dayName = current.getDayOfWeek().name();
+            if (schedule.containsKey(dayName) && !holidays.contains(current)) {
+                // Only create if it doesn't exist
+                Optional<DateBasedAttendance> existing = dateBasedAttendanceRepository.findByCourseIdAndAttendanceDate(courseId, current);
+                if (existing.isEmpty()) {
+                    DateBasedAttendance dba = new DateBasedAttendance();
+                    dba.setCourse(course);
+                    dba.setAttendanceDate(current);
+                    dba.setAttended(true); // Default to Present
+                    dateBasedAttendanceRepository.save(dba);
+                    count++;
+                }
+            }
+            current = current.plusDays(1);
+        }
+
+        if (count > 0) {
+            // Delete the manual AttendanceInput record if any exists (to switch to date-based)
+            attendanceInputRepository.findByCourseId(courseId).ifPresent(attendanceInputRepository::delete);
+            calculateAndCacheAttendanceReport(course);
+        }
+
+        return count;
+    }
+
+    /**
      * Get all class dates for a course (from start date until today, excluding holidays)
      * Returns dates where classes should be conducted based on weekly schedule
      */

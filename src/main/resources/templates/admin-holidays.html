@@ -209,6 +209,7 @@
                     <div class="form-tabs">
                         <button class="tab-btn active" onclick="switchTab('single')">Single Date</button>
                         <button class="tab-btn" onclick="switchTab('range')">Date Range</button>
+                        <button class="tab-btn" onclick="switchTab('import')">Import (JSON)</button>
                     </div>
 
                     <!-- Single Holiday Form -->
@@ -262,6 +263,20 @@
                             <i class="fas fa-calendar-plus"></i> Add Range
                         </button>
                     </div>
+
+                    <!-- Import Form -->
+                    <div id="importForm" style="display: none;">
+                        <div class="form-group">
+                            <label>Select Holiday JSON</label>
+                            <input type="file" id="holidayFile" accept=".json">
+                            <p style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.5rem;">
+                                Format: [{"date": "YYYY-MM-DD", "reason": "Name"}]
+                            </p>
+                        </div>
+                        <button class="btn-primary" onclick="importHolidays()">
+                            <i class="fas fa-file-import"></i> Import Holidays
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -291,13 +306,52 @@
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             event.target.classList.add('active');
             
-            if (type === 'single') {
-                document.getElementById('singleForm').style.display = 'block';
-                document.getElementById('rangeForm').style.display = 'none';
-            } else {
-                document.getElementById('singleForm').style.display = 'none';
-                document.getElementById('rangeForm').style.display = 'block';
-            }
+            document.getElementById('singleForm').style.display = type === 'single' ? 'block' : 'none';
+            document.getElementById('rangeForm').style.display = type === 'range' ? 'block' : 'none';
+            document.getElementById('importForm').style.display = type === 'import' ? 'block' : 'none';
+        }
+
+        async function importHolidays() {
+            const fileInput = document.getElementById('holidayFile');
+            if (fileInput.files.length === 0) return showToast('Select a JSON file');
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+
+            reader.onload = async function(e) {
+                try {
+                    const holidays = JSON.parse(e.target.result);
+                    // Format: [{"date": "...", "reason": "..."}]
+                    // Backend expects BulkHolidayRequest: { holidays: [{date, reason}] }
+                    const request = {
+                        holidays: holidays.map(h => ({
+                            date: h.date,
+                            reason: h.reason || h.name
+                        }))
+                    };
+
+                    const res = await fetch('/api/admin/holidays/bulk', {
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': 'application/json', 
+                            'Authorization': `Bearer ${token}` 
+                        },
+                        body: JSON.stringify(request)
+                    });
+
+                    if (res.ok) {
+                        showToast('Import successful!');
+                        fileInput.value = '';
+                        loadHolidays();
+                    } else {
+                        const err = await res.text();
+                        showToast('Import failed: ' + err);
+                    }
+                } catch (err) {
+                    showToast('Invalid JSON format');
+                }
+            };
+            reader.readAsText(file);
         }
 
         async function loadHolidays() {
