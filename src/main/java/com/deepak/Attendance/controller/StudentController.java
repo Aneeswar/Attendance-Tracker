@@ -2,11 +2,13 @@ package com.deepak.Attendance.controller;
 
 import com.deepak.Attendance.dto.AttendanceInputRequest;
 import com.deepak.Attendance.dto.AttendanceReportDTO;
+import com.deepak.Attendance.dto.StudentHolidayRequestDTO;
 import com.deepak.Attendance.dto.TimetableConfirmRequest;
 import com.deepak.Attendance.dto.TimetableEntryDTO;
 import com.deepak.Attendance.entity.User;
 import com.deepak.Attendance.repository.UserRepository;
 import com.deepak.Attendance.security.JwtTokenProvider;
+import com.deepak.Attendance.service.StudentHolidayService;
 import com.deepak.Attendance.service.StudentService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +30,9 @@ public class StudentController {
 
     @Autowired
     private StudentService studentService;
+
+    @Autowired
+    private StudentHolidayService studentHolidayService;
 
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
@@ -604,6 +609,98 @@ public class StudentController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new HashMap<String, String>() {{
                         put("error", "Failed to update profile: " + e.getMessage());
+                    }});
+        }
+    }
+
+    /**
+     * Get student's holiday requests
+     * GET /api/student/holiday-requests
+     */
+    @GetMapping("/holiday-requests")
+    @PreAuthorize("hasRole('STUDENT')")
+    public ResponseEntity<?> getHolidayRequests(@RequestHeader("Authorization") String authHeader) {
+        try {
+            Long userId = extractUserIdFromToken(authHeader);
+            List<StudentHolidayRequestDTO> myRequests = studentHolidayService.getRequestsForStudent(userId);
+            List<StudentHolidayRequestDTO> otherRequests = studentHolidayService.getRequestsByOthers(userId);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("myRequests", myRequests);
+            response.put("otherRequests", otherRequests);
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error fetching holiday requests", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new HashMap<String, String>() {{
+                        put("error", "Failed to fetch holiday requests");
+                    }});
+        }
+    }
+
+    /**
+     * Create a holiday request
+     * POST /api/student/holiday-requests
+     */
+    @PostMapping("/holiday-requests")
+    @PreAuthorize("hasRole('STUDENT')")
+    public ResponseEntity<?> createHolidayRequest(@RequestBody StudentHolidayRequestDTO dto,
+                                                 @RequestHeader("Authorization") String authHeader) {
+        try {
+            Long userId = extractUserIdFromToken(authHeader);
+            StudentHolidayRequestDTO saved = studentHolidayService.createRequest(userId, dto);
+            return ResponseEntity.ok(saved);
+        } catch (Exception e) {
+            log.error("Error creating holiday request", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new HashMap<String, String>() {{
+                        put("error", e.getMessage());
+                    }});
+        }
+    }
+
+    /**
+     * Update a holiday request
+     * PUT /api/student/holiday-requests/{requestId}
+     */
+    @PutMapping("/holiday-requests/{requestId}")
+    @PreAuthorize("hasRole('STUDENT')")
+    public ResponseEntity<?> updateHolidayRequest(@PathVariable Long requestId,
+                                                 @RequestBody StudentHolidayRequestDTO dto,
+                                                 @RequestHeader("Authorization") String authHeader) {
+        try {
+            Long userId = extractUserIdFromToken(authHeader);
+            StudentHolidayRequestDTO updated = studentHolidayService.updateRequest(userId, requestId, dto);
+            return ResponseEntity.ok(updated);
+        } catch (Exception e) {
+            log.error("Error updating holiday request", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new HashMap<String, String>() {{
+                        put("error", e.getMessage());
+                    }});
+        }
+    }
+
+    /**
+     * Delete a holiday request
+     * DELETE /api/student/holiday-requests/{requestId}
+     */
+    @DeleteMapping("/holiday-requests/{requestId}")
+    @PreAuthorize("hasRole('STUDENT')")
+    public ResponseEntity<?> deleteHolidayRequest(@PathVariable Long requestId,
+                                                 @RequestHeader("Authorization") String authHeader) {
+        try {
+            Long userId = extractUserIdFromToken(authHeader);
+            studentHolidayService.deleteRequest(userId, requestId);
+            return ResponseEntity.ok(new HashMap<String, String>() {{
+                put("message", "Request deleted successfully");
+            }});
+        } catch (Exception e) {
+            log.error("Error deleting holiday request", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new HashMap<String, String>() {{
+                        put("error", e.getMessage());
                     }});
         }
     }

@@ -1,0 +1,180 @@
+package com.deepak.Attendance.service;
+
+import com.deepak.Attendance.dto.StudentHolidayRequestDTO;
+import com.deepak.Attendance.entity.Holiday;
+import com.deepak.Attendance.entity.StudentHolidayRequest;
+import com.deepak.Attendance.entity.User;
+import com.deepak.Attendance.repository.HolidayRepository;
+import com.deepak.Attendance.repository.StudentHolidayRequestRepository;
+import com.deepak.Attendance.repository.UserRepository;
+import com.deepak.Attendance.repository.AcademicCalendarRepository;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Slf4j
+@Service
+public class StudentHolidayService {
+
+    @Autowired
+    private StudentHolidayRequestRepository requestRepository;
+
+    @Autowired
+    private HolidayRepository holidayRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private AcademicCalendarRepository academicCalendarRepository;
+
+    @Autowired
+    private StudentService studentService;
+
+    public List<StudentHolidayRequestDTO> getRequestsForStudent(Long studentId) {
+        return requestRepository.findByStudentIdOrderByCreatedAtDesc(studentId)
+                .stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    public List<StudentHolidayRequestDTO> getRequestsByOthers(Long studentId) {
+        return requestRepository.findByStudentIdNotOrderByCreatedAtDesc(studentId)
+                .stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    public List<StudentHolidayRequestDTO> getAllPendingRequests() {
+        return requestRepository.findByStatusOrderByCreatedAtDesc(StudentHolidayRequest.RequestStatus.PENDING)
+                .stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    public List<StudentHolidayRequestDTO> getAllRequests() {
+        return requestRepository.findAllByOrderByCreatedAtDesc()
+                .stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public StudentHolidayRequestDTO createRequest(Long studentId, StudentHolidayRequestDTO dto) {
+        User student = userRepository.findById(studentId)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+
+        StudentHolidayRequest request = new StudentHolidayRequest();
+        request.setStudent(student);
+        request.setHolidayDate(dto.getHolidayDate());
+        request.setReason(dto.getReason());
+        request.setScope(dto.getScope());
+        request.setStatus(StudentHolidayRequest.RequestStatus.PENDING);
+        request.setCreatedAt(LocalDateTime.now());
+
+        return convertToDTO(requestRepository.save(request));
+    }
+
+    @Transactional
+    public void deleteRequest(Long studentId, Long requestId) {
+        StudentHolidayRequest request = requestRepository.findById(requestId)
+                .orElseThrow(() -> new RuntimeException("Request not found"));
+
+        if (!request.getStudent().getId().equals(studentId)) {
+            throw new RuntimeException("Unauthorized: This request does not belong to you");
+        }
+
+        if (request.getStatus() != StudentHolidayRequest.RequestStatus.PENDING) {
+            throw new RuntimeException("Cannot delete a request that is already " + request.getStatus());
+        }
+
+        requestRepository.delete(request);
+    }
+
+    @Transactional
+    public StudentHolidayRequestDTO updateRequest(Long studentId, Long requestId, StudentHolidayRequestDTO dto) {
+        StudentHolidayRequest request = requestRepository.findById(requestId)
+                .orElseThrow(() -> new RuntimeException("Request not found"));
+
+        if (!request.getStudent().getId().equals(studentId)) {
+            throw new RuntimeException("Unauthorized: This request does not belong to you");
+        }
+
+        if (request.getStatus() != StudentHolidayRequest.RequestStatus.PENDING) {
+            throw new RuntimeException("Cannot update a request that is already " + request.getStatus());
+        }
+
+        request.setHolidayDate(dto.getHolidayDate());
+        request.setReason(dto.getReason());
+        request.setScope(dto.getScope());
+        request.setUpdatedAt(LocalDateTime.now());
+
+        return convertToDTO(requestRepository.save(request));
+    }
+
+    @Transactional
+    public void approveRequest(Long requestId, String adminComment) {
+        StudentHolidayRequest request = requestRepository.findById(requestId)
+                .orElseThrow(() -> new RuntimeException("Request not found"));
+
+        if (request.getStatus() != StudentHolidayRequest.RequestStatus.PENDING) {
+            return;
+        }
+
+        request.setStatus(StudentHolidayRequest.RequestStatus.APPROVED);
+        request.setAdminComment(adminComment);
+        request.setUpdatedAt(LocalDateTime.now());
+        requestRepository.save(request);
+
+        // Add to main Holidays table
+        var calendar = academicCalendarRepository.findFirstByOrderByCreatedAtDesc()
+                .orElseThrow(() -> new RuntimeException("Academic Calendar not found"));
+
+        Holiday holiday = new Holiday();
+        holiday.setAcademicCalendarId(calendar.getId());
+        holiday.setDate(request.getHolidayDate());
+        holiday.setReason("Approved student holiday: " + request.getReason());
+        holiday.setScope(request.getScope().toString().equals("FULL") ? Holiday.HolidayScope.FULL : 
+                          request.getScope().toString().equals("MORNING") ? Holiday.HolidayScope.MORNING : 
+                          Holiday.HolidayScope.AFTERNOON);
+        holiday.setType(Holiday.HolidayType.EXTRA);
+        holidayRepository.save(holiday);
+
+        // Mark reports as stale to trigger recalculation
+        studentService.markAllAttendanceReportsAsStale();
+    }
+
+    @Transactional
+    public void rejectRequest(Long requestId, String adminComment) {
+        StudentHolidayRequest request = requestRepository.findById(requestId)
+                .orElseThrow(() -> new RuntimeException("Request not found"));
+
+        if (request.getStatus() != StudentHolidayRequest.RequestStatus.PENDING) {
+            return;
+        }
+
+        request.setStatus(StudentHolidayRequest.RequestStatus.REJECTED);
+        request.setAdminComment(adminComment);
+        request.setUpdatedAt(LocalDateTime.now());
+        requestRepository.save(request);
+    }
+
+    private StudentHolidayRequestDTO convertToDTO(StudentHolidayRequest req) {
+        StudentHolidayRequestDTO dto = new StudentHolidayRequestDTO();
+        dto.setId(req.getId());
+        dto.setStudentId(req.getStudent().getId());
+        dto.setStudentName(req.getStudent().getUsername());
+        dto.setHolidayDate(req.getHolidayDate());
+        dto.setReason(req.getReason());
+        dto.setScope(req.getScope());
+        dto.setStatus(req.getStatus());
+        dto.setAdminComment(req.getAdminComment());
+        dto.setCreatedAt(req.getCreatedAt());
+        return dto;
+    }
+}

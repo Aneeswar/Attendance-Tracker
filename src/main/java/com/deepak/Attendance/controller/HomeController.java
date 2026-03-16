@@ -90,4 +90,14 @@ public class HomeController {
     public String studentProfile() {
         return "student-profile";
     }
+
+    @GetMapping("/student/holiday-requests")
+    public String studentHolidayRequests() {
+        return "student-holiday-requests";
+    }
+
+    @GetMapping("/admin/holiday-requests")
+    public String adminHolidayRequests() {
+        return "admin-holiday-requests";
+    }
 }

@@ -363,7 +363,6 @@
         </div>
         <div class="navbar-menu">
             <a href="/student-dashboard"><i class="fas fa-home"></i> Dashboard</a>
-            <a href="/student-attendance-report" class="active"><i class="fas fa-chart-pie"></i> My Report</a>
         </div>
     </div>
 
@@ -384,7 +383,13 @@
                 <h1>Attendance Analysis</h1>
                 <p style="color: var(--text-muted); font-size: 0.95rem;">Comprehensive breakdown of your academic standing.</p>
             </div>
-            <div id="lastRefresh" style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;"></div>
+            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.25rem;">
+                <button onclick="refreshReport(this)" class="refresh-btn" style="background: var(--warning); padding: 0.4rem 0.8rem; font-size: 0.75rem;">
+                    <i class="fas fa-sync-alt"></i>
+                    <span>Refresh</span>
+                </button>
+                <div id="lastRefresh" style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;"></div>
+            </div>
         </div>
 
         <div class="card policy-card">

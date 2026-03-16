@@ -1,8 +1,10 @@
 package com.deepak.Attendance.controller;
 
+import com.deepak.Attendance.dto.StudentHolidayRequestDTO;
 import com.deepak.Attendance.entity.User;
 import com.deepak.Attendance.repository.UserRepository;
 import com.deepak.Attendance.security.JwtTokenProvider;
+import com.deepak.Attendance.service.StudentHolidayService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -12,6 +14,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -22,6 +25,9 @@ public class AdminRestController {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private StudentHolidayService studentHolidayService;
 
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
@@ -158,6 +164,71 @@ public class AdminRestController {
     /**
      * Extract user ID from JWT token in Authorization header
      */
+    /**
+     * Get all student holiday requests for admin
+     * GET /api/admin/holiday-requests
+     */
+    @GetMapping("/holiday-requests")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> getAllHolidayRequests() {
+        try {
+            List<StudentHolidayRequestDTO> requests = studentHolidayService.getAllRequests();
+            return ResponseEntity.ok(requests);
+        } catch (Exception e) {
+            log.error("Error fetching all holiday requests", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new HashMap<String, String>() {{
+                        put("error", "Failed to fetch holiday requests");
+                    }});
+        }
+    }
+
+    /**
+     * Approve a holiday request
+     * POST /api/admin/holiday-requests/{requestId}/approve
+     */
+    @PostMapping("/holiday-requests/{requestId}/approve")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> approveHolidayRequest(@PathVariable Long requestId,
+                                                  @RequestBody Map<String, String> body) {
+        try {
+            String adminComment = body.getOrDefault("comment", "Approved by Admin");
+            studentHolidayService.approveRequest(requestId, adminComment);
+            return ResponseEntity.ok(new HashMap<String, String>() {{
+                put("message", "Request approved successfully");
+            }});
+        } catch (Exception e) {
+            log.error("Error approving holiday request", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new HashMap<String, String>() {{
+                        put("error", e.getMessage());
+                    }});
+        }
+    }
+
+    /**
+     * Reject a holiday request
+     * POST /api/admin/holiday-requests/{requestId}/reject
+     */
+    @PostMapping("/holiday-requests/{requestId}/reject")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> rejectHolidayRequest(@PathVariable Long requestId,
+                                                 @RequestBody Map<String, String> body) {
+        try {
+            String adminComment = body.getOrDefault("comment", "Rejected by Admin");
+            studentHolidayService.rejectRequest(requestId, adminComment);
+            return ResponseEntity.ok(new HashMap<String, String>() {{
+                put("message", "Request rejected successfully");
+            }});
+        } catch (Exception e) {
+            log.error("Error rejecting holiday request", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new HashMap<String, String>() {{
+                        put("error", e.getMessage());
+                    }});
+        }
+    }
+
     private Long extractUserIdFromToken(String authHeader) {
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             String token = authHeader.substring(7);

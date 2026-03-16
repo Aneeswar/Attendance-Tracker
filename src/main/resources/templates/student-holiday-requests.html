@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Holiday Requests - AttenTrack</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --secondary: #64748b;
+            --background: #f1f5f9;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --nav-bg: #0f172a;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: var(--background); color: var(--text-main); min-height: 100vh; }
+
+        .navbar {
+            background: var(--nav-bg);
+            color: white;
+            padding: 0.75rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .navbar-brand { font-size: 1.25rem; font-weight: 800; display: flex; align-items: center; gap: 0.75rem; }
+        .navbar-brand i { color: #818cf8; }
+
+        .container { max-width: 900px; margin: 3rem auto; padding: 0 1.5rem; }
+
+        .page-header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            margin-bottom: 2rem; 
+        }
+        .page-header h1 { font-size: 1.875rem; font-weight: 800; letter-spacing: -0.025em; }
+
+        .btn {
+            padding: 0.625rem 1.25rem;
+            border-radius: 0.75rem;
+            font-weight: 700;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-hover); }
+
+        .request-card {
+            background: white;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            border: 1px solid #e2e8f0;
+            margin-bottom: 1rem;
+            position: relative;
+        }
+
+        .status-badge {
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
+            padding: 0.375rem 0.75rem;
+            border-radius: 2rem;
+            font-size: 0.75rem;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .status-pending { background: #fef3c7; color: #92400e; }
+        .status-approved { background: #ecfdf5; color: #065f46; }
+        .status-rejected { background: #fef2f2; color: #991b1b; }
+
+        .request-info h3 { font-size: 1.125rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--text-main); }
+        .request-meta { display: flex; gap: 1.5rem; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 1rem; }
+        .request-meta span { display: flex; align-items: center; gap: 0.4rem; }
+
+        .request-reason { 
+            background: #f8fafc; 
+            padding: 0.75rem 1rem; 
+            border-radius: 0.75rem; 
+            font-size: 0.875rem; 
+            color: var(--secondary);
+            border-left: 3px solid #cbd5e1;
+        }
+
+        .admin-comment {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px dashed #e2e8f0;
+            font-size: 0.8125rem;
+            color: var(--secondary);
+        }
+
+        .action-btns {
+            margin-top: 1rem;
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .btn-sm {
+            padding: 0.4rem 0.8rem;
+            font-size: 0.75rem;
+            border-radius: 0.5rem;
+        }
+
+        .btn-outline-danger {
+            background: transparent;
+            border: 1px solid var(--danger);
+            color: var(--danger);
+        }
+        .btn-outline-danger:hover {
+            background: var(--danger);
+            color: white;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 1.25rem;
+            width: 100%;
+            max-width: 500px;
+            padding: 2rem;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+        }
+
+        .modal-header { margin-bottom: 1.5rem; }
+        .modal-header h2 { font-size: 1.25rem; font-weight: 800; }
+
+        .form-group { margin-bottom: 1.25rem; }
+        .form-group label { display: block; font-size: 0.8125rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.5rem; text-transform: uppercase; }
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border-radius: 0.75rem;
+            border: 1px solid #e2e8f0;
+            font-family: inherit;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+        .form-group input:focus { outline: none; border-color: var(--primary); ring: 2px solid var(--primary); }
+
+        .modal-footer { display: flex; gap: 1rem; margin-top: 2rem; }
+        .modal-footer button { flex: 1; }
+
+        .btn-secondary { background: #e2e8f0; color: var(--text-main); }
+        .btn-secondary:hover { background: #cbd5e1; }
+
+        .loader { text-align: center; padding: 4rem; color: var(--text-muted); }
+        .empty-state { text-align: center; padding: 4rem; background: white; border-radius: 1rem; border: 1px dashed #cbd5e1; color: var(--text-muted); }
+
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <div class="navbar-brand">
+            <i class="fas fa-umbrella-beach"></i>
+            <span>AttenTrack</span>
+        </div>
+        <div class="navbar-menu">
+            <a href="/student-dashboard" style="color: white; text-decoration: none; font-size: 0.875rem; font-weight: 700;">
+                <i class="fas fa-arrow-left"></i> Dashboard
+            </a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="page-header">
+            <div>
+                <h1>Holiday Requests</h1>
+                <p style="color: var(--text-muted); font-size: 0.875rem; margin-top: 0.25rem;">
+                    Request holidays and track their approval status.
+                </p>
+            </div>
+            <button class="btn btn-primary" onclick="openModal()">
+                <i class="fas fa-plus"></i> New Request
+            </button>
+        </div>
+
+        <div id="loader" class="loader">
+            <i class="fas fa-spinner fa-spin fa-2x"></i>
+            <p style="margin-top: 1rem;">Loading requests...</p>
+        </div>
+
+        <div id="sectionsContainer" style="display: none;">
+            <div class="section-container">
+                <h2 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 1rem; color: var(--primary); display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fas fa-user-circle"></i> My Requests
+                </h2>
+                <div id="myRequestList"></div>
+                <div id="myEmptyState" class="empty-state" style="display: none; margin-bottom: 2rem;">
+                    <i class="fas fa-calendar-day fa-3x" style="margin-bottom: 1rem; opacity: 0.3;"></i>
+                    <h3>No requests found</h3>
+                    <p>You haven't submitted any holiday requests yet.</p>
+                </div>
+            </div>
+
+            <div class="section-container" style="margin-top: 3rem;">
+                <h2 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 1rem; color: var(--secondary); display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fas fa-users"></i> Other Students' Requests
+                </h2>
+                <div id="otherRequestList"></div>
+                <div id="otherEmptyState" class="empty-state" style="display: none;">
+                    <i class="fas fa-info-circle fa-3x" style="margin-bottom: 1rem; opacity: 0.3;"></i>
+                    <h3>No other requests</h3>
+                    <p>There are no holiday requests from other students yet.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create/Edit Modal -->
+    <div id="requestModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">New Holiday Request</h2>
+            </div>
+            <form id="requestForm">
+                <input type="hidden" id="requestId">
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" id="holidayDate" required>
+                </div>
+                <div class="form-group">
+                    <label>Session Type</label>
+                    <select id="scope" required>
+                        <option value="FULL">Full Day</option>
+                        <option value="MORNING">Morning Only</option>
+                        <option value="AFTERNOON">Afternoon Only</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Reason</label>
+                    <textarea id="reason" rows="3" placeholder="Enter reason for holiday..." required></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="submitBtn">Submit Request</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('jwtToken');
+        if (!token) window.location.href = '/login';
+
+        let myRequests = [];
+        let otherRequests = [];
+
+        document.addEventListener('DOMContentLoaded', fetchRequests);
+
+        async function fetchRequests() {
+            try {
+                const res = await fetch('/api/student/holiday-requests', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (!res.ok) throw new Error('Failed to fetch');
+                
+                const data = await res.json();
+                myRequests = data.myRequests || [];
+                otherRequests = data.otherRequests || [];
+                renderRequests();
+            } catch (err) {
+                console.error(err);
+                document.getElementById('loader').style.display = 'none';
+                document.getElementById('myEmptyState').style.display = 'block';
+                document.getElementById('otherEmptyState').style.display = 'block';
+            }
+        }
+
+        function renderRequests() {
+            const myContainer = document.getElementById('myRequestList');
+            const otherContainer = document.getElementById('otherRequestList');
+            const loader = document.getElementById('loader');
+            const sectionContainer = document.getElementById('sectionsContainer');
+            const myEmpty = document.getElementById('myEmptyState');
+            const otherEmpty = document.getElementById('otherEmptyState');
+            
+            loader.style.display = 'none';
+            sectionContainer.style.display = 'block';
+            myContainer.innerHTML = '';
+            otherContainer.innerHTML = '';
+            
+            // Render My Requests
+            if (myRequests.length === 0) {
+                myEmpty.style.display = 'block';
+            } else {
+                myEmpty.style.display = 'none';
+                myRequests.forEach(req => {
+                    myContainer.appendChild(createRequestCard(req, true));
+                });
+            }
+
+            // Render Other Requests
+            if (otherRequests.length === 0) {
+                otherEmpty.style.display = 'block';
+            } else {
+                otherEmpty.style.display = 'none';
+                otherRequests.forEach(req => {
+                    otherContainer.appendChild(createRequestCard(req, false));
+                });
+            }
+        }
+
+        function createRequestCard(req, isMine) {
+            const date = new Date(req.holidayDate).toLocaleDateString('en-US', {
+                weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
+            });
+            
+            const card = document.createElement('div');
+            card.className = 'request-card';
+            if (!isMine) {
+                card.style.opacity = '0.85';
+                card.style.background = '#f9fafb';
+            }
+
+            card.innerHTML = `
+                <span class="status-badge status-${req.status.toLowerCase()}">${req.status}</span>
+                <div class="request-info">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+                        <h3 style="margin-bottom: 0;">${date}</h3>
+                        ${!isMine ? `<span style="font-size: 0.75rem; color: var(--primary); font-weight: 700; background: #eef2ff; padding: 2px 8px; border-radius: 4px;">Student: ${req.studentName}</span>` : ''}
+                    </div>
+                    <div class="request-meta">
+                        <span><i class="fas fa-clock"></i> ${formatScope(req.scope)}</span>
+                        <span><i class="fas fa-calendar-check"></i> ${isMine ? 'Submitted' : 'By'} ${formatDate(req.createdAt)}</span>
+                    </div>
+                    <div class="request-reason">${req.reason}</div>
+                    ${req.adminComment ? `<div class="admin-comment"><strong>Admin Comment:</strong> ${req.adminComment}</div>` : ''}
+                    
+                    ${isMine && req.status === 'PENDING' ? `
+                        <div class="action-btns">
+                            <button class="btn btn-sm btn-secondary" onclick="editRequest(${req.id})">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteRequest(${req.id})">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            return card;
+        }
+
+        function formatScope(scope) {
+            return scope === 'FULL' ? 'Full Day' : scope === 'MORNING' ? 'Morning Only' : 'Afternoon Only';
+        }
+
+        function formatDate(dateStr) {
+            const d = new Date(dateStr);
+            return d.toLocaleDateString();
+        }
+
+        function openModal() {
+            document.getElementById('modalTitle').textContent = 'New Holiday Request';
+            document.getElementById('requestForm').reset();
+            document.getElementById('requestId').value = '';
+            document.getElementById('requestModal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('requestModal').style.display = 'none';
+        }
+
+        function editRequest(id) {
+            const req = myRequests.find(r => r.id === id);
+            if (!req) return;
+            
+            document.getElementById('modalTitle').textContent = 'Edit Holiday Request';
+            document.getElementById('requestId').value = req.id;
+            document.getElementById('holidayDate').value = req.holidayDate;
+            document.getElementById('scope').value = req.scope;
+            document.getElementById('reason').value = req.reason;
+            
+            document.getElementById('requestModal').style.display = 'flex';
+        }
+
+        async function deleteRequest(id) {
+            if (!confirm('Are you sure you want to delete this pending request?')) return;
+            
+            try {
+                const res = await fetch(`/api/student/holiday-requests/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (res.ok) {
+                    myRequests = myRequests.filter(r => r.id !== id);
+                    renderRequests();
+                } else {
+                    const err = await res.json();
+                    alert(err.error || 'Failed to delete');
+                }
+            } catch (e) {
+                alert('Network error');
+            }
+        }
+
+        document.getElementById('requestForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const submitBtn = document.getElementById('submitBtn');
+            const id = document.getElementById('requestId').value;
+            
+            const dto = {
+                holidayDate: document.getElementById('holidayDate').value,
+                scope: document.getElementById('scope').value,
+                reason: document.getElementById('reason').value
+            };
+            
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            
+            try {
+                const method = id ? 'PUT' : 'POST';
+                const url = id ? `/api/student/holiday-requests/${id}` : '/api/student/holiday-requests';
+                
+                const res = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(dto)
+                });
+                
+                if (res.ok) {
+                    closeModal();
+                    fetchRequests();
+                } else {
+                    const err = await res.json();
+                    alert(err.error || 'Failed to save');
+                }
+            } catch (err) {
+                alert('Network error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = id ? 'Update Request' : 'Submit Request';
+            }
+        };
+    </script>
+</body>
+</html>
