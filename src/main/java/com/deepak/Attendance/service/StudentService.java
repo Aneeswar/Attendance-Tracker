@@ -977,38 +977,6 @@ public class StudentService {
     }
 
     /**
-     * Convert day of week string to numeric day (1-7, where 1=Monday, 7=Sunday)
-     */
-    private int getDayOfWeekNumber(String dayName) {
-        return switch (dayName.toUpperCase()) {
-            case "MONDAY" -> 1;
-            case "TUESDAY" -> 2;
-            case "WEDNESDAY" -> 3;
-            case "THURSDAY" -> 4;
-            case "FRIDAY" -> 5;
-            case "SATURDAY" -> 6;
-            case "SUNDAY" -> 7;
-            default -> -1;
-        };
-    }
-
-    /**
-     * Convert numeric day to day name
-     */
-    private String getDayNameFromNumber(int dayOfWeek) {
-        return switch (dayOfWeek) {
-            case 1 -> "Monday";
-            case 2 -> "Tuesday";
-            case 3 -> "Wednesday";
-            case 4 -> "Thursday";
-            case 5 -> "Friday";
-            case 6 -> "Saturday";
-            case 7 -> "Sunday";
-            default -> "Unknown";
-        };
-    }
-
-    /**
      * Get all available courses (excluding ones already added by the student)
      */
     public List<Map<String, Object>> getAllAvailableCourses(Long userId) {
