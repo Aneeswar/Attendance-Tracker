@@ -342,7 +342,8 @@
                     closeModal();
                     filterRequests();
                 } else {
-                    alert('Action failed');
+                    const errorText = await res.text();
+                    alert(errorText || 'Action failed');
                 }
             } catch (e) {
                 alert('Network error');

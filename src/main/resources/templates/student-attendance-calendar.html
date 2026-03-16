@@ -287,8 +287,18 @@
                     let statusClass = 'status-none';
                     let statusText = 'Scheduled';
                     if (record) {
-                        if (record.attended === true) { statusClass = 'status-present'; statusText = 'Present'; }
-                        else if (record.attended === false) { statusClass = 'status-absent'; statusText = 'Absent'; }
+                        if (record.isHoliday) {
+                            statusClass = 'status-none';
+                            statusText = 'Holiday: ' + record.holidayReason;
+                            dayDiv.style.backgroundColor = '#f1f5f9';
+                            dayDiv.style.cursor = 'help';
+                        } else if (record.attended === true) {
+                            statusClass = 'status-present';
+                            statusText = 'Present';
+                        } else if (record.attended === false) {
+                            statusClass = 'status-absent';
+                            statusText = 'Absent';
+                        }
                     } else {
                         // Check if it's even a class day
                         // This calendar logic could be smarter, but for now we follow the existing behavior

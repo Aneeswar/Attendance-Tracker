@@ -18,6 +18,8 @@ public class ExamEligibilityDTO {
     private boolean eligible65;
     
     private Integer futureClassesUntilExam;
+    private Integer totalClassesConductedUntilCutoff;
+    private Integer classesAttendedUntilCutoff;
     private Integer minimumClassesToAttend75;
     private Integer minimumClassesToAttend65;
     private Integer classesCanSkip75;

@@ -17,6 +17,7 @@ public class CourseAttendanceCalendarDTO {
     private LocalDate endDate;
     private List<String> classScheduleDays; // e.g., ["MONDAY", "TUESDAY", "THURSDAY"]
     private List<DateBasedAttendanceDTO> attendanceDates;
+    private List<DateBasedAttendanceDTO> attendanceDtos; // Alias for backward compatibility or frontend
     private Integer totalDaysAvailable;
     private Integer totalDaysAttended;
 }

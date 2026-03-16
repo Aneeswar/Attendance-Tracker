@@ -452,6 +452,9 @@
                 showToast('Holiday added!');
                 document.getElementById('holidayName').value = '';
                 loadHolidays();
+            } else {
+                const errorText = await res.text();
+                showToast(errorText || 'Failed to add holiday');
             }
         }
 

@@ -323,42 +323,57 @@ public class StudentService {
         LocalDate cutoff = attendanceCalculationService.getAttendanceCutoffDate(start, examType, holidays);
         dto.setAttendanceCutoffDate(cutoff);
         
+        // Filter attendance records to only include those up to the cutoff date for this exam.
+        // Do not fall back to global totals here, because those may include dates beyond cutoff (e.g., LWD).
+        int relevantConducted = 0;
+        int relevantAttended = 0;
+        if (cutoff != null) {
+            LocalDate startDate = course.getCourseStartDate() != null ? course.getCourseStartDate() : today.minusMonths(4);
+            List<DateBasedAttendance> relevantRecords = dateBasedAttendanceRepository
+                    .findByCourseIdAndAttendanceDateBetweenOrderByAttendanceDateAsc(course.getId(), startDate, cutoff);
+            relevantConducted = relevantRecords.size();
+            relevantAttended = (int) relevantRecords.stream().filter(DateBasedAttendance::getAttended).count();
+        }
+
+        dto.setTotalClassesConductedUntilCutoff(relevantConducted);
+        dto.setClassesAttendedUntilCutoff(relevantAttended);
+        
         int futureUntilExam = attendanceCalculationService.calculateFutureClassesAvailableUntilDate(course, start, examType);
-        int totalUntilExam = totalConducted + futureUntilExam;
+        int totalUntilExam = relevantConducted + futureUntilExam;
         dto.setFutureClassesUntilExam(futureUntilExam);
         
         // Use existing logic pattern for min classes
-        int min75 = attended;
-        for (int a = attended; a <= attended + futureUntilExam; a++) {
+        int min75 = relevantAttended;
+        for (int a = relevantAttended; a <= relevantAttended + futureUntilExam; a++) {
             double pct = totalUntilExam > 0 ? (double) a / totalUntilExam * 100 : 0;
             if (Math.ceil(pct) >= 75.0) { min75 = a; break; }
         }
-        int add75 = Math.max(0, min75 - attended);
+        int add75 = Math.max(0, min75 - relevantAttended);
         dto.setMinimumClassesToAttend75(add75);
         dto.setClassesCanSkip75(Math.max(0, futureUntilExam - add75));
         dto.setEligible75(add75 <= futureUntilExam);
         
         // Calculate target percentage if all skip classes are used (75%)
-        int totalAttended75 = attended + add75;
+        int totalAttended75 = relevantAttended + add75;
         double targetVal75 = totalUntilExam > 0 ? (double) totalAttended75 / totalUntilExam * 100 : 0;
         dto.setTargetPercentage75(Math.ceil(targetVal75));
         
-        int min65 = attended;
-        for (int a = attended; a <= attended + futureUntilExam; a++) {
+        int min65 = relevantAttended;
+        for (int a = relevantAttended; a <= relevantAttended + futureUntilExam; a++) {
             double pct = totalUntilExam > 0 ? (double) a / totalUntilExam * 100 : 0;
             if (Math.ceil(pct) >= 65.0) { min65 = a; break; }
         }
-        int add65 = Math.max(0, min65 - attended);
+        int add65 = Math.max(0, min65 - relevantAttended);
         dto.setMinimumClassesToAttend65(add65);
         dto.setClassesCanSkip65(Math.max(0, futureUntilExam - add65));
         dto.setEligible65(add65 <= futureUntilExam);
 
         // Calculate target percentage if all skip classes are used (65%)
-        int totalAttended65 = attended + add65;
+        int totalAttended65 = relevantAttended + add65;
         double targetVal65 = totalUntilExam > 0 ? (double) totalAttended65 / totalUntilExam * 100 : 0;
         dto.setTargetPercentage65(Math.ceil(targetVal65));
         
-        double projected = totalUntilExam > 0 ? (double) (attended + futureUntilExam) / totalUntilExam * 100 : 0;
+        double projected = totalUntilExam > 0 ? (double) (relevantAttended + futureUntilExam) / totalUntilExam * 100 : 0;
         dto.setProjectedPercentage(Math.ceil(projected));
         dto.setFutureClassDates(attendanceCalculationService.getFutureClassDatesUntilDate(course, start, examType));
         

@@ -50,11 +50,11 @@ public class AttendanceCalculationService {
         List<LocalDate> validDays = new ArrayList<>();
         LocalDate current = startDate;
 
-        // Get all holidays
+        // Use all configured holidays to avoid mismatches with report cutoff logic.
         Set<LocalDate> holidays = new HashSet<>(
-                holidayRepository.findByAcademicCalendarId(calendar.getId()).stream()
-                        .map(Holiday::getDate)
-                        .toList()
+            holidayRepository.findAllByOrderByDateAsc().stream()
+                .map(Holiday::getDate)
+                .toList()
         );
 
         // Exclude all exam periods (CAT-1, CAT-2, FAT)
@@ -158,8 +158,8 @@ public class AttendanceCalculationService {
         if (currentCalendarForCalc.isPresent()) {
             AcademicCalendar calendar = currentCalendarForCalc.get();
             
-            // Add holidays
-            calendarHolidays = holidayRepository.findByAcademicCalendarId(calendar.getId());
+                // Use all holidays for consistent behavior with cutoff date calculation.
+                calendarHolidays = holidayRepository.findAllByOrderByDateAsc();
             excludedDates.addAll(calendarHolidays.stream()
                     .filter(h -> h.getScope() == Holiday.HolidayScope.FULL)
                     .map(Holiday::getDate)
@@ -447,8 +447,8 @@ public class AttendanceCalculationService {
         if (currentCalendarForDates.isPresent()) {
             AcademicCalendar calendar = currentCalendarForDates.get();
             
-            // Add holidays
-            calendarHolidays = holidayRepository.findByAcademicCalendarId(calendar.getId());
+                // Use all holidays for consistent behavior with cutoff date calculation.
+                calendarHolidays = holidayRepository.findAllByOrderByDateAsc();
             excludedDates.addAll(calendarHolidays.stream()
                     .filter(h -> h.getScope() == Holiday.HolidayScope.FULL)
                     .map(Holiday::getDate)
@@ -456,10 +456,10 @@ public class AttendanceCalculationService {
             
             Set<LocalDate> fullHolidaysSet = new HashSet<>(excludedDates);
 
-            // For FAT, exclude exam periods but NOT their study holidays (study holidays are working days)
+            // For FAT, exclude exam periods but NOT their study holidays or LWDs (those are working days)
             if ("FAT".equals(examType)) {
                 if (calendar.getCat1StartDate() != null && calendar.getCat1EndDate() != null) {
-                    // Exclude CAT-1 Exam
+                    // Exclude CAT-1 Exam dates
                     LocalDate examDate = calendar.getCat1StartDate();
                     while (!examDate.isAfter(calendar.getCat1EndDate())) {
                         excludedDates.add(examDate);
@@ -467,7 +467,7 @@ public class AttendanceCalculationService {
                     }
                 }
                 if (calendar.getCat2StartDate() != null && calendar.getCat2EndDate() != null) {
-                    // Exclude CAT-2 Exam
+                    // Exclude CAT-2 Exam dates
                     LocalDate examDate = calendar.getCat2StartDate();
                     while (!examDate.isAfter(calendar.getCat2EndDate())) {
                         excludedDates.add(examDate);

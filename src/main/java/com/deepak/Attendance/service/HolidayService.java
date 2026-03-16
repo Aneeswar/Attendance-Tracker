@@ -37,15 +37,12 @@ public class HolidayService {
         Holiday holiday = new Holiday();
         holiday.setDate(dto.getDate());
         holiday.setReason(dto.getReason());
-        holiday.setType(Holiday.HolidayType.valueOf(dto.getType()));
+        holiday.setType(Holiday.HolidayType.valueOf(dto.getType() != null ? dto.getType() : "PUBLIC"));
         holiday.setScope(dto.getScope() != null ? 
                 Holiday.HolidayScope.valueOf(dto.getScope()) : Holiday.HolidayScope.FULL);
         
-        // Set the academic calendar ID
-        Long calendarId = academicCalendarRepository.findAll().stream()
-                .map(c -> c.getId())
-                .findFirst()
-                .orElse(null);
+        // Set the current academic calendar ID
+        Long calendarId = getCurrentCalendarId();
         holiday.setAcademicCalendarId(calendarId);
         log.debug("Setting academicCalendarId {} for holiday on {}", calendarId, dto.getDate());
 
@@ -84,11 +81,8 @@ public class HolidayService {
                 holiday.setScope(request.getScope() != null ? 
                         Holiday.HolidayScope.valueOf(request.getScope()) : Holiday.HolidayScope.FULL);
                 
-                // Set the academic calendar ID
-                Long calendarId = academicCalendarRepository.findAll().stream()
-                        .map(c -> c.getId())
-                        .findFirst()
-                        .orElse(null);
+                // Set the current academic calendar ID
+                Long calendarId = getCurrentCalendarId();
                 holiday.setAcademicCalendarId(calendarId);
                 log.debug("Setting academicCalendarId {} for holiday on {}", calendarId, currentDate);
                 
@@ -114,10 +108,7 @@ public class HolidayService {
 
     public List<HolidayDTO> bulkAddHolidays(BulkHolidayRequest request) {
         // Get the current academic calendar ID
-        Long calendarId = academicCalendarRepository.findAll().stream()
-                .map(c -> c.getId())
-                .findFirst()
-                .orElse(null);
+        Long calendarId = getCurrentCalendarId();
         
         List<HolidayDTO> savedHolidays = request.getHolidays().stream()
                 .map(h -> {
@@ -148,6 +139,12 @@ public class HolidayService {
         }
         
         return savedHolidays;
+    }
+
+    private Long getCurrentCalendarId() {
+        return academicCalendarRepository.findFirstByOrderByCreatedAtDesc()
+                .map(c -> c.getId())
+                .orElseThrow(() -> new IllegalArgumentException("No academic calendar found. Please create an academic calendar first."));
     }
 
     public List<HolidayDTO> getAllHolidays() {

@@ -446,13 +446,17 @@
     <script>
         let currentReports = [];
         let relaxationEnabled = false;
+        let lastKnownStale = false;
 
-        document.addEventListener('DOMContentLoaded', loadReport);
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadReport(false);
+            startStaleWatcher();
+        });
 
-        async function loadReport() {
+        async function loadReport(showAdminChangePopup = false) {
             const token = localStorage.getItem('jwtToken');
             try {
-                const res = await fetch('/api/student/attendance-report', {
+                const res = await fetch(`/api/student/attendance-report?_=${Date.now()}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const data = await res.json();
@@ -460,9 +464,16 @@
 
                 if (data.reports && data.reports.length > 0) {
                     currentReports = data.reports;
-                    if (data.reports.some(r => r.stale)) {
+                    const isStaleNow = Boolean(data.isStale) || data.reports.some(r => r.stale);
+                    if (isStaleNow) {
                         document.getElementById('staleBanner').style.display = 'flex';
+                        if (showAdminChangePopup && !lastKnownStale) {
+                            alert('Admin updated academic data. Please click Refresh Report to sync the latest calculations.');
+                        }
+                    } else {
+                        document.getElementById('staleBanner').style.display = 'none';
                     }
+                    lastKnownStale = isStaleNow;
                     if (data.generatedAt) {
                         document.getElementById('lastRefresh').textContent = `CALCULATED: ${new Date(data.generatedAt).toLocaleString()}`;
                     }
@@ -473,6 +484,12 @@
             } catch (e) {
                 console.error(e);
             }
+        }
+
+        function startStaleWatcher() {
+            setInterval(async () => {
+                await loadReport(true);
+            }, 30000);
         }
 
         function toggleRelaxation() {
@@ -508,6 +525,12 @@
                 const projected = hasMainExam ? Math.ceil(mainExam.projectedPercentage || 0) : '0';
                 const cutoffStr = (hasMainExam && mainExam.attendanceCutoffDate) ? new Date(mainExam.attendanceCutoffDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : 'N/A';
                 const examNameInCard = hasMainExam ? (mainExam.examName || report.mainReportExam) : 'Exam';
+                const attendedForCard = hasMainExam && mainExam.classesAttendedUntilCutoff != null
+                    ? mainExam.classesAttendedUntilCutoff
+                    : report.classesAttended;
+                const conductedForCard = hasMainExam && mainExam.totalClassesConductedUntilCutoff != null
+                    ? mainExam.totalClassesConductedUntilCutoff
+                    : report.totalClassesConducted;
 
                 const card = document.createElement('div');
                 card.className = 'course-card';
@@ -526,7 +549,7 @@
                         <div onclick="showModal(currentReports.find(r => r.courseId === ${report.courseId}), '${report.mainReportExam}')">
                             <div class="stat-line">
                                 <span class="stat-label">Classes Attended</span>
-                                <span class="stat-value">${report.classesAttended} / ${report.totalClassesConducted}</span>
+                                <span class="stat-value">${attendedForCard} / ${conductedForCard}</span>
                             </div>
                             <div class="stat-line">
                                 <span class="stat-label">Available to Skip</span>
@@ -584,6 +607,7 @@
         async function refreshReport(btn) {
             const icon = btn.querySelector('i');
             const span = btn.querySelector('span');
+            const originalLabel = span ? span.textContent : '';
             btn.disabled = true;
             if (icon) icon.classList.add('spinning');
             if (span) span.textContent = 'Syncing...';
@@ -594,13 +618,18 @@
                     headers: { 'Authorization': `Bearer ${localStorage.getItem('jwtToken')}` }
                 });
                 if (res.ok) {
-                    document.getElementById('staleBanner').style.display = 'none';
-                    loadReport();
+                    await loadReport(false);
+                    alert('Report refreshed with latest admin updates.');
+                } else {
+                    const errorText = await res.text();
+                    alert(errorText || 'Failed to refresh report.');
                 }
-            } catch (e) {} finally {
+            } catch (e) {
+                alert('Network error while refreshing report.');
+            } finally {
                 btn.disabled = false;
                 if (icon) icon.classList.remove('spinning');
-                if (span) span.textContent = 'Refresh Report';
+                if (span) span.textContent = originalLabel || 'Refresh';
             }
         }
 
@@ -694,8 +723,12 @@
                         `;
                     } else {
                         // WHAT-IF MODE: Active Prediction
-                        const totalConducted = report.totalClassesConducted;
-                        const classesAttended = report.classesAttended;
+                        const totalConducted = exam.totalClassesConductedUntilCutoff != null
+                            ? exam.totalClassesConductedUntilCutoff
+                            : report.totalClassesConducted;
+                        const classesAttended = exam.classesAttendedUntilCutoff != null
+                            ? exam.classesAttendedUntilCutoff
+                            : report.classesAttended;
                         const futureOriginal = exam.futureClassesUntilExam;
                         const skippedCount = skippedDates.size;
                         

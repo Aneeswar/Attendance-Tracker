@@ -12,4 +12,6 @@ public class DateBasedAttendanceDTO {
     private LocalDate date;
     private Boolean attended;
     private String dayOfWeek;
+    private Boolean isHoliday;
+    private String holidayReason;
 }

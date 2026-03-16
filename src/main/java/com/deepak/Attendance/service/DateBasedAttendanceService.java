@@ -35,6 +35,12 @@ public class DateBasedAttendanceService {
     private TimetableEntryRepository timetableEntryRepository;
 
     @Autowired
+    private AcademicCalendarRepository academicCalendarRepository;
+
+    @Autowired
+    private HolidayRepository holidayRepository;
+
+    @Autowired
     private ObjectProvider<StudentService> studentServiceProvider;
 
 
@@ -75,6 +81,18 @@ public class DateBasedAttendanceService {
         List<DateBasedAttendance> attendanceRecords = dateBasedAttendanceRepository
                 .findByCourseIdAndAttendanceDateBetweenOrderByAttendanceDateAsc(courseId, startDate, endDate);
 
+        // Get holidays for this period
+        Optional<AcademicCalendar> currentCalendar = academicCalendarRepository
+                .findFirstByOrderByCreatedAtDesc();
+        
+        Map<LocalDate, Holiday> holidayMap = new HashMap<>();
+        if (currentCalendar.isPresent()) {
+            List<Holiday> holidays = holidayRepository.findByAcademicCalendarId(currentCalendar.get().getId());
+            for (Holiday holiday : holidays) {
+                holidayMap.put(holiday.getDate(), holiday);
+            }
+        }
+
         // Create DTOs for all class dates
         Map<LocalDate, DateBasedAttendance> attendanceMap = attendanceRecords.stream()
                 .collect(Collectors.toMap(DateBasedAttendance::getAttendanceDate, a -> a));
@@ -85,9 +103,17 @@ public class DateBasedAttendanceService {
                     dto.setDate(date);
                     dto.setDayOfWeek(date.getDayOfWeek().toString());
                     
-                    DateBasedAttendance record = attendanceMap.get(date);
-                    // Default to true (Present) if no record exists
-                    dto.setAttended(record != null ? record.getAttended() : true);
+                    Holiday holiday = holidayMap.get(date);
+                    if (holiday != null && holiday.getScope() == Holiday.HolidayScope.FULL) {
+                        dto.setIsHoliday(true);
+                        dto.setHolidayReason(holiday.getReason());
+                        dto.setAttended(null); // Not applicable
+                    } else {
+                        DateBasedAttendance record = attendanceMap.get(date);
+                        // Default to true (Present) if no record exists
+                        dto.setAttended(record != null ? record.getAttended() : true);
+                        dto.setIsHoliday(false);
+                    }
                     
                     return dto;
                 })
@@ -102,7 +128,14 @@ public class DateBasedAttendanceService {
         response.setEndDate(endDate);
         response.setClassScheduleDays(classDays);
         response.setAttendanceDates(attendanceDtos);
-        response.setTotalDaysAvailable(classDatesList.size());
+        response.setAttendanceDtos(attendanceDtos);
+        
+        // Only count non-holiday days in total
+        int validClassDaysCount = (int) attendanceDtos.stream()
+                .filter(d -> d.getIsHoliday() == null || !d.getIsHoliday())
+                .count();
+        
+        response.setTotalDaysAvailable(validClassDaysCount);
         response.setTotalDaysAttended((int) attendanceDtos.stream()
                 .filter(d -> d.getAttended() != null && d.getAttended())
                 .count());
@@ -119,7 +152,8 @@ public class DateBasedAttendanceService {
                 .orElseThrow(() -> new RuntimeException("Course not found"));
 
         for (DateBasedAttendanceDTO dto : attendanceDates) {
-            if (dto.getAttended() != null) {
+            // Only update if attended status is provided AND it's not a holiday
+            if (dto.getAttended() != null && (dto.getIsHoliday() == null || !dto.getIsHoliday())) {
                 Optional<DateBasedAttendance> existing = dateBasedAttendanceRepository
                         .findByCourseIdAndAttendanceDate(courseId, dto.getDate());
 

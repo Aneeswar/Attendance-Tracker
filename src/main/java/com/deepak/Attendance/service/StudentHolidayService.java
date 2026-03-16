@@ -135,14 +135,43 @@ public class StudentHolidayService {
         var calendar = academicCalendarRepository.findFirstByOrderByCreatedAtDesc()
                 .orElseThrow(() -> new RuntimeException("Academic Calendar not found"));
 
-        Holiday holiday = new Holiday();
-        holiday.setAcademicCalendarId(calendar.getId());
-        holiday.setDate(request.getHolidayDate());
-        holiday.setReason("Approved student holiday: " + request.getReason());
-        holiday.setScope(request.getScope().toString().equals("FULL") ? Holiday.HolidayScope.FULL : 
-                          request.getScope().toString().equals("MORNING") ? Holiday.HolidayScope.MORNING : 
-                          Holiday.HolidayScope.AFTERNOON);
-        holiday.setType(Holiday.HolidayType.EXTRA);
+        String approvedReason = "Approved student holiday: " + request.getReason();
+        Holiday.HolidayScope requestedScope = request.getScope() != null
+                ? request.getScope()
+                : Holiday.HolidayScope.FULL;
+
+        Holiday holiday = holidayRepository.findByDate(request.getHolidayDate())
+                .map(existing -> {
+                    if (existing.getAcademicCalendarId() == null) {
+                        existing.setAcademicCalendarId(calendar.getId());
+                    }
+
+                    // Merge scopes: MORNING + AFTERNOON on same day should become FULL.
+                    Holiday.HolidayScope existingScope = existing.getScope() != null
+                            ? existing.getScope()
+                            : Holiday.HolidayScope.FULL;
+                    if (existingScope == Holiday.HolidayScope.FULL || requestedScope == Holiday.HolidayScope.FULL) {
+                        existing.setScope(Holiday.HolidayScope.FULL);
+                    } else if (existingScope != requestedScope) {
+                        existing.setScope(Holiday.HolidayScope.FULL);
+                    }
+
+                    String currentReason = existing.getReason() != null ? existing.getReason() : "";
+                    if (!currentReason.contains(approvedReason)) {
+                        existing.setReason(currentReason.isBlank() ? approvedReason : currentReason + " | " + approvedReason);
+                    }
+                    return existing;
+                })
+                .orElseGet(() -> {
+                    Holiday newHoliday = new Holiday();
+                    newHoliday.setAcademicCalendarId(calendar.getId());
+                    newHoliday.setDate(request.getHolidayDate());
+                    newHoliday.setReason(approvedReason);
+                    newHoliday.setScope(requestedScope);
+                    newHoliday.setType(Holiday.HolidayType.EXTRA);
+                    return newHoliday;
+                });
+
         holidayRepository.save(holiday);
 
         // Mark reports as stale to trigger recalculation
