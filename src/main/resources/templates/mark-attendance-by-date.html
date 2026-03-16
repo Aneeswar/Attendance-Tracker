@@ -260,14 +260,19 @@
                     return;
                 }
 
-                data.forEach(item => {
+                data.forEach((item, index) => {
                     const date = new Date(item.date);
                     const card = document.createElement('div');
                     card.className = 'date-card';
                     card.innerHTML = `
-                        <div class="date-info">
-                            <p>${date.toLocaleDateString('en-US', { weekday: 'long' })}</p>
-                            <h3>${date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</h3>
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <div style="background: var(--primary); color: white; min-width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 800; padding: 0 4px;">
+                                ${index + 1}
+                            </div>
+                            <div class="date-info">
+                                <p>${date.toLocaleDateString('en-US', { weekday: 'long' })}</p>
+                                <h3>${date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</h3>
+                            </div>
                         </div>
                         <div class="att-toggle">
                             <button id="p-${item.id}" class="toggle-btn present ${item.present === true ? 'active' : ''}" onclick="toggle(${item.id}, '${item.date}', true)">Present</button>

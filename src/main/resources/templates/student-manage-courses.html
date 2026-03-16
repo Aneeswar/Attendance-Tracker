@@ -280,16 +280,42 @@
         .day-input-card {
             background: #f8fafc;
             border: 1px solid #e2e8f0;
-            padding: 0.75rem;
+            padding: 1rem;
             border-radius: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .day-header {
             display: flex;
             align-items: center;
             gap: 0.75rem;
         }
+        .session-group {
+            border: 1px solid #e2e8f0;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            background: white;
+            display: none;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .session-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.8125rem;
+        }
+        .session-row input[type="text"] {
+            flex: 1;
+            padding: 0.25rem 0.5rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+        }
 
         .day-input-card input[type="checkbox"] { width: 1.125rem; height: 1.125rem; cursor: pointer; accent-color: var(--primary); }
-        .day-input-card label { flex-grow: 1; font-size: 0.875rem; font-weight: 600; cursor: pointer; margin: 0; }
-        .day-input-card input[type="number"] { width: 3.5rem; padding: 0.375rem; border-radius: 0.5rem; text-align: center; }
+        .day-input-card label { font-size: 0.875rem; font-weight: 600; cursor: pointer; margin: 0; }
 
         .modal-footer {
             padding: 1.5rem;
@@ -409,6 +435,10 @@
                             <input type="text" id="courseName" required placeholder="e.g. Data Structures">
                         </div>
                         <div class="form-group">
+                            <label>Slot</label>
+                            <input type="text" id="courseSlot" required placeholder="e.g. Slot A, 9:00-10:00">
+                        </div>
+                        <div class="form-group">
                             <label>Effective From</label>
                             <input type="date" id="courseStartDate" required>
                         </div>
@@ -470,6 +500,10 @@
                         <input type="text" id="editCourseName" required>
                     </div>
                     <div class="form-group">
+                        <label>Slot</label>
+                        <input type="text" id="editCourseSlot" required placeholder="e.g. Slot A, 9:00-10:00">
+                    </div>
+                    <div class="form-group">
                         <label>Effective Date</label>
                         <input type="date" id="editCourseStartDate" required>
                     </div>
@@ -504,9 +538,20 @@
                 const container = document.getElementById(conf.id);
                 container.innerHTML = weekdays.map(day => `
                     <div class="day-input-card">
-                        <input type="checkbox" id="${conf.prefix}-check-${day}" onchange="toggleDayInput('${conf.prefix}', '${day}')">
-                        <label for="${conf.prefix}-check-${day}">${day}</label>
-                        <input type="number" id="${conf.prefix}-count-${day}" min="1" max="5" value="1" disabled>
+                        <div class="day-header">
+                            <input type="checkbox" id="${conf.prefix}-check-${day}" onchange="toggleDayInput('${conf.prefix}', '${day}')">
+                            <label for="${conf.prefix}-check-${day}">${day}</label>
+                        </div>
+                        <div id="${conf.prefix}-sessions-${day}" class="session-group">
+                            <div class="session-row">
+                                <input type="checkbox" id="${conf.prefix}-morning-${day}">
+                                <span>Morning</span>
+                            </div>
+                            <div class="session-row">
+                                <input type="checkbox" id="${conf.prefix}-afternoon-${day}">
+                                <span>Afternoon</span>
+                            </div>
+                        </div>
                     </div>
                 `).join('');
             });
@@ -514,8 +559,8 @@
 
         function toggleDayInput(prefix, day) {
             const check = document.getElementById(`${prefix}-check-${day}`);
-            const input = document.getElementById(`${prefix}-count-${day}`);
-            input.disabled = !check.checked;
+            const sessionGroup = document.getElementById(`${prefix}-sessions-${day}`);
+            sessionGroup.style.display = check.checked ? 'flex' : 'none';
         }
 
         async function loadCourses() {
@@ -557,10 +602,15 @@
                         </div>
                         <div class="course-name">${course.courseName}</div>
                         <div class="schedule-box">
-                            <span class="schedule-label">Weekly Sessions</span>
+                            <span class="schedule-label">Weekly Schedule</span>
                             <div class="day-badges">
-                                ${Object.entries(course.weeklySchedule).map(([day, count]) => `
-                                    <div class="day-badge">${day.substring(0,3)} <span>${count}</span></div>
+                                ${course.weeklySchedule.map(item => `
+                                    <div class="day-badge" title="${item.slot || ''}">
+                                        ${item.dayOfWeek.substring(0,3)} 
+                                        <span style="font-size: 0.65rem; background: ${item.session === 'MORNING' ? '#fff7ed' : '#f0f9ff'}; color: ${item.session === 'MORNING' ? '#9a3412' : '#0369a1'}; padding: 1px 4px; border-radius: 4px;">
+                                            ${item.session === 'MORNING' ? 'AM' : 'PM'}
+                                        </span>
+                                    </div>
                                 `).join('')}
                             </div>
                         </div>
@@ -649,13 +699,23 @@
             document.getElementById('editCourseId').value = id;
             document.getElementById('editCourseCode').value = course.courseCode;
             document.getElementById('editCourseName').value = course.courseName;
+            document.getElementById('editCourseSlot').value = course.slot || '';
             document.getElementById('editCourseStartDate').value = course.courseStartDate ? course.courseStartDate : '';
             
             weekdays.forEach(day => {
-                const hasDay = course.weeklySchedule[day];
-                document.getElementById(`edit-check-${day}`).checked = !!hasDay;
-                document.getElementById(`edit-count-${day}`).value = hasDay || 1;
-                document.getElementById(`edit-count-${day}`).disabled = !hasDay;
+                const dayToUpper = day.toUpperCase();
+                const entries = course.weeklySchedule.filter(e => e.dayOfWeek === dayToUpper);
+                
+                const check = document.getElementById(`edit-check-${day}`);
+                const sessions = document.getElementById(`edit-sessions-${day}`);
+                const morningCheck = document.getElementById(`edit-morning-${day}`);
+                const afternoonCheck = document.getElementById(`edit-afternoon-${day}`);
+
+                check.checked = entries.length > 0;
+                sessions.style.display = check.checked ? 'flex' : 'none';
+                
+                morningCheck.checked = entries.some(e => e.session === 'MORNING');
+                afternoonCheck.checked = entries.some(e => e.session === 'AFTERNOON');
             });
 
             document.getElementById('editCourseModal').classList.add('show');
@@ -665,16 +725,28 @@
 
         async function handleFormSubmit(e) {
             e.preventDefault();
-            const schedule = {};
+            const schedule = [];
             weekdays.forEach(day => {
                 if (document.getElementById(`weekday-check-${day}`).checked) {
-                    schedule[day] = parseInt(document.getElementById(`weekday-count-${day}`).value);
+                    const dayUpper = day.toUpperCase();
+                    if (document.getElementById(`weekday-morning-${day}`).checked) {
+                        schedule.push({
+                            dayOfWeek: dayUpper,
+                            session: 'MORNING'
+                        });
+                    }
+                    if (document.getElementById(`weekday-afternoon-${day}`).checked) {
+                        schedule.push({
+                            dayOfWeek: dayUpper,
+                            session: 'AFTERNOON'
+                        });
+                    }
                 }
             });
 
-            if (Object.keys(schedule).length === 0) {
+            if (schedule.length === 0) {
                 const err = document.getElementById('formError');
-                err.textContent = 'Please select at least one day.';
+                err.textContent = 'Please select at least one day and session.';
                 err.style.display = 'block';
                 return;
             }
@@ -682,6 +754,7 @@
             const body = [{
                 courseCode: document.getElementById('courseCode').value,
                 courseName: document.getElementById('courseName').value,
+                slot: document.getElementById('courseSlot').value,
                 courseStartDate: document.getElementById('courseStartDate').value,
                 weeklySchedule: schedule
             }];
@@ -694,10 +767,22 @@
             const cid = document.getElementById('selectedCourseId').value;
             if (!cid) return;
 
-            const schedule = {};
+            const schedule = [];
             weekdays.forEach(day => {
                 if (document.getElementById(`existing-check-${day}`).checked) {
-                    schedule[day] = parseInt(document.getElementById(`existing-count-${day}`).value);
+                    const dayUpper = day.toUpperCase();
+                    if (document.getElementById(`existing-morning-${day}`).checked) {
+                        schedule.push({
+                            dayOfWeek: dayUpper,
+                            session: 'MORNING'
+                        });
+                    }
+                    if (document.getElementById(`existing-afternoon-${day}`).checked) {
+                        schedule.push({
+                            dayOfWeek: dayUpper,
+                            session: 'AFTERNOON'
+                        });
+                    }
                 }
             });
 
@@ -713,16 +798,29 @@
         async function handleEditFormSubmit(e) {
             e.preventDefault();
             const id = document.getElementById('editCourseId').value;
-            const schedule = {};
+            const schedule = [];
             weekdays.forEach(day => {
                 if (document.getElementById(`edit-check-${day}`).checked) {
-                    schedule[day] = parseInt(document.getElementById(`edit-count-${day}`).value);
+                    const dayUpper = day.toUpperCase();
+                    if (document.getElementById(`edit-morning-${day}`).checked) {
+                        schedule.push({
+                            dayOfWeek: dayUpper,
+                            session: 'MORNING'
+                        });
+                    }
+                    if (document.getElementById(`edit-afternoon-${day}`).checked) {
+                        schedule.push({
+                            dayOfWeek: dayUpper,
+                            session: 'AFTERNOON'
+                        });
+                    }
                 }
             });
 
             const body = {
                 courseCode: document.getElementById('editCourseCode').value,
                 courseName: document.getElementById('editCourseName').value,
+                slot: document.getElementById('editCourseSlot').value,
                 courseStartDate: document.getElementById('editCourseStartDate').value,
                 weeklySchedule: schedule
             };

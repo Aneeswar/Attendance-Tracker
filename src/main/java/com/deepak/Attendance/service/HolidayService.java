@@ -38,6 +38,8 @@ public class HolidayService {
         holiday.setDate(dto.getDate());
         holiday.setReason(dto.getReason());
         holiday.setType(Holiday.HolidayType.valueOf(dto.getType()));
+        holiday.setScope(dto.getScope() != null ? 
+                Holiday.HolidayScope.valueOf(dto.getScope()) : Holiday.HolidayScope.FULL);
         
         // Set the academic calendar ID
         Long calendarId = academicCalendarRepository.findAll().stream()
@@ -79,6 +81,8 @@ public class HolidayService {
                 holiday.setDate(currentDate);
                 holiday.setReason(request.getName());
                 holiday.setType(Holiday.HolidayType.valueOf(request.getType() != null ? request.getType() : "PUBLIC"));
+                holiday.setScope(request.getScope() != null ? 
+                        Holiday.HolidayScope.valueOf(request.getScope()) : Holiday.HolidayScope.FULL);
                 
                 // Set the academic calendar ID
                 Long calendarId = academicCalendarRepository.findAll().stream()
@@ -162,12 +166,29 @@ public class HolidayService {
         holidayRepository.deleteById(id);
         
         // Mark all attendance reports as stale when holiday is deleted
-        log.info("Holiday deleted (date: {}). Marking all attendance reports as stale.", holiday.getDate());
+        log.info("Holiday deleted (date: {}). Triggering immediate recalculation of reports.", holiday.getDate());
+        studentServiceProvider.ifAvailable(studentService -> {
+            try {
+                studentService.recalculateAttendanceReportsForAllStudents();
+            } catch (Exception e) {
+                log.error("Error recalculating reports after holiday deletion", e);
+            }
+        });
+    }
+
+    public void deleteHolidays(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return;
+        }
+        
+        log.info("Deleting {} holidays. Marking all attendance reports as stale.", ids.size());
+        holidayRepository.deleteAllById(ids);
+        
         studentServiceProvider.ifAvailable(studentService -> {
             try {
                 studentService.markAllAttendanceReportsAsStale();
             } catch (Exception e) {
-                log.error("Error marking reports as stale after holiday deletion", e);
+                log.error("Error marking reports as stale after bulk holiday deletion", e);
             }
         });
     }
@@ -178,6 +199,7 @@ public class HolidayService {
         dto.setDate(holiday.getDate());
         dto.setReason(holiday.getReason());
         dto.setType(holiday.getType().toString());
+        dto.setScope(holiday.getScope() != null ? holiday.getScope().toString() : "FULL");
         dto.setCreatedAt(holiday.getCreatedAt());
         return dto;
     }

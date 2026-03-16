@@ -28,6 +28,9 @@ public class Course {
     private String courseName;
 
     @Column
+    private String slot; // Added slot to the course level
+
+    @Column
     private LocalDate courseStartDate; // Start date of the course for date-based attendance
 
     @OneToMany(mappedBy = "course", cascade = CascadeType.ALL, orphanRemoval = true)

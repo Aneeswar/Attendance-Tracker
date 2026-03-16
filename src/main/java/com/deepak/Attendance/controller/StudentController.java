@@ -161,7 +161,7 @@ public class StudentController {
     public ResponseEntity<?> getCourses(@RequestHeader("Authorization") String authHeader) {
         try {
             Long userId = extractUserIdFromToken(authHeader);
-            List<TimetableEntryDTO> courses = studentService.getStudentCourses(userId);
+            List<TimetableEntryDTO> courses = studentService.getStudentTimetableDTOs(userId);
             return ResponseEntity.ok(courses);
         } catch (Exception e) {
             log.error("Error fetching courses", e);
@@ -181,12 +181,25 @@ public class StudentController {
     public ResponseEntity<?> getAttendanceReport(@RequestHeader("Authorization") String authHeader) {
         try {
             Long userId = extractUserIdFromToken(authHeader);
+            
+            // Check if any report is stale for this user
+            List<com.deepak.Attendance.entity.Course> courses = studentService.getStudentCourses(userId);
+            boolean isAnyStale = false;
+            for (com.deepak.Attendance.entity.Course c : courses) {
+                if (studentService.isReportStale(c.getId())) {
+                    isAnyStale = true;
+                    break;
+                }
+            }
+            
             List<AttendanceReportDTO> reports = studentService.getAttendanceReport(userId);
 
             Map<String, Object> response = new HashMap<>();
             response.put("reports", reports);
             response.put("count", reports.size());
+            response.put("isStale", isAnyStale);
             response.put("generatedAt", java.time.LocalDateTime.now());
+            response.put("totalCourses", courses.size());
 
             return ResponseEntity.ok(response);
 
@@ -444,9 +457,15 @@ public class StudentController {
                                                @RequestHeader("Authorization") String authHeader) {
         try {
             Long userId = extractUserIdFromToken(authHeader);
+            
+            if (request.get("courseId") == null) {
+                return ResponseEntity.badRequest().body(Map.of("error", "courseId is required"));
+            }
+            
             Long courseId = Long.parseLong(request.get("courseId").toString());
+            
             @SuppressWarnings("unchecked")
-            Map<String, Integer> weeklySchedule = (Map<String, Integer>) request.get("weeklySchedule");
+            List<Map<String, Object>> weeklySchedule = (List<Map<String, Object>>) request.get("weeklySchedule");
             String courseStartDate = (String) request.get("courseStartDate");
 
             studentService.addExistingCourse(userId, courseId, weeklySchedule, courseStartDate);

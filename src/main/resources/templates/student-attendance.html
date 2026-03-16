@@ -241,9 +241,14 @@
 
                             card.innerHTML = `
                                 <div class="course-info">
-                                    <h4>${course.courseCode}</h4>
-                                    <h2>${course.courseName}</h2>
-                                    <div id="badge-${course.courseId}" class="status-badge ${currentStatus === true ? 'status-present' : currentStatus === false ? 'status-absent' : ''}" style="display: ${currentStatus !== null ? 'inline-block' : 'none'}">
+                                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                        <div style="background: var(--primary); color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 800;">
+                                            ${coursesToday}
+                                        </div>
+                                        <h4>${course.courseCode}</h4>
+                                    </div>
+                                    <h2 style="margin-left: 2.25rem;">${course.courseName}</h2>
+                                    <div id="badge-${course.courseId}" class="status-badge ${currentStatus === true ? 'status-present' : currentStatus === false ? 'status-absent' : ''}" style="margin-left: 2.25rem; display: ${currentStatus !== null ? 'inline-block' : 'none'}">
                                         ${currentStatus === true ? 'PRESENT' : currentStatus === false ? 'ABSENT' : ''}
                                     </div>
                                 </div>

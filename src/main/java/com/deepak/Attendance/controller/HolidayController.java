@@ -69,4 +69,15 @@ public class HolidayController {
             return ResponseEntity.notFound().build();
         }
     }
+
+    @DeleteMapping("/bulk")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> deleteHolidays(@RequestBody List<Long> ids) {
+        try {
+            holidayService.deleteHolidays(ids);
+            return ResponseEntity.ok("Holidays deleted successfully");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
 }

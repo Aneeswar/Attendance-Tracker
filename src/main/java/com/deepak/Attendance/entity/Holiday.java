@@ -31,6 +31,10 @@ public class Holiday {
     private HolidayType type;
 
     @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    private HolidayScope scope = HolidayScope.FULL; // FULL, MORNING, AFTERNOON
+
+    @Column(nullable = false)
     private LocalDate createdAt;
 
     @PrePersist
@@ -40,5 +44,9 @@ public class Holiday {
 
     public enum HolidayType {
         PUBLIC, ACADEMIC, RESTRICTED, CALENDAR, EXTRA
+    }
+
+    public enum HolidayScope {
+        FULL, MORNING, AFTERNOON
     }
 }

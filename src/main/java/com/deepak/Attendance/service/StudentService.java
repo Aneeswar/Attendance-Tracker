@@ -4,6 +4,7 @@ import com.deepak.Attendance.dto.AcademicCalendarDTO;
 import com.deepak.Attendance.dto.AttendanceReportDTO;
 import com.deepak.Attendance.dto.TimetableConfirmRequest;
 import com.deepak.Attendance.dto.TimetableEntryDTO;
+import com.deepak.Attendance.dto.WeeklyScheduleItemDTO;
 import com.deepak.Attendance.entity.*;
 import com.deepak.Attendance.repository.*;
 import lombok.extern.slf4j.Slf4j;
@@ -46,6 +47,9 @@ public class StudentService {
     @Autowired
     private AttendanceReportRepository attendanceReportRepository;
 
+    @Autowired
+    private HolidayRepository holidayRepository;
+
     @Value("${app.upload.dir:uploads/timetables}")
     private String uploadDir;
 
@@ -63,11 +67,13 @@ public class StudentService {
             if (existing.isPresent()) {
                 course = existing.get();
                 course.setCourseName(dto.getCourseName());
+                course.setSlot(dto.getSlot()); // Set course level slot
             } else {
                 course = new Course();
                 course.setUserId(userId);
                 course.setCourseCode(dto.getCourseCode());
                 course.setCourseName(dto.getCourseName());
+                course.setSlot(dto.getSlot()); // Set course level slot
                 course.setTimetableEntries(new ArrayList<>());
             }
 
@@ -80,11 +86,12 @@ public class StudentService {
             }
 
             // Save timetable entries
-            for (Map.Entry<String, Integer> entry : dto.getWeeklySchedule().entrySet()) {
+            for (WeeklyScheduleItemDTO item : dto.getWeeklySchedule()) {
                 TimetableEntry timetableEntry = new TimetableEntry();
                 timetableEntry.setCourse(course);
-                timetableEntry.setDayOfWeek(entry.getKey());
-                timetableEntry.setClassesCount(entry.getValue());
+                timetableEntry.setDayOfWeek(item.getDayOfWeek());
+                timetableEntry.setSession(item.getSession());
+                timetableEntry.setClassesCount(item.getClassesCount());
                 timetableEntryRepository.save(timetableEntry);
             }
         }
@@ -105,6 +112,7 @@ public class StudentService {
             if (existing.isPresent()) {
                 course = existing.get();
                 course.setCourseName(req.getCourseName());
+                course.setSlot(req.getSlot()); // Set course level slot
                 if (req.getCourseStartDate() != null) {
                     course.setCourseStartDate(req.getCourseStartDate());
                 }
@@ -113,6 +121,7 @@ public class StudentService {
                 course.setUserId(userId);
                 course.setCourseCode(req.getCourseCode());
                 course.setCourseName(req.getCourseName());
+                course.setSlot(req.getSlot()); // Set course level slot
                 course.setCourseStartDate(req.getCourseStartDate());
                 course.setTimetableEntries(new ArrayList<>());
             }
@@ -126,11 +135,12 @@ public class StudentService {
             }
 
             // Save timetable entries
-            for (Map.Entry<String, Integer> entry : req.getWeeklySchedule().entrySet()) {
+            for (WeeklyScheduleItemDTO item : req.getWeeklySchedule()) {
                 TimetableEntry timetableEntry = new TimetableEntry();
                 timetableEntry.setCourse(course);
-                timetableEntry.setDayOfWeek(entry.getKey());
-                timetableEntry.setClassesCount(entry.getValue());
+                timetableEntry.setDayOfWeek(item.getDayOfWeek());
+                timetableEntry.setSession(item.getSession() != null ? item.getSession() : TimetableEntry.Session.MORNING);
+                timetableEntry.setClassesCount(item.getClassesCount() != null ? item.getClassesCount() : 1);
                 timetableEntryRepository.save(timetableEntry);
             }
         }
@@ -198,7 +208,9 @@ public class StudentService {
             dateBasedAttendanceRepository.deleteByCourseId(courseId);
 
             // Mark first 'attended' dates as present, remaining as absent
-            for (int i = 0; i < classDates.size() && i < total; i++) {
+            // Logic change: Use Math.min to prevent index out of bounds
+            int limit = Math.min(classDates.size(), total);
+            for (int i = 0; i < limit; i++) {
                 Map<String, Object> dateInfo = classDates.get(i);
                 LocalDate date = LocalDate.parse((String) dateInfo.get("date"));
                 
@@ -208,6 +220,12 @@ public class StudentService {
                 dba.setAttended(i < attended); // First 'attended' count = true, rest = false
                 
                 dateBasedAttendanceRepository.save(dba);
+            }
+            
+            // If total was greater than classes found, we should update the total to classDates.size()
+            // but for now we just log it.
+            if (total > classDates.size()) {
+                log.warn("Total classes conducted ({}) is greater than calendar classes found ({})", total, classDates.size());
             }
 
             log.info("Generated date-based attendance for course {} from total/attended", courseId);
@@ -509,14 +527,22 @@ public class StudentService {
 
     /**
      * Refresh attendance reports for a specific student's courses
+     * Returns true if any reports were refreshed due to being stale or missing
      */
     @Transactional
-    public void refreshAttendanceReports(Long userId) {
-        log.info("Refreshing attendance reports for user: {}", userId);
+    public boolean refreshAttendanceReports(Long userId) {
+        log.info("Checking/Refreshing attendance reports for user: {}", userId);
         List<Course> courses = courseRepository.findByUserId(userId);
+        boolean refreshed = false;
+        
         for (Course course : courses) {
-            calculateAndCacheAttendanceReport(course);
+            Optional<AttendanceReport> reportOpt = attendanceReportRepository.findByCourseId(course.getId());
+            if (reportOpt.isEmpty() || reportOpt.get().getIsStale()) {
+                calculateAndCacheAttendanceReport(course);
+                refreshed = true;
+            }
         }
+        return refreshed;
     }
 
     /**
@@ -527,6 +553,16 @@ public class StudentService {
     public void markAllAttendanceReportsAsStale() {
         log.info("Marking all attendance reports as stale due to configuration change");
         attendanceReportRepository.markAllReportsAsStale();
+    }
+
+    public boolean isReportStale(Long courseId) {
+        return attendanceReportRepository.findByCourseId(courseId)
+                .map(AttendanceReport::getIsStale)
+                .orElse(true);
+    }
+
+    public List<Course> getStudentCourses(Long userId) {
+        return courseRepository.findByUserId(userId);
     }
 
     /**
@@ -615,17 +651,23 @@ public class StudentService {
         List<TimetableEntryDTO> timetables = new ArrayList<>();
 
         for (Course course : courses) {
-            Map<String, Integer> weeklySchedule = new LinkedHashMap<>();
+            List<WeeklyScheduleItemDTO> weeklySchedule = new ArrayList<>();
             List<TimetableEntry> entries = timetableEntryRepository.findByCourseId(course.getId());
 
             for (TimetableEntry entry : entries) {
-                weeklySchedule.put(entry.getDayOfWeek(), entry.getClassesCount());
+                weeklySchedule.add(new WeeklyScheduleItemDTO(
+                        entry.getDayOfWeek(),
+                        entry.getSession(),
+                        entry.getClassesCount()
+                ));
             }
 
+            // Even if weeklySchedule is empty, we must show the course
             TimetableEntryDTO dto = new TimetableEntryDTO(
                     course.getId(),
                     course.getCourseCode(),
                     course.getCourseName(),
+                    course.getSlot(),
                     weeklySchedule,
                     course.getCourseStartDate()
             );
@@ -638,8 +680,12 @@ public class StudentService {
     /**
      * Get all courses for a student (alias for getStudentTimetable)
      */
-    public List<TimetableEntryDTO> getStudentCourses(Long userId) {
+    public List<TimetableEntryDTO> getStudentTimetableDTOs(Long userId) {
         return getStudentTimetable(userId);
+    }
+
+    public List<Course> getStudentCoursesEntity(Long userId) {
+        return courseRepository.findByUserId(userId);
     }
 
     /**
@@ -789,13 +835,14 @@ public class StudentService {
         }
 
         // Get all holidays and exam dates to exclude
-        Set<LocalDate> excludedDates = new HashSet<>();
+        Map<LocalDate, Holiday.HolidayScope> holidayMap = new HashMap<>();
         
         // Add holidays
-        List<com.deepak.Attendance.dto.HolidayDTO> holidayDTOs = holidayService.getAllHolidays();
-        holidayDTOs.forEach(h -> excludedDates.add(h.getDate()));
+        List<Holiday> holidays = holidayRepository.findAll();
+        holidays.forEach(h -> holidayMap.put(h.getDate(), h.getScope() != null ? h.getScope() : Holiday.HolidayScope.FULL));
         
-        // Add exam periods (CAT-1, CAT-2, FAT)
+        // Add exam periods (CAT-1, CAT-2, FAT) as FULL day exclusions
+        Set<LocalDate> examDates = new HashSet<>();
         Optional<AcademicCalendar> currentCalendar = academicCalendarRepository
                 .findBySemesterStartDateLessThanEqualAndExamStartDateGreaterThanEqual(today, today);
         
@@ -805,35 +852,24 @@ public class StudentService {
             if (calendar.getCat1StartDate() != null && calendar.getCat1EndDate() != null) {
                 LocalDate examDate = calendar.getCat1StartDate();
                 while (!examDate.isAfter(calendar.getCat1EndDate())) {
-                    excludedDates.add(examDate);
+                    examDates.add(examDate);
                     examDate = examDate.plusDays(1);
                 }
             }
             if (calendar.getCat2StartDate() != null && calendar.getCat2EndDate() != null) {
                 LocalDate examDate = calendar.getCat2StartDate();
                 while (!examDate.isAfter(calendar.getCat2EndDate())) {
-                    excludedDates.add(examDate);
+                    examDates.add(examDate);
                     examDate = examDate.plusDays(1);
                 }
             }
             if (calendar.getFatStartDate() != null && calendar.getFatEndDate() != null) {
                 LocalDate examDate = calendar.getFatStartDate();
                 while (!examDate.isAfter(calendar.getFatEndDate())) {
-                    excludedDates.add(examDate);
+                    examDates.add(examDate);
                     examDate = examDate.plusDays(1);
                 }
             }
-        }
-
-        // Build a set of days of the week when classes occur (0=Sunday, 1=Monday, etc.)
-        Set<Integer> classDays = new HashSet<>();
-        Map<String, Integer> classCountMap = new HashMap<>();
-        
-        for (TimetableEntry entry : timetableEntries) {
-            String dayName = entry.getDayOfWeek();
-            int dayOfWeek = getDayOfWeekNumber(dayName);
-            classDays.add(dayOfWeek);
-            classCountMap.put(dayName, entry.getClassesCount());
         }
 
         // Generate list of class dates
@@ -841,27 +877,39 @@ public class StudentService {
         LocalDate currentDate = startDate;
 
         while (!currentDate.isAfter(today)) {
-            int dayOfWeek = currentDate.getDayOfWeek().getValue(); // 1=Monday, 7=Sunday
-            
-            // Check if this day has classes scheduled
-            if (classDays.contains(dayOfWeek)) {
-                // Check if it's not a holiday or exam date
-                if (!excludedDates.contains(currentDate)) {
-                    Map<String, Object> dateInfo = new HashMap<>();
-                    dateInfo.put("date", currentDate.toString());
-                    dateInfo.put("dayOfWeek", getDayNameFromNumber(dayOfWeek));
-                    
-                    // Check if attendance already saved for this date
-                    Optional<DateBasedAttendance> savedAttendance = dateBasedAttendanceRepository
-                            .findByCourseIdAndAttendanceDate(courseId, currentDate);
-                    
-                    boolean attended = false;
-                    if (savedAttendance.isPresent()) {
-                        attended = savedAttendance.get().getAttended();
+            Holiday.HolidayScope holidayScope = holidayMap.get(currentDate);
+            boolean isExamDay = examDates.contains(currentDate);
+
+            if (!isExamDay && (holidayScope == null || holidayScope != Holiday.HolidayScope.FULL)) {
+                for (TimetableEntry entry : timetableEntries) {
+                    if (entry.getDayOfWeek().equalsIgnoreCase(currentDate.getDayOfWeek().name())) {
+                        // Check partial holidays
+                        boolean isHoliday = false;
+                        if (holidayScope == Holiday.HolidayScope.MORNING && entry.getSession() == TimetableEntry.Session.MORNING) {
+                            isHoliday = true;
+                        } else if (holidayScope == Holiday.HolidayScope.AFTERNOON && entry.getSession() == TimetableEntry.Session.AFTERNOON) {
+                            isHoliday = true;
+                        }
+
+                        if (!isHoliday) {
+                            Map<String, Object> dateInfo = new HashMap<>();
+                            dateInfo.put("date", currentDate.toString());
+                            dateInfo.put("dayOfWeek", currentDate.getDayOfWeek().name());
+                            dateInfo.put("session", entry.getSession().name());
+                            dateInfo.put("slot", c.getSlot()); // Use the course variable 'c' initialized above
+                            
+                            // Check if attendance already saved for this date
+                            Optional<DateBasedAttendance> savedAttendance = dateBasedAttendanceRepository
+                                    .findByCourseIdAndAttendanceDate(courseId, currentDate);
+                            
+                            boolean attended = true;
+                            if (savedAttendance.isPresent()) {
+                                attended = savedAttendance.get().getAttended();
+                            }
+                            dateInfo.put("attended", attended);
+                            classDates.add(dateInfo);
+                        }
                     }
-                    dateInfo.put("attended", attended);
-                    
-                    classDates.add(dateInfo);
                 }
             }
             
@@ -1007,7 +1055,7 @@ public class StudentService {
     /**
      * Add an existing course to student's profile
      */
-    public void addExistingCourse(Long userId, Long courseId, Map<String, Integer> weeklySchedule, String courseStartDate) {
+    public void addExistingCourse(Long userId, Long courseId, List<Map<String, Object>> weeklySchedule, String courseStartDate) {
         Optional<Course> existingCourse = courseRepository.findById(courseId);
         if (existingCourse.isEmpty()) {
             throw new IllegalArgumentException("Course not found");
@@ -1027,6 +1075,7 @@ public class StudentService {
         newCourse.setUserId(userId);
         newCourse.setCourseCode(originalCourse.getCourseCode());
         newCourse.setCourseName(originalCourse.getCourseName());
+        newCourse.setSlot(originalCourse.getSlot()); // Copy slot
         
         if (courseStartDate != null && !courseStartDate.isEmpty()) {
             newCourse.setCourseStartDate(LocalDate.parse(courseStartDate));
@@ -1035,12 +1084,36 @@ public class StudentService {
         newCourse = courseRepository.save(newCourse);
 
         // Save timetable entries
-        for (Map.Entry<String, Integer> entry : weeklySchedule.entrySet()) {
-            TimetableEntry timetableEntry = new TimetableEntry();
-            timetableEntry.setCourse(newCourse);
-            timetableEntry.setDayOfWeek(entry.getKey());
-            timetableEntry.setClassesCount(entry.getValue());
-            timetableEntryRepository.save(timetableEntry);
+        if (weeklySchedule == null || weeklySchedule.isEmpty()) {
+            // If no schedule provided, copy from original course
+            List<TimetableEntry> originalEntries = timetableEntryRepository.findByCourseId(courseId);
+            for (TimetableEntry entry : originalEntries) {
+                TimetableEntry newEntry = new TimetableEntry();
+                newEntry.setCourse(newCourse);
+                newEntry.setDayOfWeek(entry.getDayOfWeek());
+                newEntry.setSession(entry.getSession());
+                newEntry.setClassesCount(entry.getClassesCount());
+                timetableEntryRepository.save(newEntry);
+            }
+        } else {
+            // Save custom schedule
+            for (Map<String, Object> item : weeklySchedule) {
+                TimetableEntry timetableEntry = new TimetableEntry();
+                timetableEntry.setCourse(newCourse);
+                timetableEntry.setDayOfWeek(item.get("dayOfWeek").toString());
+                
+                Object sessionObj = item.get("session");
+                if (sessionObj != null) {
+                    timetableEntry.setSession(TimetableEntry.Session.valueOf(sessionObj.toString()));
+                } else {
+                    timetableEntry.setSession(TimetableEntry.Session.MORNING);
+                }
+                
+                Object countObj = item.get("classesCount");
+                timetableEntry.setClassesCount(countObj != null ? Integer.parseInt(countObj.toString()) : 1);
+                
+                timetableEntryRepository.save(timetableEntry);
+            }
         }
 
         log.info("Added existing course {} for student {}", courseId, userId);

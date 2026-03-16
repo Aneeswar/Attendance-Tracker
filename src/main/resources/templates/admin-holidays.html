@@ -230,6 +230,14 @@
                                 <option value="RESTRICTED">Restricted Holiday</option>
                             </select>
                         </div>
+                        <div class="form-group">
+                            <label>Scope</label>
+                            <select id="holidayScope">
+                                <option value="FULL">Full Day</option>
+                                <option value="MORNING">Morning Only</option>
+                                <option value="AFTERNOON">Afternoon Only</option>
+                            </select>
+                        </div>
                         <button class="btn-primary" onclick="addHoliday()">
                             <i class="fas fa-plus"></i> Add Holiday
                         </button>
@@ -257,6 +265,14 @@
                                 <option value="ACADEMIC">Academic Holiday</option>
                                 <option value="PUBLIC">Public Holiday</option>
                                 <option value="RESTRICTED">Restricted Holiday</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Scope</label>
+                            <select id="rangeScope">
+                                <option value="FULL">Full Day</option>
+                                <option value="MORNING">Morning Only</option>
+                                <option value="AFTERNOON">Afternoon Only</option>
                             </select>
                         </div>
                         <button class="btn-primary" onclick="addHolidayRange()">
@@ -424,12 +440,13 @@
             const name = document.getElementById('holidayName').value;
             const date = document.getElementById('holidayDate').value;
             const type = document.getElementById('holidayType').value;
+            const scope = document.getElementById('holidayScope').value;
             if(!name || !date) return showToast('Fill all fields');
 
             const res = await fetch('/api/admin/holidays', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ name, date, type })
+                body: JSON.stringify({ name, date, type, scope })
             });
             if(res.ok) {
                 showToast('Holiday added!');
@@ -443,12 +460,13 @@
             const start = document.getElementById('rangeStartDate').value;
             const end = document.getElementById('rangeEndDate').value;
             const type = document.getElementById('rangeType').value;
+            const scope = document.getElementById('rangeScope').value;
             if(!name || !start || !end) return showToast('Fill all fields');
 
             const res = await fetch('/api/admin/holidays/range', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ name, startDate: start, endDate: end, type })
+                body: JSON.stringify({ name, startDate: start, endDate: end, type, scope })
             });
             if(res.ok) {
                 showToast('Range added!');
@@ -461,14 +479,26 @@
 
         async function deleteHolidayGroup(ids) {
             if(!confirm('Delete this holiday entry?')) return;
-            for(let id of ids) {
-                await fetch(`/api/admin/holidays/${id}`, {
+            
+            try {
+                const res = await fetch(`/api/admin/holidays/bulk`, {
                     method: 'DELETE',
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}` 
+                    },
+                    body: JSON.stringify(ids)
                 });
+                
+                if (res.ok) {
+                    showToast('Deleted');
+                    loadHolidays();
+                } else {
+                    showToast('Failed to delete');
+                }
+            } catch (e) {
+                showToast('Error deleting holidays');
             }
-            showToast('Deleted');
-            loadHolidays();
         }
 
         function showToast(msg) {

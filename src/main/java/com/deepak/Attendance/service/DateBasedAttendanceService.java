@@ -86,7 +86,8 @@ public class DateBasedAttendanceService {
                     dto.setDayOfWeek(date.getDayOfWeek().toString());
                     
                     DateBasedAttendance record = attendanceMap.get(date);
-                    dto.setAttended(record != null ? record.getAttended() : null);
+                    // Default to true (Present) if no record exists
+                    dto.setAttended(record != null ? record.getAttended() : true);
                     
                     return dto;
                 })

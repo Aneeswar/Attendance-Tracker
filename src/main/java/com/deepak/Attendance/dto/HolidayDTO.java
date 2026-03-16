@@ -14,6 +14,7 @@ public class HolidayDTO {
     private LocalDate date;
     private String reason;
     private String type;
+    private String scope; // FULL, MORNING, AFTERNOON
     private LocalDate createdAt;
 
     // Alias for frontend compatibility

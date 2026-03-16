@@ -12,4 +12,5 @@ public class DateRangeHolidayRequest {
     private String endDate;    // Format: yyyy-MM-dd
     private String name;       // Holiday name (e.g., "Winter Break")
     private String type;       // Holiday type (PUBLIC, ACADEMIC, RESTRICTED)
+    private String scope;      // FULL, MORNING, AFTERNOON
 }

@@ -21,6 +21,74 @@
             --nav-bg: #0f172a;
         }
 
+        /* Stale Banner */
+        .stale-banner {
+            background: #fffbeb;
+            border: 1px solid #fef3c7;
+            border-radius: 1rem;
+            padding: 1.25rem;
+            margin-bottom: 2rem;
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            animation: slideDown 0.4s ease-out;
+        }
+
+        @keyframes slideDown {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .stale-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .stale-icon {
+            width: 2.5rem;
+            height: 2.5rem;
+            background: #fef3c7;
+            color: #d97706;
+            border-radius: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        .stale-text h3 {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #92400e;
+        }
+
+        .stale-text p {
+            font-size: 0.875rem;
+            color: #b45309;
+            margin-top: 0.125rem;
+        }
+
+        .refresh-btn {
+            background: #d97706;
+            color: white;
+            padding: 0.625rem 1.25rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            font-size: 0.875rem;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+        }
+
+        .refresh-btn:hover {
+            background: #b45309;
+            transform: translateY(-1px);
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -150,6 +218,41 @@
             align-items: center;
             justify-content: space-between;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        /* Toast Notification */
+        .toast-notification {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: #1e293b;
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .toast-notification.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .toast-icon {
+            width: 1.5rem;
+            height: 1.5rem;
+            background: #3b82f6;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
         }
 
         .stale-content {
@@ -368,22 +471,44 @@
     </div>
 
     <div class="container">
-        <!-- Stale Banner -->
+        <!-- Stale Alert -->
         <div class="stale-banner" id="staleBanner">
-            <div class="stale-content">
-                <i class="fas fa-sync-alt"></i>
-                <p>Updates available! Your attendance report needs to be refreshed for the latest calculations.</p>
+            <div class="stale-info">
+                <div class="stale-icon">
+                    <i class="fas fa-sync-alt fa-spin"></i>
+                </div>
+                <div class="stale-text">
+                    <h3>Updates Available</h3>
+                    <p>New holidays or academic changes were made. Refresh your report for accuracy.</p>
+                </div>
             </div>
-            <a href="/student-attendance-report" class="refresh-link">Refresh Now</a>
+            <button onclick="refreshReport()" class="refresh-btn" id="refreshBtn">
+                <i class="fas fa-redo"></i> Refresh Now
+            </button>
         </div>
 
         <div class="page-header">
-            <h1>Dashboard</h1>
+            <h1 id="greeting">Dashboard</h1>
             <p>Welcome back, <span id="welcomeName">Student</span>! Here's your academic overview.</p>
+        </div>
+
+        <!-- Toast Notification -->
+        <div id="toast" class="toast-notification">
+            <div class="toast-icon">
+                <i class="fas fa-info"></i>
+            </div>
+            <div id="toastMessage">Updates applied!</div>
         </div>
 
         <div class="dashboard-grid">
             <div class="main-col">
+                <div class="card" id="statsCard" style="display: none;">
+                    <h2 class="card-title"><i class="fas fa-chart-line"></i> Attendance Overview</h2>
+                    <div id="statsGrid" class="report-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                        <!-- Mini cards will be injected here -->
+                    </div>
+                </div>
+
                 <div class="card">
                     <h2 class="card-title"><i class="fas fa-rocket"></i> Fast Actions</h2>
                     <div class="action-grid">
@@ -481,20 +606,115 @@
 
         async function checkStaleStatus() {
             try {
-                // Peek at student summary/report to check stale flag
                 const response = await fetch('/api/student/attendance-report', {
                     headers: { 'Authorization': `Bearer ${localStorage.getItem('jwtToken')}` }
                 });
                 if (response.ok) {
                     const data = await response.json();
-                    // If any report is stale, show the banner
-                    if (data && data.length > 0 && data[0].stale) {
+                    
+                    if (data.isStale) {
                         document.getElementById('staleBanner').style.display = 'flex';
+                    }
+
+                    if (data.totalCourses === 0) {
+                        renderEmptyOverview();
+                    } else if (data.reports && data.reports.length > 0) {
+                        renderStats(data.reports);
+                    } else {
+                        renderFirstTimeUser();
                     }
                 }
             } catch (e) {
                 console.error('Failed to check stale status');
             }
+        }
+
+        function renderEmptyOverview() {
+            const card = document.getElementById('statsCard');
+            card.style.display = 'block';
+            card.innerHTML = `
+                <h2 class="card-title"><i class="fas fa-chart-line"></i> Attendance Overview</h2>
+                <div style="text-align: center; padding: 2rem; background: #f8fafc; border: 2px dashed #e2e8f0; border-radius: 1rem;">
+                    <i class="fas fa-book-open" style="font-size: 2rem; color: var(--primary); margin-bottom: 1rem; opacity: 0.5;"></i>
+                    <h3 style="font-size: 1rem; margin-bottom: 0.5rem;">No Courses Yet</h3>
+                    <p style="font-size: 0.8125rem; color: var(--text-muted); margin-bottom: 1rem;">Add courses to your schedule to see attendance insights here.</p>
+                    <a href="/student-manage-courses" class="refresh-btn" style="display: inline-flex; text-decoration: none; justify-content: center; background: var(--primary);">Add Course</a>
+                </div>
+            `;
+        }
+
+        function renderFirstTimeUser() {
+            const card = document.getElementById('statsCard');
+            card.style.display = 'block';
+            card.innerHTML = `
+                <h2 class="card-title"><i class="fas fa-chart-line"></i> Attendance Overview</h2>
+                <div style="text-align: center; padding: 2rem; background: #fffbeb; border: 2px dashed #fef3c7; border-radius: 1rem;">
+                    <i class="fas fa-calculator" style="font-size: 2rem; color: var(--warning); margin-bottom: 1rem; opacity: 0.5;"></i>
+                    <h3 style="font-size: 1rem; margin-bottom: 0.5rem;">Calculation Required</h3>
+                    <p style="font-size: 0.8125rem; color: var(--text-muted); margin-bottom: 1rem;">Your attendance results haven't been generated yet.</p>
+                    <button onclick="refreshReport()" class="refresh-btn" style="display: inline-flex; justify-content: center;">Generate Reports</button>
+                </div>
+            `;
+        }
+
+        function renderStats(reports) {
+            const card = document.getElementById('statsCard');
+            const grid = document.getElementById('statsGrid');
+            grid.innerHTML = '';
+            card.style.display = 'block';
+
+            reports.slice(0, 4).forEach(report => {
+                const pct = Math.ceil(report.currentPercentage);
+                const isSafe = pct >= 75;
+                const mini = document.createElement('div');
+                mini.style = 'padding: 1rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.75rem; display: flex; flex-direction: column; gap: 0.25rem;';
+                mini.innerHTML = `
+                    <span style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">${report.courseCode}</span>
+                    <span style="font-size: 1.25rem; font-weight: 900; color: ${isSafe ? 'var(--success)' : 'var(--danger)'}">${pct}%</span>
+                    <div style="height: 4px; background: #e2e8f0; border-radius: 2px; overflow: hidden; margin-top: 2px;">
+                        <div style="width: ${Math.min(pct, 100)}%; height: 100%; background: ${isSafe ? 'var(--success)' : 'var(--danger)'};"></div>
+                    </div>
+                `;
+                grid.appendChild(mini);
+            });
+        }
+
+        async function refreshReport() {
+            const btn = document.getElementById('refreshBtn');
+            const originalContent = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-sync-alt fa-spin"></i> Refreshing...';
+
+            try {
+                const response = await fetch('/api/student/attendance-report/refresh', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('jwtToken')}` }
+                });
+                
+                if (response.ok) {
+                    showToast("Reports updated successfully!");
+                    document.getElementById('staleBanner').style.display = 'none';
+                    // Optional: reload basic stats if you had them on dashboard
+                } else {
+                    showToast("Failed to refresh reports. Try again.");
+                }
+            } catch (e) {
+                console.error('Refresh error:', e);
+                showToast("Connection error. Try again.");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalContent;
+            }
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMessage').textContent = message;
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
         }
 
         function logout() {

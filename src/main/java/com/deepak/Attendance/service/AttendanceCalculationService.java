@@ -74,36 +74,17 @@ public class AttendanceCalculationService {
             }
         }
         if (calendar.getFatStartDate() != null && calendar.getFatEndDate() != null) {
-            // FAT exam period starts AFTER the semester end date (last working day)
-            // If fatStartDate is equals to examStart, we start excluding from day after
-            LocalDate d = calendar.getFatStartDate().isAfter(examStart) ? 
-                          calendar.getFatStartDate() : calendar.getFatStartDate().plusDays(1);
-            
+            LocalDate d = calendar.getFatStartDate();
             while (!d.isAfter(calendar.getFatEndDate())) {
                 examDates.add(d);
                 d = d.plusDays(1);
             }
         }
 
-        // Exclude study holidays (one working day before CAT-1 and CAT-2)
-        if (calendar.getCat1StartDate() != null) {
-            LocalDate studyHoliday = getLastWorkingDayBeforeDate(calendar.getCat1StartDate(), holidays);
-            if (studyHoliday != null) {
-                examDates.add(studyHoliday);
-            }
-        }
-        if (calendar.getCat2StartDate() != null) {
-            LocalDate studyHoliday = getLastWorkingDayBeforeDate(calendar.getCat2StartDate(), holidays);
-            if (studyHoliday != null) {
-                examDates.add(studyHoliday);
-            }
-        }
-
         // Loop until semester end date (exam start date)
-        // The user requested that the semester end date be considered the last working day
+        // Only Monday (1) to Saturday (6)
         while (!current.isAfter(examStart)) {
-            // Only Tuesday (2) to Saturday (6)
-            if (current.getDayOfWeek().getValue() >= 2 && current.getDayOfWeek().getValue() <= 6) {
+            if (current.getDayOfWeek().getValue() >= 1 && current.getDayOfWeek().getValue() <= 6) {
                 // Not a holiday and not an exam date
                 if (!holidays.contains(current) && !examDates.contains(current)) {
                     validDays.add(current);
@@ -143,10 +124,11 @@ public class AttendanceCalculationService {
      */
     private LocalDate getLastWorkingDayBeforeDate(LocalDate date, Set<LocalDate> holidays) {
         LocalDate current = date.minusDays(1);
-        while (current.isAfter(LocalDate.now().minusDays(1))) {
+        while (current.isAfter(date.minusDays(15))) { // Sufficient lookback
             int dayOfWeek = current.getDayOfWeek().getValue();
-            // Tuesday (2) to Saturday (6)
-            if (dayOfWeek >= 2 && dayOfWeek <= 6 && !holidays.contains(current)) {
+            // Monday (1) to Saturday (6)
+            if (dayOfWeek >= 1 && dayOfWeek <= 6 && !holidays.contains(current)) {
+                log.debug("Last working day before {} is {}", date, current);
                 return current;
             }
             current = current.minusDays(1);
@@ -167,26 +149,28 @@ public class AttendanceCalculationService {
         log.info("Calculating future classes for course {} until {} (exam: {})", course.getId(), untilDate, examType);
 
         // Get academic calendar
-        Optional<AcademicCalendar> currentCalendar = academicCalendarRepository
+        Optional<AcademicCalendar> currentCalendarForCalc = academicCalendarRepository
                 .findFirstByOrderByCreatedAtDesc();
 
         Set<LocalDate> excludedDates = new HashSet<>();
-        Set<LocalDate> holidays = new HashSet<>();
+        List<Holiday> calendarHolidays = new ArrayList<>();
         
-        if (currentCalendar.isPresent()) {
-            AcademicCalendar calendar = currentCalendar.get();
+        if (currentCalendarForCalc.isPresent()) {
+            AcademicCalendar calendar = currentCalendarForCalc.get();
             
             // Add holidays
-            holidays.addAll(
-                    holidayRepository.findByAcademicCalendarId(calendar.getId()).stream()
-                            .map(Holiday::getDate)
-                            .toList()
-            );
-            excludedDates.addAll(holidays);
+            calendarHolidays = holidayRepository.findByAcademicCalendarId(calendar.getId());
+            excludedDates.addAll(calendarHolidays.stream()
+                    .filter(h -> h.getScope() == Holiday.HolidayScope.FULL)
+                    .map(Holiday::getDate)
+                    .toList());
             
-            // For FAT, exclude all exam periods
+            Set<LocalDate> fullHolidaysSet = new HashSet<>(excludedDates);
+
+            // For FAT, exclude exam periods but NOT their study holidays (study holidays are working days)
             if ("FAT".equals(examType)) {
                 if (calendar.getCat1StartDate() != null && calendar.getCat1EndDate() != null) {
+                    // Exclude CAT-1 Exam
                     LocalDate examDate = calendar.getCat1StartDate();
                     while (!examDate.isAfter(calendar.getCat1EndDate())) {
                         excludedDates.add(examDate);
@@ -194,6 +178,7 @@ public class AttendanceCalculationService {
                     }
                 }
                 if (calendar.getCat2StartDate() != null && calendar.getCat2EndDate() != null) {
+                    // Exclude CAT-2 Exam
                     LocalDate examDate = calendar.getCat2StartDate();
                     while (!examDate.isAfter(calendar.getCat2EndDate())) {
                         excludedDates.add(examDate);
@@ -231,13 +216,11 @@ public class AttendanceCalculationService {
                     }
                 }
 
-                if (calendar.getCat1StartDate() != null && "CAT-1".equals(examType)) {
-                    LocalDate studyHoliday = getLastWorkingDayBeforeDate(calendar.getCat1StartDate(), holidays);
-                    if (studyHoliday != null) excludedDates.add(studyHoliday);
-                }
+                // If calculating for CAT-2, only the current CAT-2 study holiday is excluded
+                // Previous study holidays (like CAT-1) are treated as working days
                 if (calendar.getCat2StartDate() != null && "CAT-2".equals(examType)) {
-                    LocalDate studyHoliday = getLastWorkingDayBeforeDate(calendar.getCat2StartDate(), holidays);
-                    if (studyHoliday != null) excludedDates.add(studyHoliday);
+                    LocalDate studyHoliday2 = getLastWorkingDayBeforeDate(calendar.getCat2StartDate(), fullHolidaysSet);
+                    if (studyHoliday2 != null) excludedDates.add(studyHoliday2);
                 }
             }
         }
@@ -252,31 +235,60 @@ public class AttendanceCalculationService {
         );
 
         // Determine last class day
-        LocalDate lastClassDay;
+        LocalDate lastClassDay = null;
+        final Set<LocalDate> finalFullHolidays = calendarHolidays.stream()
+                .filter(h -> h.getScope() == Holiday.HolidayScope.FULL)
+                .map(Holiday::getDate)
+                .collect(java.util.stream.Collectors.toSet());
+
         if ("FAT".equals(examType)) {
             lastClassDay = untilDate;
         } else {
-            LocalDate lastWorkingDay = getLastWorkingDayBeforeDate(untilDate, holidays);
-            if (lastWorkingDay != null) {
-                lastClassDay = getLastWorkingDayBeforeDate(lastWorkingDay, holidays);
-            } else {
-                lastClassDay = untilDate;
+            // Last working day (LWD) is the day before the exam
+            LocalDate lwd = getLastWorkingDayBeforeDate(untilDate, finalFullHolidays);
+            if (lwd == null) {
+                lwd = untilDate.minusDays(1);
+            }
+            
+            // Study holiday is the working day BEFORE the last working day
+            // Attendance is calculated UPTO the study holiday (which is a working day)
+            // Example: Exam=Mon (untilDate), LWD=Fri, Study Holiday=Thu, Cutoff=Thu.
+            lastClassDay = getLastWorkingDayBeforeDate(lwd, finalFullHolidays);
+            
+            // Fallback if we cannot calculate back properly
+            if (lastClassDay == null) {
+                lastClassDay = lwd.minusDays(1);
             }
         }
 
-        // Start from tomorrow
-        LocalDate current = today.plusDays(1);
+        // Start from today if not yet marked, otherwise start from tomorrow
+        LocalDate current = markedDates.contains(today) ? today.plusDays(1) : today;
         while (!current.isAfter(lastClassDay)) {
-            if (current.getDayOfWeek().getValue() >= 2 && current.getDayOfWeek().getValue() <= 6
+            if (current.getDayOfWeek().getValue() >= 1 && current.getDayOfWeek().getValue() <= 6
                     && !markedDates.contains(current) && !excludedDates.contains(current)) {
                 
                 String dayName = getDayNameFromJavaTime(current.getDayOfWeek().getValue());
                 List<TimetableEntry> entries = timetableEntryRepository
                         .findByCourseIdAndDayOfWeek(course.getId(), dayName);
 
-                if (!entries.isEmpty()) {
-                    // Count unique dates for the count to match the list in UI
-                    totalFutureClasses++;
+                // Filter out entries that fall on a partial holiday
+                LocalDate finalCurrent = current;
+                List<Holiday> dayHolidays = calendarHolidays.stream()
+                        .filter(h -> h.getDate().equals(finalCurrent))
+                        .toList();
+
+                long validEntriesCount = entries.stream()
+                        .filter(entry -> {
+                            for (Holiday h : dayHolidays) {
+                                if (h.getScope() == Holiday.HolidayScope.MORNING && entry.getSession() == TimetableEntry.Session.MORNING) return false;
+                                if (h.getScope() == Holiday.HolidayScope.AFTERNOON && entry.getSession() == TimetableEntry.Session.AFTERNOON) return false;
+                            }
+                            return true;
+                        })
+                        .count();
+
+                if (validEntriesCount > 0) {
+                    totalFutureClasses += (int) validEntriesCount;
                 }
             }
             current = current.plusDays(1);
@@ -291,13 +303,13 @@ public class AttendanceCalculationService {
      */
     private String getDayNameFromJavaTime(int dayOfWeek) {
         return switch (dayOfWeek) {
-            case 1 -> "Monday";
-            case 2 -> "Tuesday";
-            case 3 -> "Wednesday";
-            case 4 -> "Thursday";
-            case 5 -> "Friday";
-            case 6 -> "Saturday";
-            case 7 -> "Sunday";
+            case 1 -> "MONDAY";
+            case 2 -> "TUESDAY";
+            case 3 -> "WEDNESDAY";
+            case 4 -> "THURSDAY";
+            case 5 -> "FRIDAY";
+            case 6 -> "SATURDAY";
+            case 7 -> "SUNDAY";
             default -> "";
         };
     }
@@ -426,26 +438,28 @@ public class AttendanceCalculationService {
         log.info("Generating future class dates for course {} until {} (exam: {})", course.getId(), untilDate, examType);
 
         // Get academic calendar
-        Optional<AcademicCalendar> currentCalendar = academicCalendarRepository
+        Optional<AcademicCalendar> currentCalendarForDates = academicCalendarRepository
                 .findFirstByOrderByCreatedAtDesc();
 
         Set<LocalDate> excludedDates = new HashSet<>();
-        Set<LocalDate> holidays = new HashSet<>();
+        List<Holiday> calendarHolidays = new ArrayList<>();
         
-        if (currentCalendar.isPresent()) {
-            AcademicCalendar calendar = currentCalendar.get();
+        if (currentCalendarForDates.isPresent()) {
+            AcademicCalendar calendar = currentCalendarForDates.get();
             
             // Add holidays
-            holidays.addAll(
-                    holidayRepository.findByAcademicCalendarId(calendar.getId()).stream()
-                            .map(Holiday::getDate)
-                            .toList()
-            );
-            excludedDates.addAll(holidays);
+            calendarHolidays = holidayRepository.findByAcademicCalendarId(calendar.getId());
+            excludedDates.addAll(calendarHolidays.stream()
+                    .filter(h -> h.getScope() == Holiday.HolidayScope.FULL)
+                    .map(Holiday::getDate)
+                    .toList());
             
-            // For FAT, exclude all exam periods
+            Set<LocalDate> fullHolidaysSet = new HashSet<>(excludedDates);
+
+            // For FAT, exclude exam periods but NOT their study holidays (study holidays are working days)
             if ("FAT".equals(examType)) {
                 if (calendar.getCat1StartDate() != null && calendar.getCat1EndDate() != null) {
+                    // Exclude CAT-1 Exam
                     LocalDate examDate = calendar.getCat1StartDate();
                     while (!examDate.isAfter(calendar.getCat1EndDate())) {
                         excludedDates.add(examDate);
@@ -453,6 +467,7 @@ public class AttendanceCalculationService {
                     }
                 }
                 if (calendar.getCat2StartDate() != null && calendar.getCat2EndDate() != null) {
+                    // Exclude CAT-2 Exam
                     LocalDate examDate = calendar.getCat2StartDate();
                     while (!examDate.isAfter(calendar.getCat2EndDate())) {
                         excludedDates.add(examDate);
@@ -490,13 +505,11 @@ public class AttendanceCalculationService {
                     }
                 }
 
-                if (calendar.getCat1StartDate() != null && "CAT-1".equals(examType)) {
-                    LocalDate studyHoliday = getLastWorkingDayBeforeDate(calendar.getCat1StartDate(), holidays);
-                    if (studyHoliday != null) excludedDates.add(studyHoliday);
-                }
+                // If calculating for CAT-2, only the current CAT-2 study holiday is excluded
+                // Previous study holidays (like CAT-1) are treated as working days
                 if (calendar.getCat2StartDate() != null && "CAT-2".equals(examType)) {
-                    LocalDate studyHoliday = getLastWorkingDayBeforeDate(calendar.getCat2StartDate(), holidays);
-                    if (studyHoliday != null) excludedDates.add(studyHoliday);
+                    LocalDate studyHoliday2 = getLastWorkingDayBeforeDate(calendar.getCat2StartDate(), fullHolidaysSet);
+                    if (studyHoliday2 != null) excludedDates.add(studyHoliday2);
                 }
             }
         }
@@ -509,29 +522,58 @@ public class AttendanceCalculationService {
         );
 
         // Determine last class day
-        LocalDate lastClassDay;
+        LocalDate lastClassDay = null;
+        final Set<LocalDate> finalFullHolidays = calendarHolidays.stream()
+                .filter(h -> h.getScope() == Holiday.HolidayScope.FULL)
+                .map(Holiday::getDate)
+                .collect(java.util.stream.Collectors.toSet());
+
         if ("FAT".equals(examType)) {
             lastClassDay = untilDate;
         } else {
-            LocalDate lastWorkingDay = getLastWorkingDayBeforeDate(untilDate, holidays);
-            if (lastWorkingDay != null) {
-                lastClassDay = getLastWorkingDayBeforeDate(lastWorkingDay, holidays);
-            } else {
-                lastClassDay = untilDate;
+            // Last working day (LWD) is the day before the exam
+            LocalDate lwd = getLastWorkingDayBeforeDate(untilDate, finalFullHolidays);
+            if (lwd == null) {
+                lwd = untilDate.minusDays(1);
+            }
+            
+            // Study holiday is the working day BEFORE the last working day
+            // Attendance is calculated UPTO the study holiday (which is a working day)
+            // Example: Exam=Mon (untilDate), LWD=Fri, Study Holiday=Thu, Cutoff=Thu.
+            lastClassDay = getLastWorkingDayBeforeDate(lwd, finalFullHolidays);
+            
+            // Fallback if we cannot calculate back properly
+            if (lastClassDay == null) {
+                lastClassDay = lwd.minusDays(1);
             }
         }
 
-        // Start from tomorrow
-        LocalDate current = today.plusDays(1);
+        // Start from today if not yet marked, otherwise start from tomorrow
+        LocalDate current = markedDates.contains(today) ? today.plusDays(1) : today;
         while (!current.isAfter(lastClassDay)) {
-            if (current.getDayOfWeek().getValue() >= 2 && current.getDayOfWeek().getValue() <= 6
+            if (current.getDayOfWeek().getValue() >= 1 && current.getDayOfWeek().getValue() <= 6
                     && !markedDates.contains(current) && !excludedDates.contains(current)) {
                 
                 String dayName = getDayNameFromJavaTime(current.getDayOfWeek().getValue());
                 List<TimetableEntry> entries = timetableEntryRepository
                         .findByCourseIdAndDayOfWeek(course.getId(), dayName);
 
-                if (!entries.isEmpty()) {
+                // Filter out entries that fall on a partial holiday
+                LocalDate finalCurrent = current;
+                List<Holiday> dayHolidays = calendarHolidays.stream()
+                        .filter(h -> h.getDate().equals(finalCurrent))
+                        .toList();
+
+                boolean hasValidEntry = entries.stream()
+                        .anyMatch(entry -> {
+                            for (Holiday h : dayHolidays) {
+                                if (h.getScope() == Holiday.HolidayScope.MORNING && entry.getSession() == TimetableEntry.Session.MORNING) return false;
+                                if (h.getScope() == Holiday.HolidayScope.AFTERNOON && entry.getSession() == TimetableEntry.Session.AFTERNOON) return false;
+                            }
+                            return true;
+                        });
+
+                if (hasValidEntry) {
                     classDates.add(current);
                 }
             }
@@ -551,12 +593,14 @@ public class AttendanceCalculationService {
             // For FAT, upto the last instructional day in a semester
             return untilDate;
         } else {
-            // For CAT-1 and CAT-2, one working day before the last working day
-            LocalDate lastWorkingDay = getLastWorkingDayBeforeDate(untilDate, holidays);
-            if (lastWorkingDay != null) {
-                return getLastWorkingDayBeforeDate(lastWorkingDay, holidays);
-            }
-            return untilDate;
+            // Last working day (LWD) is the day before the exam
+            LocalDate lwd = getLastWorkingDayBeforeDate(untilDate, holidays);
+            if (lwd == null) lwd = untilDate.minusDays(1);
+            
+            // Study holiday is the working day BEFORE the last working day
+            // Attendance is calculated UPTO the study holiday (which is a working day)
+            // Example: Exam=Mon (untilDate), LWD=Fri, Study Holiday=Thu, Cutoff=Thu.
+            return getLastWorkingDayBeforeDate(lwd, holidays);
         }
     }
 }

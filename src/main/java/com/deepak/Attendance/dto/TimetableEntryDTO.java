@@ -5,7 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
-import java.util.Map;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -14,6 +14,7 @@ public class TimetableEntryDTO {
     private Long courseId;
     private String courseCode;
     private String courseName;
-    private Map<String, Integer> weeklySchedule; // Day -> Classes count
+    private String slot; // Added slot for the course
+    private List<WeeklyScheduleItemDTO> weeklySchedule;
     private LocalDate courseStartDate; // Start date of the course for date-based attendance
 }

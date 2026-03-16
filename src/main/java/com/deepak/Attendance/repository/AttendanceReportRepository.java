@@ -19,7 +19,7 @@ public interface AttendanceReportRepository extends JpaRepository<AttendanceRepo
     
     void deleteByCourseId(Long courseId);
 
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE AttendanceReport r SET r.isStale = true")
     void markAllReportsAsStale();
 }

@@ -24,5 +24,13 @@ public class TimetableEntry {
     private String dayOfWeek; // TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY
 
     @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    private Session session; // MORNING, AFTERNOON
+
+    @Column(nullable = false)
     private Integer classesCount; // Number of classes on this day
+
+    public enum Session {
+        MORNING, AFTERNOON
+    }
 }
