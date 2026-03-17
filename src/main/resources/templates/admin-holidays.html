@@ -319,6 +319,7 @@
 
     <div class="toast-container" id="toastContainer"></div>
 
+    <script src="/js/ux-popup.js"></script>
     <script>
         const token = localStorage.getItem('jwtToken');
         if (!token) window.location.href = '/login?mode=admin';
@@ -489,7 +490,7 @@
         }
 
         async function deleteHolidayGroup(ids) {
-            if(!confirm('Delete this holiday entry?')) return;
+            if(!(await uxConfirm('Delete this holiday entry?', { title: 'Delete Holiday' }))) return;
             
             try {
                 const res = await fetch(`/api/admin/holidays/bulk`, {

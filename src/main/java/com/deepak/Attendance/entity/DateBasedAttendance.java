@@ -8,9 +8,14 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "date_based_attendance", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"course_id", "attendance_date"})
-})
+@Table(name = "date_based_attendance", 
+    uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"course_id", "attendanceDate"})
+    },
+    indexes = {
+        @Index(name = "idx_course_date", columnList = "course_id, attendanceDate")
+    }
+)
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

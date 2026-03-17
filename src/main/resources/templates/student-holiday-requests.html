@@ -272,6 +272,7 @@
         </div>
     </div>
 
+    <script src="/js/ux-popup.js"></script>
     <script>
         const token = localStorage.getItem('jwtToken');
         if (!token) window.location.href = '/login';
@@ -410,7 +411,7 @@
         }
 
         async function deleteRequest(id) {
-            if (!confirm('Are you sure you want to delete this pending request?')) return;
+            if (!(await uxConfirm('Are you sure you want to delete this pending request?', { title: 'Delete Request' }))) return;
             
             try {
                 const res = await fetch(`/api/student/holiday-requests/${id}`, {
@@ -423,10 +424,10 @@
                     renderRequests();
                 } else {
                     const err = await res.json();
-                    alert(err.error || 'Failed to delete');
+                    uxNotify(err.error || 'Failed to delete', 'error');
                 }
             } catch (e) {
-                alert('Network error');
+                uxNotify('Network error', 'error');
             }
         }
 
@@ -462,10 +463,10 @@
                     fetchRequests();
                 } else {
                     const err = await res.json();
-                    alert(err.error || 'Failed to save');
+                    uxNotify(err.error || 'Failed to save', 'error');
                 }
             } catch (err) {
-                alert('Network error');
+                uxNotify('Network error', 'error');
             } finally {
                 submitBtn.disabled = false;
                 submitBtn.textContent = id ? 'Update Request' : 'Submit Request';

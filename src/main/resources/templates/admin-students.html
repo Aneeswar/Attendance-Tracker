@@ -195,6 +195,7 @@
         </div>
     </div>
 
+    <script src="/js/ux-popup.js"></script>
     <script>
         const token = localStorage.getItem('jwtToken');
         if (!token) window.location.href = '/login?mode=admin';
@@ -286,7 +287,7 @@
         }
 
         async function confirmDelete(id, username) {
-            if (confirm(`CRITICAL ACTION: Are you sure you want to PERMANENTLY delete student "${username}" (#STU-${id}) and ALL their attendance records?\n\nThis cannot be undone.`)) {
+            if (await uxConfirm(`CRITICAL ACTION: Are you sure you want to PERMANENTLY delete student "${username}" (#STU-${id}) and ALL their attendance records?\n\nThis cannot be undone.`, { title: 'Permanent Deletion', okText: 'Delete' })) {
                 await deleteStudent(id);
             }
         }
@@ -300,14 +301,14 @@
                 const result = await res.json();
                 
                 if (res.ok) {
-                    alert(result.message || 'Student account terminated successfully');
+                    uxNotify(result.message || 'Student account terminated successfully', 'success');
                     loadStudents();
                 } else {
-                    alert('Error deleting student: ' + (result.error || 'System constraint violation'));
+                    uxNotify('Error deleting student: ' + (result.error || 'System constraint violation'), 'error');
                 }
             } catch (e) {
                 console.error('Network failure during deletion:', e);
-                alert('Connection breakdown. Could not complete deletion.');
+                uxNotify('Connection breakdown. Could not complete deletion.', 'error');
             }
         }
 

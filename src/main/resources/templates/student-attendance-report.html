@@ -443,6 +443,7 @@
         </div>
     </div>
 
+    <script src="/js/ux-popup.js"></script>
     <script>
         let currentReports = [];
         let relaxationEnabled = false;
@@ -468,7 +469,7 @@
                     if (isStaleNow) {
                         document.getElementById('staleBanner').style.display = 'flex';
                         if (showAdminChangePopup && !lastKnownStale) {
-                            alert('Admin updated academic data. Please click Refresh Report to sync the latest calculations.');
+                            uxNotify('Admin updated academic data. Please click Refresh Report to sync the latest calculations.', 'info', 4500);
                         }
                     } else {
                         document.getElementById('staleBanner').style.display = 'none';
@@ -619,13 +620,13 @@
                 });
                 if (res.ok) {
                     await loadReport(false);
-                    alert('Report refreshed with latest admin updates.');
+                    uxNotify('Report refreshed with latest admin updates.', 'success');
                 } else {
                     const errorText = await res.text();
-                    alert(errorText || 'Failed to refresh report.');
+                    uxNotify(errorText || 'Failed to refresh report.', 'error');
                 }
             } catch (e) {
-                alert('Network error while refreshing report.');
+                uxNotify('Network error while refreshing report.', 'error');
             } finally {
                 btn.disabled = false;
                 if (icon) icon.classList.remove('spinning');
@@ -674,7 +675,7 @@
             const subtitle = document.getElementById('modalSubtitle');
             
             title.textContent = report.courseName || 'Course Detail';
-            subtitle.textContent = `${report.courseCode} ${examType ? '• ' + examType : ''}`;
+            subtitle.textContent = `${report.courseCode} ${examType ? 'ï¿½ ' + examType : ''}`;
 
             let datesToShow = [];
             list.innerHTML = '';

@@ -43,10 +43,10 @@
         .page-header h1 { font-size: 1.875rem; font-weight: 800; letter-spacing: -0.025em; }
 
         .date-banner {
-            background: white;
+            background: var(--card-bg);
             padding: 1rem 1.5rem;
             border-radius: 1rem;
-            border: 1px solid #e2e8f0;
+            border: 1px solid rgba(226, 232, 240, 0.1);
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -55,16 +55,16 @@
 
         .date-display { display: flex; align-items: center; gap: 1rem; }
         .date-display i { font-size: 1.5rem; color: var(--primary); }
-        .date-text h3 { font-size: 1rem; font-weight: 800; }
+        .date-text h3 { font-size: 1rem; font-weight: 800; color: var(--text-main); }
         .date-text p { font-size: 0.8125rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }
 
         .course-stack { display: flex; flex-direction: column; gap: 1.25rem; }
 
         .attendance-card {
-            background: white;
+            background: var(--card-bg);
             border-radius: 1.25rem;
             padding: 1.5rem;
-            border: 1px solid #e2e8f0;
+            border: 1px solid rgba(226, 232, 240, 0.1);
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -79,8 +79,9 @@
         .action-group { display: flex; gap: 0.75rem; }
 
         .att-btn {
-            border: 1px solid #e2e8f0;
-            background: white;
+            border: 1px solid rgba(226, 232, 240, 0.2);
+            background: var(--card-bg);
+            color: var(--text-main);
             padding: 0.625rem 1.25rem;
             border-radius: 0.75rem;
             font-weight: 700;
@@ -180,6 +181,7 @@
         </button>
     </div>
 
+    <script src="/js/ux-popup.js"></script>
     <script>
         let attendanceData = {}; // courseId -> { date, attended }
         const today = new Date();
@@ -304,7 +306,7 @@
             const token = localStorage.getItem('jwtToken');
             
             if (Object.keys(attendanceData).length === 0) {
-                alert('Please mark at least one class.');
+                uxNotify('Please mark at least one class.', 'error');
                 return;
             }
 
@@ -351,7 +353,7 @@
             } else {
                 btn.disabled = false;
                 btn.innerHTML = 'Save All Attendance (Retrying...)';
-                alert('Some records failed to save. Please try again.');
+                uxNotify('Some records failed to save. Please try again.', 'error');
             }
         }
     </script>

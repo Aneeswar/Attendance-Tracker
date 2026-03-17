@@ -214,6 +214,7 @@
         </button>
     </div>
 
+    <script src="/js/ux-popup.js"></script>
     <script>
         let attendanceDataSnapshot = [];
 
@@ -333,13 +334,14 @@
                 });
 
                 if (res.ok) {
-                    alert('Attendance entries updated successfully!');
+                    uxNotify('Attendance entries updated successfully!', 'success');
                     loadDates();
                 } else {
-                    alert('Update failed. Please try again.');
+                    uxNotify('Update failed. Please try again.', 'error');
                 }
             } catch (e) {
                 console.error('Save failed:', e);
+                uxNotify('Save failed. Please try again.', 'error');
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Save All Changes';

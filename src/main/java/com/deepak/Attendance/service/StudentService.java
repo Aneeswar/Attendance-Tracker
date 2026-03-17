@@ -10,6 +10,8 @@ import com.deepak.Attendance.repository.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -151,6 +153,7 @@ public class StudentService {
     /**
      * Save attendance input for a course
      */
+    @CacheEvict(value = "attendanceReports", key = "#userId")
     public void saveAttendanceInput(Long userId, String courseCode, 
                                    Integer totalConducted, Integer attended) {
         Optional<Course> course = courseRepository.findByUserIdAndCourseCode(userId, courseCode);
@@ -238,6 +241,7 @@ public class StudentService {
     /**
      * Get attendance report for all courses of a student (from cached data)
      */
+    @Cacheable(value = "attendanceReports", key = "#userId")
     public List<AttendanceReportDTO> getAttendanceReport(Long userId) {
         List<AttendanceReport> cachedReports = attendanceReportRepository.findByCourse_UserId(userId);
         List<AttendanceReportDTO> reports = new ArrayList<>();
@@ -540,22 +544,70 @@ public class StudentService {
         }
     }
 
+    @Transactional
+    public void autoMarkTodayAttendance(Long userId) {
+        LocalDate today = LocalDate.now();
+        String dayOfWeek = today.getDayOfWeek().toString();
+        log.info("Auto-marking attendance for user: {} for today: {} ({})", userId, today, dayOfWeek);
+
+        // Check if today is a holiday
+        if (holidayRepository.findByDate(today).isPresent()) {
+            log.info("Today is a holiday. Skipping auto-marking.");
+            return;
+        }
+
+        List<Course> courses = courseRepository.findByUserId(userId);
+        for (Course course : courses) {
+            // Check if course has a class today in timetable
+            boolean hasClassToday = timetableEntryRepository.findByCourseId(course.getId()).stream()
+                    .anyMatch(entry -> {
+                        String cleanEntryDay = entry.getDayOfWeek().replaceAll("\\s+", "").toUpperCase();
+                        String cleanTodayDay = dayOfWeek.replaceAll("\\s+", "").toUpperCase();
+                        return cleanEntryDay.equals(cleanTodayDay);
+                    });
+
+            if (hasClassToday) {
+                // Check if attendance already exists for today
+                Optional<DateBasedAttendance> existing = dateBasedAttendanceRepository
+                        .findByCourseIdAndAttendanceDate(course.getId(), today);
+
+                if (existing.isEmpty()) {
+                    log.info("Auto-marking today's attendance as PRESENT for course: {}", course.getCourseCode());
+                    DateBasedAttendance attendance = new DateBasedAttendance();
+                    attendance.setCourse(course);
+                    attendance.setAttendanceDate(today);
+                    attendance.setAttended(true); // Default to Present
+                    dateBasedAttendanceRepository.save(attendance);
+                    
+                    // Force refresh because we added new data
+                    attendanceReportRepository.findByCourseId(course.getId())
+                            .ifPresent(report -> {
+                                report.setIsStale(true);
+                                attendanceReportRepository.save(report);
+                            });
+                }
+            }
+        }
+    }
+
     /**
      * Refresh attendance reports for a specific student's courses
-     * Returns true if any reports were refreshed due to being stale or missing
+     * Returns true if reports were refreshed
      */
+    @CacheEvict(value = "attendanceReports", key = "#userId")
     @Transactional
     public boolean refreshAttendanceReports(Long userId) {
-        log.info("Checking/Refreshing attendance reports for user: {}", userId);
+        log.info("Force refreshing attendance reports for user: {}", userId);
+        
+        // Auto-mark today's attendance before refreshing
+        autoMarkTodayAttendance(userId);
+        
         List<Course> courses = courseRepository.findByUserId(userId);
-        boolean refreshed = false;
+        boolean refreshed = !courses.isEmpty();
         
         for (Course course : courses) {
-            Optional<AttendanceReport> reportOpt = attendanceReportRepository.findByCourseId(course.getId());
-            if (reportOpt.isEmpty() || reportOpt.get().getIsStale()) {
-                calculateAndCacheAttendanceReport(course);
-                refreshed = true;
-            }
+            // User-triggered refresh should always recompute so UI reflects latest attendance immediately.
+            calculateAndCacheAttendanceReport(course);
         }
         return refreshed;
     }
@@ -791,13 +843,14 @@ public class StudentService {
         // Get valid working days for this course's timetable
         Map<String, Integer> schedule = new HashMap<>();
         for (TimetableEntry entry : course.getTimetableEntries()) {
-            schedule.put(entry.getDayOfWeek().toUpperCase(), entry.getClassesCount());
+            String cleanDay = entry.getDayOfWeek().replaceAll("\\s+", "").toUpperCase();
+            schedule.put(cleanDay, entry.getClassesCount());
         }
 
         int count = 0;
         LocalDate current = start;
         while (!current.isAfter(today)) {
-            String dayName = current.getDayOfWeek().name();
+            String dayName = current.getDayOfWeek().name().toUpperCase();
             if (schedule.containsKey(dayName) && !holidays.contains(current)) {
                 // Only create if it doesn't exist
                 Optional<DateBasedAttendance> existing = dateBasedAttendanceRepository.findByCourseIdAndAttendanceDate(courseId, current);

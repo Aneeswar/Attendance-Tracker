@@ -262,14 +262,20 @@ public class AttendanceCalculationService {
         }
 
         // Start from today if not yet marked, otherwise start from tomorrow
+        // We always use the loop to check !markedDates.contains(current), but this initial step
+        // optimizes the loop by skipping 'today' if we already have it in markedDates.
         LocalDate current = markedDates.contains(today) ? today.plusDays(1) : today;
+        
         while (!current.isAfter(lastClassDay)) {
+            // Only count as future if not marked and not a holiday/exam day
             if (current.getDayOfWeek().getValue() >= 1 && current.getDayOfWeek().getValue() <= 6
                     && !markedDates.contains(current) && !excludedDates.contains(current)) {
                 
                 String dayName = getDayNameFromJavaTime(current.getDayOfWeek().getValue());
-                List<TimetableEntry> entries = timetableEntryRepository
-                        .findByCourseIdAndDayOfWeek(course.getId(), dayName);
+                List<TimetableEntry> allEntries = timetableEntryRepository.findByCourseId(course.getId());
+                List<TimetableEntry> entries = allEntries.stream()
+                        .filter(e -> e.getDayOfWeek().replaceAll("\\s+", "").equalsIgnoreCase(dayName))
+                        .toList();
 
                 // Filter out entries that fall on a partial holiday
                 LocalDate finalCurrent = current;

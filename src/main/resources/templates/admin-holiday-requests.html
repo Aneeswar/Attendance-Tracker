@@ -224,6 +224,7 @@
         </div>
     </div>
 
+    <script src="/js/ux-popup.js"></script>
     <script>
         const token = localStorage.getItem('jwtToken');
         if (!token) window.location.href = '/login';
@@ -346,10 +347,10 @@
                     filterRequests();
                 } else {
                     const errorText = await res.text();
-                    alert(errorText || 'Action failed');
+                    uxNotify(errorText || 'Action failed', 'error');
                 }
             } catch (e) {
-                alert('Network error');
+                uxNotify('Network error', 'error');
             }
         }
     </script>

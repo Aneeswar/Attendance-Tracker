@@ -614,6 +614,12 @@
                     localStorage.setItem('username', data.username);
                     document.cookie = `jwt=${data.token}; path=/; max-age=86400; SameSite=Lax`;
 
+                    // For students, trigger one background refresh per browser session
+                    // so report data is ready before the report page is opened.
+                    if (selectedUserType === 'student') {
+                        triggerStudentReportRefreshOnce(data.token, data.username);
+                    }
+
                     showSuccess();
                     setTimeout(() => {
                         window.location.href = selectedUserType === 'admin' ? '/admin/dashboard' : '/student/dashboard';
@@ -652,6 +658,24 @@
         function clearMessages() {
             document.getElementById('error').style.display = 'none';
             document.getElementById('success').style.display = 'none';
+        }
+
+        function triggerStudentReportRefreshOnce(token, username) {
+            const refreshKey = `attendanceRefreshTriggered:${username}`;
+            if (sessionStorage.getItem(refreshKey) === 'true') {
+                return;
+            }
+
+            // Mark first to avoid duplicate triggers from accidental double-submit.
+            sessionStorage.setItem(refreshKey, 'true');
+            sessionStorage.setItem('attendanceSyncToastPending', 'true');
+
+            fetch('/api/student/attendance-report/refresh', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+            }).catch(() => {
+                // Keep login flow smooth even if refresh fails; user can still refresh manually.
+            });
         }
     </script>
 </body>

@@ -222,6 +222,7 @@
 
     <div id="toast" class="toast">Settings updated successfully!</div>
 
+    <script src="/js/ux-popup.js"></script>
     <script>
         const token = localStorage.getItem('jwtToken');
         if (!token) window.location.href = '/login?mode=admin';
@@ -261,8 +262,14 @@
             const newPassword = document.getElementById('newPassword').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
 
-            if(!currentPassword) return alert('Current password is required to save changes.');
-            if(newPassword && newPassword !== confirmPassword) return alert('New passwords do not match.');
+            if(!currentPassword) {
+                showToast('Current password is required to save changes.', 'error');
+                return;
+            }
+            if(newPassword && newPassword !== confirmPassword) {
+                showToast('New passwords do not match.', 'error');
+                return;
+            }
 
             try {
                 const res = await fetch('/api/admin/profile/update', {
@@ -283,15 +290,17 @@
                     setTimeout(() => location.reload(), 1500);
                 } else {
                     const errRes = await res.json();
-                    alert(errRes.error || 'Failed to update profile');
+                    showToast(errRes.error || 'Failed to update profile', 'error');
                 }
             } catch (e) {
-                alert('An error occurred.');
+                showToast('An error occurred.', 'error');
             }
         }
 
-        function showToast() {
+        function showToast(msg = 'Profile updated successfully!', type = 'success') {
             const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.style.background = type === 'error' ? '#dc2626' : '#16a34a';
             t.style.display = 'block';
             setTimeout(() => t.style.display = 'none', 3000);
         }

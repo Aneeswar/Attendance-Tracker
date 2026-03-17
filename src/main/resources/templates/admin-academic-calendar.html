@@ -294,6 +294,7 @@
         </div>
     </div>
 
+    <script src="/js/ux-popup.js"></script>
     <script>
         const token = localStorage.getItem('jwtToken');
         if (!token) window.location.href = '/login?mode=admin';
@@ -348,7 +349,7 @@
             };
 
             if(!data.academicYear || !data.semesterStartDate || !data.examStartDate) {
-                alert('Please fill in the core semester dates.');
+                uxNotify('Please fill in the core semester dates.', 'error');
                 return;
             }
 
@@ -363,14 +364,14 @@
                 });
 
                 if(res.ok) {
-                    alert('Academic Calendar updated successfully!');
+                    uxNotify('Academic Calendar updated successfully!', 'success');
                     loadCalendar();
                 } else {
                     const err = await res.text();
-                    alert('Error: ' + err);
+                    uxNotify('Error: ' + err, 'error');
                 }
             } catch (e) {
-                alert('Connection error. Please try again.');
+                uxNotify('Connection error. Please try again.', 'error');
             }
         }
     </script>

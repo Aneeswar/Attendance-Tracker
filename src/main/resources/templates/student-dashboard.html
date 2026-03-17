@@ -607,6 +607,11 @@
             if (profileName) profileName.textContent = username;
             if (profileAvatar) profileAvatar.textContent = username.charAt(0).toUpperCase();
 
+            if (sessionStorage.getItem('attendanceSyncToastPending') === 'true') {
+                showToast('Attendance report sync started in background.');
+                sessionStorage.removeItem('attendanceSyncToastPending');
+            }
+
             checkStaleStatus();
         });
 

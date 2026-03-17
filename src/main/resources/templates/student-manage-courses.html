@@ -547,6 +547,7 @@
         </div>
     </div>
 
+    <script src="/js/ux-popup.js"></script>
     <script>
         const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
         let availableCourses = [];
@@ -892,13 +893,13 @@
                     loadCourses();
                 } else {
                     const err = await res.json();
-                    alert(err.error || 'Operation failed');
+                    uxNotify(err.error || 'Operation failed', 'error');
                 }
-            } catch (e) { alert('Connection error'); }
+            } catch (e) { uxNotify('Connection error', 'error'); }
         }
 
         async function deleteCourse(id, code) {
-            if (!confirm(`Remove ${code} from your schedule?`)) return;
+            if (!(await uxConfirm(`Remove ${code} from your schedule?`, { title: 'Remove Course', okText: 'Remove' }))) return;
             try {
                 const res = await fetch(`/api/student/courses/${id}`, {
                     method: 'DELETE',
@@ -911,11 +912,11 @@
         async function autoGenerateAttendance(courseId) {
             const course = windowCoursesData[courseId];
             if (!course.courseStartDate) {
-                alert('Please set a course start date in the Edit menu first.');
+                uxNotify('Please set a course start date in the Edit menu first.', 'error');
                 return;
             }
 
-            if (!confirm(`This will mark "Present" for all ${course.courseCode} classes from ${course.courseStartDate} until today. Continue?`)) {
+            if (!(await uxConfirm(`This will mark "Present" for all ${course.courseCode} classes from ${course.courseStartDate} until today. Continue?`, { title: 'Auto Fill Attendance' }))) {
                 return;
             }
 
@@ -930,14 +931,14 @@
 
                 if (res.ok) {
                     const result = await res.json();
-                    alert(`Successfully marked ${result.count} classes as present!`);
+                    uxNotify(`Successfully marked ${result.count} classes as present!`, 'success');
                     loadCourses();
                 } else {
                     const err = await res.json();
-                    alert(err.error || 'Auto-fill failed');
+                    uxNotify(err.error || 'Auto-fill failed', 'error');
                 }
             } catch (e) {
-                alert('Connection error');
+                uxNotify('Connection error', 'error');
             }
         }
     </script>
