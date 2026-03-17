@@ -3,6 +3,7 @@ package com.deepak.Attendance.controller;
 import com.deepak.Attendance.dto.StudentHolidayRequestDTO;
 import com.deepak.Attendance.entity.User;
 import com.deepak.Attendance.repository.UserRepository;
+import com.deepak.Attendance.security.AuthUserResolver;
 import com.deepak.Attendance.security.JwtTokenProvider;
 import com.deepak.Attendance.service.StudentHolidayService;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +34,9 @@ public class AdminRestController {
     private JwtTokenProvider jwtTokenProvider;
 
     @Autowired
+    private AuthUserResolver authUserResolver;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     /**
@@ -43,7 +47,7 @@ public class AdminRestController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> getProfile(@RequestHeader("Authorization") String authHeader) {
         try {
-            Long userId = extractUserIdFromToken(authHeader);
+            Long userId = authUserResolver.extractUserIdFromToken(authHeader);
             Optional<User> user = userRepository.findById(userId);
 
             if (user.isEmpty()) {
@@ -184,9 +188,6 @@ public class AdminRestController {
     }
 
     /**
-     * Extract user ID from JWT token in Authorization header
-     */
-    /**
      * Get all student holiday requests for admin
      * GET /api/admin/holiday-requests
      */
@@ -251,16 +252,4 @@ public class AdminRestController {
         }
     }
 
-    private Long extractUserIdFromToken(String authHeader) {
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7);
-            String username = jwtTokenProvider.extractUsername(token);
-            Optional<User> user = userRepository.findByUsername(username);
-            if (user.isPresent()) {
-                return user.get().getId();
-            }
-            throw new IllegalArgumentException("User not found");
-        }
-        throw new IllegalArgumentException("Invalid authorization header");
-    }
 }

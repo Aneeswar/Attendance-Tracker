@@ -103,20 +103,6 @@ public class AttendanceCalculationService {
         return getValidWorkingDays(LocalDate.now());
     }
 
-    // private LocalDate getLastWorkingDayBeforeExam(LocalDate examStart, Set<LocalDate> holidays) {
-    //     LocalDate current = examStart.minusDays(1);
-    //     while (current.isAfter(LocalDate.now())) {
-    //         // Tuesday to Saturday
-    //         if (current.getDayOfWeek().getValue() >= 2 && current.getDayOfWeek().getValue() <= 6) {
-    //             if (!holidays.contains(current)) {
-    //                 return current;
-    //             }
-    //         }
-    //         current = current.minusDays(1);
-    //     }
-    //     return examStart.minusDays(1);
-    // }
-
     /**
      * Find the last working day (Tuesday-Saturday) before a given date
      * Only excludes holidays, not exam dates

@@ -30,8 +30,8 @@ public class JwtTokenProvider {
     public String generateToken(UserDetails userDetails) {
         Map<String, Object> claims = new HashMap<>();
         // Note: The userId is typically not stored in standard UserDetails
-        // but can be added here if we had a custom UserDetails implementation.
-        // For now, we'll keep it simple and fix the extraction logic in controllers.
+        // but can be added here with a custom UserDetails implementation.
+        // Current flow resolves user id from username via AuthUserResolver.
         return createToken(claims, userDetails.getUsername());
     }
 

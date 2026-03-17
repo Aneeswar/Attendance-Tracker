@@ -7,6 +7,7 @@ import com.deepak.Attendance.dto.TimetableConfirmRequest;
 import com.deepak.Attendance.dto.TimetableEntryDTO;
 import com.deepak.Attendance.entity.User;
 import com.deepak.Attendance.repository.UserRepository;
+import com.deepak.Attendance.security.AuthUserResolver;
 import com.deepak.Attendance.security.JwtTokenProvider;
 import com.deepak.Attendance.service.StudentHolidayService;
 import com.deepak.Attendance.service.StudentService;
@@ -41,6 +42,9 @@ public class StudentController {
     private UserRepository userRepository;
 
     @Autowired
+    private AuthUserResolver authUserResolver;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     /**
@@ -52,7 +56,7 @@ public class StudentController {
     public ResponseEntity<?> confirmTimetable(@RequestBody List<TimetableConfirmRequest> confirmedData,
                                               @RequestHeader("Authorization") String authHeader) {
         try {
-            Long userId = extractUserIdFromToken(authHeader);
+            Long userId = authUserResolver.extractUserIdFromToken(authHeader);
 
             if (confirmedData == null || confirmedData.isEmpty()) {
                 return ResponseEntity.badRequest().body(new HashMap<String, String>() {{
@@ -86,7 +90,7 @@ public class StudentController {
     @PreAuthorize("hasRole('STUDENT')")
     public ResponseEntity<?> getTimetable(@RequestHeader("Authorization") String authHeader) {
         try {
-            Long userId = extractUserIdFromToken(authHeader);
+            Long userId = authUserResolver.extractUserIdFromToken(authHeader);
             List<TimetableEntryDTO> timetables = studentService.getStudentTimetable(userId);
 
             Map<String, Object> response = new HashMap<>();
@@ -113,7 +117,7 @@ public class StudentController {
     public ResponseEntity<?> submitAttendance(@RequestBody AttendanceInputRequest request,
                                               @RequestHeader("Authorization") String authHeader) {
         try {
-            Long userId = extractUserIdFromToken(authHeader);
+            Long userId = authUserResolver.extractUserIdFromToken(authHeader);
 
             if (request.getCourseCode() == null || request.getCourseCode().isEmpty()) {
                 return ResponseEntity.badRequest().body(new HashMap<String, String>() {{
@@ -165,7 +169,7 @@ public class StudentController {
     @PreAuthorize("hasRole('STUDENT')")
     public ResponseEntity<?> getCourses(@RequestHeader("Authorization") String authHeader) {
         try {
-            Long userId = extractUserIdFromToken(authHeader);
+            Long userId = authUserResolver.extractUserIdFromToken(authHeader);
             List<TimetableEntryDTO> courses = studentService.getStudentTimetableDTOs(userId);
             return ResponseEntity.ok(courses);
         } catch (Exception e) {
@@ -185,7 +189,7 @@ public class StudentController {
     @PreAuthorize("hasRole('STUDENT')")
     public ResponseEntity<?> getAttendanceReport(@RequestHeader("Authorization") String authHeader) {
         try {
-            Long userId = extractUserIdFromToken(authHeader);
+            Long userId = authUserResolver.extractUserIdFromToken(authHeader);
             
             // Check if any report is stale for this user
             List<com.deepak.Attendance.entity.Course> courses = studentService.getStudentCourses(userId);
@@ -225,7 +229,7 @@ public class StudentController {
     @PreAuthorize("hasRole('STUDENT')")
     public ResponseEntity<?> refreshAttendanceReport(@RequestHeader("Authorization") String authHeader) {
         try {
-            Long userId = extractUserIdFromToken(authHeader);
+            Long userId = authUserResolver.extractUserIdFromToken(authHeader);
             studentService.refreshAttendanceReports(userId);
             
             Map<String, String> response = new HashMap<>();
@@ -270,7 +274,7 @@ public class StudentController {
                                          @RequestBody TimetableConfirmRequest courseData,
                                          @RequestHeader("Authorization") String authHeader) {
         try {
-            Long userId = extractUserIdFromToken(authHeader);
+            Long userId = authUserResolver.extractUserIdFromToken(authHeader);
             
             // Use confirmTimetableWithDates to save course start date
             studentService.confirmTimetableWithDates(userId, List.of(courseData));
@@ -296,7 +300,7 @@ public class StudentController {
     public ResponseEntity<?> getClassDates(@PathVariable Long courseId,
                                           @RequestHeader("Authorization") String authHeader) {
         try {
-            Long userId = extractUserIdFromToken(authHeader);
+            Long userId = authUserResolver.extractUserIdFromToken(authHeader);
             List<Map<String, Object>> classDates = studentService.getClassDatesForCourse(userId, courseId);
             
             Map<String, Object> response = new HashMap<>();
@@ -328,7 +332,7 @@ public class StudentController {
                                                     @RequestBody Map<String, Object> attendanceData,
                                                     @RequestHeader("Authorization") String authHeader) {
         try {
-            Long userId = extractUserIdFromToken(authHeader);
+            Long userId = authUserResolver.extractUserIdFromToken(authHeader);
             
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> attendance = (List<Map<String, Object>>) attendanceData.get("attendance");
@@ -367,7 +371,7 @@ public class StudentController {
     public ResponseEntity<?> autoGenerateAttendance(@PathVariable Long courseId,
                                                    @RequestHeader("Authorization") String authHeader) {
         try {
-            Long userId = extractUserIdFromToken(authHeader);
+            Long userId = authUserResolver.extractUserIdFromToken(authHeader);
             int count = studentService.autoGeneratePresentAttendance(userId, courseId);
             
             Map<String, Object> response = new HashMap<>();
@@ -397,7 +401,7 @@ public class StudentController {
     public ResponseEntity<?> deleteCourse(@PathVariable Long courseId,
                                          @RequestHeader("Authorization") String authHeader) {
         try {
-            Long userId = extractUserIdFromToken(authHeader);
+            Long userId = authUserResolver.extractUserIdFromToken(authHeader);
             studentService.deleteCourse(userId, courseId);
             
             Map<String, String> response = new HashMap<>();
@@ -420,7 +424,7 @@ public class StudentController {
     @PreAuthorize("hasRole('STUDENT')")
     public ResponseEntity<?> getAvailableCourses(@RequestHeader("Authorization") String authHeader) {
         try {
-            Long userId = extractUserIdFromToken(authHeader);
+            Long userId = authUserResolver.extractUserIdFromToken(authHeader);
             List<Map<String, Object>> courses = studentService.getAllAvailableCourses(userId);
             return ResponseEntity.ok(courses);
         } catch (Exception e) {
@@ -440,7 +444,7 @@ public class StudentController {
     @PreAuthorize("hasRole('STUDENT')")
     public ResponseEntity<?> searchCourses(@RequestParam String q, @RequestHeader("Authorization") String authHeader) {
         try {
-            Long userId = extractUserIdFromToken(authHeader);
+            Long userId = authUserResolver.extractUserIdFromToken(authHeader);
             List<Map<String, Object>> courses = studentService.searchCourses(q, userId);
             return ResponseEntity.ok(courses);
         } catch (Exception e) {
@@ -461,7 +465,7 @@ public class StudentController {
     public ResponseEntity<?> addExistingCourse(@RequestBody Map<String, Object> request,
                                                @RequestHeader("Authorization") String authHeader) {
         try {
-            Long userId = extractUserIdFromToken(authHeader);
+            Long userId = authUserResolver.extractUserIdFromToken(authHeader);
             
             if (request.get("courseId") == null) {
                 return ResponseEntity.badRequest().body(Map.of("error", "courseId is required"));
@@ -495,7 +499,7 @@ public class StudentController {
     @PreAuthorize("hasRole('STUDENT')")
     public ResponseEntity<?> getProfile(@RequestHeader("Authorization") String authHeader) {
         try {
-            Long userId = extractUserIdFromToken(authHeader);
+            Long userId = authUserResolver.extractUserIdFromToken(authHeader);
             Optional<User> user = userRepository.findById(userId);
 
             if (user.isEmpty()) {
@@ -643,7 +647,7 @@ public class StudentController {
     @PreAuthorize("hasRole('STUDENT')")
     public ResponseEntity<?> getHolidayRequests(@RequestHeader("Authorization") String authHeader) {
         try {
-            Long userId = extractUserIdFromToken(authHeader);
+            Long userId = authUserResolver.extractUserIdFromToken(authHeader);
             List<StudentHolidayRequestDTO> myRequests = studentHolidayService.getRequestsForStudent(userId);
             List<StudentHolidayRequestDTO> otherRequests = studentHolidayService.getRequestsByOthers(userId);
             
@@ -670,7 +674,7 @@ public class StudentController {
     public ResponseEntity<?> createHolidayRequest(@RequestBody StudentHolidayRequestDTO dto,
                                                  @RequestHeader("Authorization") String authHeader) {
         try {
-            Long userId = extractUserIdFromToken(authHeader);
+            Long userId = authUserResolver.extractUserIdFromToken(authHeader);
             StudentHolidayRequestDTO saved = studentHolidayService.createRequest(userId, dto);
             return ResponseEntity.ok(saved);
         } catch (Exception e) {
@@ -692,7 +696,7 @@ public class StudentController {
                                                  @RequestBody StudentHolidayRequestDTO dto,
                                                  @RequestHeader("Authorization") String authHeader) {
         try {
-            Long userId = extractUserIdFromToken(authHeader);
+            Long userId = authUserResolver.extractUserIdFromToken(authHeader);
             StudentHolidayRequestDTO updated = studentHolidayService.updateRequest(userId, requestId, dto);
             return ResponseEntity.ok(updated);
         } catch (Exception e) {
@@ -713,7 +717,7 @@ public class StudentController {
     public ResponseEntity<?> deleteHolidayRequest(@PathVariable Long requestId,
                                                  @RequestHeader("Authorization") String authHeader) {
         try {
-            Long userId = extractUserIdFromToken(authHeader);
+            Long userId = authUserResolver.extractUserIdFromToken(authHeader);
             studentHolidayService.deleteRequest(userId, requestId);
             return ResponseEntity.ok(new HashMap<String, String>() {{
                 put("message", "Request deleted successfully");
@@ -727,19 +731,4 @@ public class StudentController {
         }
     }
 
-    /**
-     * Extract user ID from JWT token in Authorization header
-     */
-    private Long extractUserIdFromToken(String authHeader) {
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7);
-            String username = jwtTokenProvider.extractUsername(token);
-            Optional<User> user = userRepository.findByUsername(username);
-            if (user.isPresent()) {
-                return user.get().getId();
-            }
-            throw new IllegalArgumentException("User not found");
-        }
-        throw new IllegalArgumentException("Invalid authorization header");
-    }
 }

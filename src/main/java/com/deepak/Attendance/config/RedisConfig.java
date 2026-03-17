@@ -17,7 +17,7 @@ import java.time.Duration;
 
 @Configuration
 @EnableCaching
-@SuppressWarnings({"deprecation", "removal"})
+@SuppressWarnings("removal")
 public class RedisConfig {
 
     @Bean
@@ -27,7 +27,6 @@ public class RedisConfig {
         mapper.registerModule(new JavaTimeModule());
         
         // Enable default typing for proper deserialization of DTOs
-        // Using activateDefaultTyping to avoid deprecated methods if possible
         mapper.activateDefaultTyping(
                 LaissezFaireSubTypeValidator.instance,
                 ObjectMapper.DefaultTyping.NON_FINAL,
