@@ -448,13 +448,18 @@
         let currentReports = [];
         let relaxationEnabled = false;
         let lastKnownStale = false;
+        let stalePopupShownForCurrentCycle = false;
+        let isAutoRefreshInFlight = false;
+        let lastAutoRefreshAt = 0;
+        const AUTO_REFRESH_COOLDOWN_MS = 45000;
+        let shownBackgroundSyncToast = false;
 
         document.addEventListener('DOMContentLoaded', async () => {
-            await loadReport(false);
+            await loadReport();
             startStaleWatcher();
         });
 
-        async function loadReport(showAdminChangePopup = false) {
+        async function loadReport() {
             const token = localStorage.getItem('jwtToken');
             try {
                 const res = await fetch(`/api/student/attendance-report?_=${Date.now()}`, {
@@ -468,11 +473,11 @@
                     const isStaleNow = Boolean(data.isStale) || data.reports.some(r => r.stale);
                     if (isStaleNow) {
                         document.getElementById('staleBanner').style.display = 'flex';
-                        if (showAdminChangePopup && !lastKnownStale) {
-                            uxNotify('Admin updated academic data. Please click Refresh Report to sync the latest calculations.', 'info', 4500);
-                        }
+                        triggerBackgroundRefresh();
                     } else {
                         document.getElementById('staleBanner').style.display = 'none';
+                        stalePopupShownForCurrentCycle = false;
+                        shownBackgroundSyncToast = false;
                     }
                     lastKnownStale = isStaleNow;
                     if (data.generatedAt) {
@@ -489,8 +494,36 @@
 
         function startStaleWatcher() {
             setInterval(async () => {
-                await loadReport(true);
+                await loadReport();
             }, 30000);
+        }
+
+        async function triggerBackgroundRefresh() {
+            const now = Date.now();
+            if (isAutoRefreshInFlight) return;
+            if (now - lastAutoRefreshAt < AUTO_REFRESH_COOLDOWN_MS) return;
+
+            isAutoRefreshInFlight = true;
+            lastAutoRefreshAt = now;
+
+            try {
+                const res = await fetch('/api/student/attendance-report/refresh', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('jwtToken')}` }
+                });
+
+                if (res.ok) {
+                    await loadReport();
+                    if (!shownBackgroundSyncToast) {
+                        uxNotify('Report synced in background.', 'success');
+                        shownBackgroundSyncToast = true;
+                    }
+                }
+            } catch (e) {
+                // Silent fail to avoid distracting the user.
+            } finally {
+                isAutoRefreshInFlight = false;
+            }
         }
 
         function toggleRelaxation() {
@@ -619,7 +652,9 @@
                     headers: { 'Authorization': `Bearer ${localStorage.getItem('jwtToken')}` }
                 });
                 if (res.ok) {
-                    await loadReport(false);
+                    await loadReport();
+                    // Avoid repeated watcher popups while the user is actively syncing.
+                    stalePopupShownForCurrentCycle = true;
                     uxNotify('Report refreshed with latest admin updates.', 'success');
                 } else {
                     const errorText = await res.text();

@@ -52,8 +52,60 @@ public class StudentService {
     @Autowired
     private HolidayRepository holidayRepository;
 
+    @Autowired
+    private CourseCatalogRepository courseCatalogRepository;
+
     @Value("${app.upload.dir:uploads/timetables}")
     private String uploadDir;
+
+    private CourseCatalog resolveOrCreateCourseCatalog(String courseCode, String courseName) {
+        String normalizedCode = courseCode == null ? "" : courseCode.trim().toUpperCase();
+        String normalizedName = courseName == null ? "" : courseName.trim();
+
+        return courseCatalogRepository.findByCourseCodeAndCourseName(normalizedCode, normalizedName)
+                .orElseGet(() -> courseCatalogRepository.save(new CourseCatalog(null, normalizedCode, normalizedName)));
+    }
+
+    /**
+     * Returns true when the course has at least one valid class session on the given date
+     * after applying holiday scope rules.
+     */
+    private boolean isClassConductedOnDate(Course course, LocalDate date) {
+        if (course == null || date == null) {
+            return false;
+        }
+
+        List<TimetableEntry> entriesForDay = timetableEntryRepository.findByCourseId(course.getId()).stream()
+                .filter(entry -> {
+                    String cleanEntryDay = entry.getDayOfWeek().replaceAll("\\s+", "").toUpperCase();
+                    String cleanDateDay = date.getDayOfWeek().name().toUpperCase();
+                    return cleanEntryDay.equals(cleanDateDay);
+                })
+                .toList();
+
+        if (entriesForDay.isEmpty()) {
+            return false;
+        }
+
+        Optional<Holiday> holidayOpt = holidayRepository.findByDate(date);
+        if (holidayOpt.isEmpty()) {
+            return true;
+        }
+
+        Holiday.HolidayScope scope = holidayOpt.get().getScope() != null
+                ? holidayOpt.get().getScope()
+                : Holiday.HolidayScope.FULL;
+
+        if (scope == Holiday.HolidayScope.FULL) {
+            return false;
+        }
+
+        if (scope == Holiday.HolidayScope.MORNING) {
+            return entriesForDay.stream().anyMatch(entry -> entry.getSession() != TimetableEntry.Session.MORNING);
+        }
+
+        return entriesForDay.stream().anyMatch(entry -> entry.getSession() != TimetableEntry.Session.AFTERNOON);
+    }
 
     /**
      * Confirm and save timetable (add or update courses)
@@ -61,20 +113,24 @@ public class StudentService {
     public void confirmTimetable(Long userId, List<TimetableEntryDTO> confirmedData) {
         // Save new courses and timetable entries (add/update, don't delete)
         for (TimetableEntryDTO dto : confirmedData) {
+            CourseCatalog catalog = resolveOrCreateCourseCatalog(dto.getCourseCode(), dto.getCourseName());
             // Check if course already exists
             Optional<Course> existing = courseRepository
-                    .findByUserIdAndCourseCode(userId, dto.getCourseCode());
+                    .findByUserIdAndCourseCatalog_CourseCodeIgnoreCase(userId, dto.getCourseCode());
 
             Course course;
             if (existing.isPresent()) {
                 course = existing.get();
                 course.setCourseName(dto.getCourseName());
+                course.setCourseCode(dto.getCourseCode());
+                course.setCourseCatalog(catalog);
                 course.setSlot(dto.getSlot()); // Set course level slot
             } else {
                 course = new Course();
                 course.setUserId(userId);
                 course.setCourseCode(dto.getCourseCode());
                 course.setCourseName(dto.getCourseName());
+                course.setCourseCatalog(catalog);
                 course.setSlot(dto.getSlot()); // Set course level slot
                 course.setTimetableEntries(new ArrayList<>());
             }
@@ -106,14 +162,17 @@ public class StudentService {
      */
     public void confirmTimetableWithDates(Long userId, List<TimetableConfirmRequest> confirmedData) {
         for (TimetableConfirmRequest req : confirmedData) {
+            CourseCatalog catalog = resolveOrCreateCourseCatalog(req.getCourseCode(), req.getCourseName());
             // Check if course already exists
             Optional<Course> existing = courseRepository
-                    .findByUserIdAndCourseCode(userId, req.getCourseCode());
+                    .findByUserIdAndCourseCatalog_CourseCodeIgnoreCase(userId, req.getCourseCode());
 
             Course course;
             if (existing.isPresent()) {
                 course = existing.get();
                 course.setCourseName(req.getCourseName());
+                course.setCourseCode(req.getCourseCode());
+                course.setCourseCatalog(catalog);
                 course.setSlot(req.getSlot()); // Set course level slot
                 if (req.getCourseStartDate() != null) {
                     course.setCourseStartDate(req.getCourseStartDate());
@@ -123,6 +182,7 @@ public class StudentService {
                 course.setUserId(userId);
                 course.setCourseCode(req.getCourseCode());
                 course.setCourseName(req.getCourseName());
+                course.setCourseCatalog(catalog);
                 course.setSlot(req.getSlot()); // Set course level slot
                 course.setCourseStartDate(req.getCourseStartDate());
                 course.setTimetableEntries(new ArrayList<>());
@@ -156,7 +216,7 @@ public class StudentService {
     @CacheEvict(value = "attendanceReports", key = "#userId")
     public void saveAttendanceInput(Long userId, String courseCode, 
                                    Integer totalConducted, Integer attended) {
-        Optional<Course> course = courseRepository.findByUserIdAndCourseCode(userId, courseCode);
+        Optional<Course> course = courseRepository.findByUserIdAndCourseCatalog_CourseCodeIgnoreCase(userId, courseCode);
         if (course.isEmpty()) {
             throw new IllegalArgumentException("Course not found for user: " + courseCode);
         }
@@ -402,15 +462,24 @@ public class StudentService {
             int attendedClasses;
             
             if (!dateBasedRecords.isEmpty()) {
-                totalClasses = dateBasedRecords.size();
-                attendedClasses = (int) dateBasedRecords.stream().filter(DateBasedAttendance::getAttended).count();
+                // Exclude records that fall on non-conducted days (full/partial holiday session conflicts).
+                List<DateBasedAttendance> validRecords = dateBasedRecords.stream()
+                        .filter(record -> isClassConductedOnDate(course, record.getAttendanceDate()))
+                        .toList();
+
+                totalClasses = validRecords.size();
+                attendedClasses = (int) validRecords.stream().filter(DateBasedAttendance::getAttended).count();
             } else {
                 Optional<AttendanceInput> input = attendanceInputRepository.findByCourseId(course.getId());
-                if (input.isEmpty()) {
-                    return; // No attendance data to cache
+                if (input.isPresent()) {
+                    totalClasses = input.get().getTotalClassesConducted();
+                    attendedClasses = input.get().getClassesAttended();
+                } else {
+                    // Keep report materialized with zero baseline so stale banners can clear
+                    // after manual refresh even before first attendance entry exists.
+                    totalClasses = 0;
+                    attendedClasses = 0;
                 }
-                totalClasses = input.get().getTotalClassesConducted();
-                attendedClasses = input.get().getClassesAttended();
             }
             
             int futureClasses = attendanceCalculationService.calculateFutureClassesAvailable(course);
@@ -550,21 +619,10 @@ public class StudentService {
         String dayOfWeek = today.getDayOfWeek().toString();
         log.info("Auto-marking attendance for user: {} for today: {} ({})", userId, today, dayOfWeek);
 
-        // Check if today is a holiday
-        if (holidayRepository.findByDate(today).isPresent()) {
-            log.info("Today is a holiday. Skipping auto-marking.");
-            return;
-        }
-
         List<Course> courses = courseRepository.findByUserId(userId);
         for (Course course : courses) {
-            // Check if course has a class today in timetable
-            boolean hasClassToday = timetableEntryRepository.findByCourseId(course.getId()).stream()
-                    .anyMatch(entry -> {
-                        String cleanEntryDay = entry.getDayOfWeek().replaceAll("\\s+", "").toUpperCase();
-                        String cleanTodayDay = dayOfWeek.replaceAll("\\s+", "").toUpperCase();
-                        return cleanEntryDay.equals(cleanTodayDay);
-                    });
+            // Check if course has a valid class today after holiday scope rules.
+            boolean hasClassToday = isClassConductedOnDate(course, today);
 
             if (hasClassToday) {
                 // Check if attendance already exists for today
@@ -586,6 +644,17 @@ public class StudentService {
                                 attendanceReportRepository.save(report);
                             });
                 }
+            } else {
+                // If a holiday made today's class invalid, remove stale today's attendance record if present.
+                dateBasedAttendanceRepository.findByCourseIdAndAttendanceDate(course.getId(), today)
+                        .ifPresent(existing -> {
+                            dateBasedAttendanceRepository.delete(existing);
+                            attendanceReportRepository.findByCourseId(course.getId())
+                                    .ifPresent(report -> {
+                                        report.setIsStale(true);
+                                        attendanceReportRepository.save(report);
+                                    });
+                        });
             }
         }
     }
@@ -766,7 +835,7 @@ public class StudentService {
      * Delete a course by course code for a specific user
      */
     public void deleteCourse(Long userId, String courseCode) {
-        Optional<Course> course = courseRepository.findByUserIdAndCourseCode(userId, courseCode);
+        Optional<Course> course = courseRepository.findByUserIdAndCourseCatalog_CourseCodeIgnoreCase(userId, courseCode);
         if (course.isEmpty()) {
             throw new IllegalArgumentException("Course not found: " + courseCode);
         }
@@ -1101,7 +1170,7 @@ public class StudentService {
         
         // Check if student already has this course
         Optional<Course> studentCourse = courseRepository
-                .findByUserIdAndCourseCode(userId, originalCourse.getCourseCode());
+            .findByUserIdAndCourseCatalog_CourseCodeIgnoreCase(userId, originalCourse.getCourseCode());
         if (studentCourse.isPresent()) {
             throw new IllegalArgumentException("You already have this course");
         }
@@ -1111,6 +1180,9 @@ public class StudentService {
         newCourse.setUserId(userId);
         newCourse.setCourseCode(originalCourse.getCourseCode());
         newCourse.setCourseName(originalCourse.getCourseName());
+        newCourse.setCourseCatalog(originalCourse.getCourseCatalog() != null
+            ? originalCourse.getCourseCatalog()
+            : resolveOrCreateCourseCatalog(originalCourse.getCourseCode(), originalCourse.getCourseName()));
         newCourse.setSlot(originalCourse.getSlot()); // Copy slot
         
         if (courseStartDate != null && !courseStartDate.isEmpty()) {

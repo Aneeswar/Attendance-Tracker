@@ -203,6 +203,7 @@
         let studentsData = { students: [], totalPages: 1 };
         let currentPage = 0; // Backend is 0-indexed
         const pageSize = 10;
+        let currentDetailStudentId = null;
 
         document.addEventListener('DOMContentLoaded', loadStudents);
 
@@ -313,6 +314,7 @@
         }
 
         async function viewDetails(id) {
+            currentDetailStudentId = id;
             const modal = document.getElementById('detailModal');
             const content = document.getElementById('modalContent');
             modal.style.display = 'flex';
@@ -365,6 +367,9 @@
                                         <div style="font-size:0.625rem; font-weight:800; color:#94a3b8; text-transform:uppercase;">${r.classesAttended}/${r.totalClasses} Atnd.</div>
                                     </div>
                                     <span style="font-size:0.6rem; font-weight:900; background:${statusBg}; color:${statusColor}; padding:0.25rem 0.5rem; border-radius:0.375rem; border:1px solid ${statusColor}22;">${r.status}</span>
+                                    <button class="act-btn del-btn" onclick="deleteStudentCourse(${id}, ${r.courseId}, '${r.courseCode}')" title="Delete Course" style="width:2rem;height:2rem;">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
                                 </div>
                             </div>
                         `;
@@ -381,6 +386,33 @@
 
         function closeModal() {
             document.getElementById('detailModal').style.display = 'none';
+            currentDetailStudentId = null;
+        }
+
+        async function deleteStudentCourse(studentId, courseId, courseCode) {
+            if (!(await uxConfirm(`Delete course ${courseCode} for this student?\n\nThis removes timetable, attendance, and report data for this course.`, { title: 'Delete Course', okText: 'Delete' }))) {
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/admin/students/${studentId}/courses/${courseId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                const body = await res.json();
+                if (res.ok) {
+                    uxNotify(body.message || 'Course deleted successfully', 'success');
+                    await loadStudents();
+                    if (currentDetailStudentId === studentId) {
+                        await viewDetails(studentId);
+                    }
+                } else {
+                    uxNotify(body.error || 'Failed to delete course', 'error');
+                }
+            } catch (e) {
+                uxNotify('Network error while deleting course', 'error');
+            }
         }
     </script>
 </body>

@@ -6,6 +6,7 @@ import com.deepak.Attendance.entity.AttendanceReport;
 import com.deepak.Attendance.repository.UserRepository;
 import com.deepak.Attendance.repository.CourseRepository;
 import com.deepak.Attendance.repository.AttendanceReportRepository;
+import com.deepak.Attendance.service.StudentService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -34,6 +35,9 @@ public class AdminStudentManagementController {
 
     @Autowired
     private AttendanceReportRepository attendanceReportRepository;
+
+    @Autowired
+    private StudentService studentService;
 
     /**
      * Get all students with pagination
@@ -173,6 +177,42 @@ public class AdminStudentManagementController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new HashMap<String, String>() {{
                         put("error", "Failed to delete student: " + e.getMessage());
+                    }});
+        }
+    }
+
+    /**
+     * Delete a specific course for a specific student
+     * DELETE /api/admin/students/{studentId}/courses/{courseId}
+     */
+    @DeleteMapping("/{studentId}/courses/{courseId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> deleteStudentCourse(@PathVariable Long studentId, @PathVariable Long courseId) {
+        try {
+            Optional<User> student = userRepository.findById(studentId);
+            if (student.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(new HashMap<String, String>() {{
+                            put("error", "Student not found");
+                        }});
+            }
+
+            studentService.deleteCourse(studentId, courseId);
+
+            log.info("Admin deleted course {} for student {}", courseId, studentId);
+            return ResponseEntity.ok(new HashMap<String, String>() {{
+                put("message", "Course deleted successfully");
+            }});
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new HashMap<String, String>() {{
+                        put("error", e.getMessage());
+                    }});
+        } catch (Exception e) {
+            log.error("Error deleting course {} for student {}", courseId, studentId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new HashMap<String, String>() {{
+                        put("error", "Failed to delete course: " + e.getMessage());
                     }});
         }
     }

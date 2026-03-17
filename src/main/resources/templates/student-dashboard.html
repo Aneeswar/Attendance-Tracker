@@ -187,9 +187,9 @@
 
         /* Dashboard Layout */
         .container {
-            max-width: 1200px;
+            width: min(1500px, calc(100% - 3rem));
             margin: 2rem auto;
-            padding: 0 1.5rem;
+            padding: 0;
         }
 
         .page-header {
@@ -291,12 +291,12 @@
         /* Grid Layout */
         .dashboard-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 1.5rem;
+            grid-template-columns: minmax(360px, 1.3fr) minmax(0, 1.7fr);
+            gap: 1.25rem;
         }
 
         .main-col {
-            grid-column: span 2;
+            grid-column: span 1;
         }
 
         .side-col {
@@ -330,6 +330,38 @@
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 1.25rem;
+        }
+
+        .action-grid.one-line-actions {
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 1rem;
+        }
+
+        .action-grid.one-line-actions .action-card {
+            aspect-ratio: 1 / 1;
+            padding: 0.9rem;
+            justify-content: flex-start;
+            align-items: flex-start;
+            overflow: visible;
+        }
+
+        .action-grid.one-line-actions .action-icon {
+            margin-bottom: 0.5rem;
+            width: 2.9rem;
+            height: 2.9rem;
+        }
+
+        .action-grid.one-line-actions .action-card h3 {
+            font-size: 0.88rem;
+            line-height: 1.15;
+            margin-bottom: 0.15rem;
+        }
+
+        .action-grid.one-line-actions .action-card p {
+            font-size: 0.7rem;
+            line-height: 1.2;
+            max-height: none;
+            overflow: visible;
         }
 
         .action-card {
@@ -442,9 +474,126 @@
             font-weight: 600;
         }
 
+        .summary-scroll {
+            max-height: 420px;
+            overflow-y: auto;
+            padding-right: 0.15rem;
+        }
+
+        /* Today's Attendance Quick Card */
+        .today-attendance-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.9rem;
+            max-height: 176px;
+            overflow-y: auto;
+            padding-right: 0;
+            width: 100%;
+        }
+
+        .today-attendance-item {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.75rem;
+            padding: 0.9rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            width: 100%;
+        }
+
+        .today-title {
+            font-size: 0.875rem;
+            font-weight: 800;
+            color: var(--text-main);
+        }
+
+        .today-subtitle {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 0.2rem;
+        }
+
+        .today-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .today-btn {
+            border: 1px solid #e2e8f0;
+            background: white;
+            color: var(--text-main);
+            padding: 0.45rem 0.8rem;
+            border-radius: 0.6rem;
+            font-size: 0.78rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .today-btn.active.present {
+            background: #10b981;
+            color: white;
+            border-color: #10b981;
+        }
+
+        .today-btn.active.absent {
+            background: #ef4444;
+            color: white;
+            border-color: #ef4444;
+        }
+
+        .today-save-btn {
+            margin-top: 1rem;
+            border: none;
+            background: var(--primary);
+            color: white;
+            padding: 0.7rem 1rem;
+            border-radius: 0.7rem;
+            font-size: 0.85rem;
+            font-weight: 700;
+            cursor: pointer;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .today-empty {
+            background: #f8fafc;
+            border: 1px dashed #cbd5e1;
+            border-radius: 0.75rem;
+            padding: 1rem;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
         @media (max-width: 992px) {
+            .container {
+                width: calc(100% - 3rem);
+                margin: 2rem auto;
+            }
             .dashboard-grid { grid-template-columns: 1fr; }
             .main-col, .side-col { grid-column: span 1; }
+            .action-grid.one-line-actions .action-card {
+                aspect-ratio: auto;
+            }
+        }
+
+        @media (max-width: 1200px) {
+            .action-grid.one-line-actions {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 768px) {
+            .action-grid.one-line-actions {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
         }
 
         @media (max-width: 640px) {
@@ -504,7 +653,7 @@
             <div class="side-col">
                 <div class="card" id="statsCard" style="display: none;">
                     <h2 class="card-title"><i class="fas fa-chart-line"></i> Summary</h2>
-                    <div id="statsGrid" class="report-grid" style="display: grid; grid-template-columns: 1fr; gap: 1rem;">
+                    <div id="statsGrid" class="report-grid summary-scroll" style="display: grid; grid-template-columns: 1fr; gap: 1rem;">
                         <!-- Mini cards will be injected here -->
                     </div>
                 </div>
@@ -532,37 +681,41 @@
 
             <div class="main-col">
                 <div class="card">
+                    <h2 class="card-title"><i class="fas fa-calendar-check"></i> Today's Attendance Quick Mark</h2>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">Today's scheduled classes are pre-marked as present. Change any to absent and save once.</p>
+                    <div id="todayAttendanceList" class="today-attendance-list"></div>
+                    <button id="todaySaveBtn" class="today-save-btn" style="display:none;" onclick="saveTodayAttendanceQuick()">
+                        <i class="fas fa-save"></i> Save Today's Attendance
+                    </button>
+                </div>
+
+                <div class="card">
                     <h2 class="card-title"><i class="fas fa-rocket"></i> Fast Actions</h2>
-                    <div class="action-grid" style="grid-template-columns: repeat(3, 1fr);">
+                    <div class="action-grid one-line-actions">
                         <a href="/student/mark-by-date" class="action-card" style="padding: 1.25rem; background: #ecfdf5; border-color: #10b98133;">
                             <div class="action-icon" style="background: white; color: #059669; margin-bottom: 0.5rem;"><i class="fas fa-calendar-check"></i></div>
                             <h3>Mark Attendance</h3>
-                            <p style="font-size: 0.75rem; color: #059669; margin-top: 0.25rem;">Daily record</p>
+                            <p style="font-size: 0.75rem; color: #059669; margin-top: 0.25rem;">Daily Entry</p>
                         </a>
                         <a href="/student/attendance-report" class="action-card" style="padding: 1.25rem; background: #eff6ff; border-color: #3b82f633;">
                             <div class="action-icon" style="background: white; color: #2563eb; margin-bottom: 0.5rem;"><i class="fas fa-chart-pie"></i></div>
                             <h3>View Analysis</h3>
-                            <p style="font-size: 0.75rem; color: #2563eb; margin-top: 0.25rem;">Eligibility stats</p>
+                            <p style="font-size: 0.75rem; color: #2563eb; margin-top: 0.25rem;">Report Insights</p>
                         </a>
                         <a href="/student/manage-courses" class="action-card" style="padding: 1.25rem;">
                             <div class="action-icon icon-blue" style="margin-bottom: 0.5rem;"><i class="fas fa-book"></i></div>
                             <h3>Courses</h3>
-                            <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Manage subjects</p>
+                            <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Course Setup</p>
                         </a>
                         <a href="/student/holidays" class="action-card" style="padding: 1.25rem;">
                             <div class="action-icon icon-amber" style="margin-bottom: 0.5rem;"><i class="fas fa-mountain-sun"></i></div>
                             <h3>Academic Cal</h3>
-                            <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Term holidays</p>
+                            <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Term Dates</p>
                         </a>
                         <a href="/student/holiday-requests" class="action-card" style="padding: 1.25rem;">
                             <div class="action-icon" style="background: #fdf2f8; color: #db2777; margin-bottom: 0.5rem;"><i class="fas fa-bullhorn"></i></div>
                             <h3>Suggest Holiday</h3>
-                            <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Notify admin of missing term holidays</p>
-                        </a>
-                        <a href="/student/profile" class="action-card" style="padding: 1.25rem;">
-                            <div class="action-icon" style="background: #f8fafc; color: #475569; margin-bottom: 0.5rem;"><i class="fas fa-user-shield"></i></div>
-                            <h3>Privacy</h3>
-                            <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Secure profile</p>
+                            <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Holiday Ideas</p>
                         </a>
                     </div>
                 </div>
@@ -591,12 +744,15 @@
         </div>
 
         <footer>
-            <p>&copy; 2024 AttenTrack System. All rights reserved.</p>
+            <p>&copy; 2026 AttenTrack System. All rights reserved.</p>
         </footer>
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
+        const localDateStr = new Date().toLocaleDateString('en-CA');
+        let todayAttendanceDraft = {};
+
+        document.addEventListener('DOMContentLoaded', async () => {
             const username = localStorage.getItem('username') || 'User';
             document.getElementById('welcomeName').textContent = username;
             document.getElementById('userInitials').textContent = username.charAt(0).toUpperCase();
@@ -612,8 +768,165 @@
                 sessionStorage.removeItem('attendanceSyncToastPending');
             }
 
-            checkStaleStatus();
+            await refreshSummaryOnLoad();
+            loadTodayAttendanceQuick();
         });
+
+        async function refreshSummaryOnLoad() {
+            const token = localStorage.getItem('jwtToken');
+
+            try {
+                await fetch('/api/student/attendance-report/refresh', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+            } catch (e) {
+                console.error('Silent summary refresh failed:', e);
+            }
+
+            await checkStaleStatus();
+        }
+
+        async function loadTodayAttendanceQuick() {
+            const list = document.getElementById('todayAttendanceList');
+            const saveBtn = document.getElementById('todaySaveBtn');
+            const token = localStorage.getItem('jwtToken');
+
+            list.innerHTML = '<div class="today-empty">Loading today\'s classes...</div>';
+            todayAttendanceDraft = {};
+
+            try {
+                const courseRes = await fetch('/api/student/courses', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!courseRes.ok) {
+                    list.innerHTML = '<div class="today-empty">Unable to load courses right now.</div>';
+                    return;
+                }
+
+                const courses = await courseRes.json();
+                if (!Array.isArray(courses) || courses.length === 0) {
+                    list.innerHTML = '<div class="today-empty">No courses found. Add courses to use quick marking.</div>';
+                    return;
+                }
+
+                const items = [];
+                for (const course of courses) {
+                    try {
+                        const classDatesRes = await fetch(`/api/student/courses/${course.courseId}/class-dates`, {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        if (!classDatesRes.ok) continue;
+
+                        const classDatesPayload = await classDatesRes.json();
+                        const todayEntries = Array.isArray(classDatesPayload.dates)
+                            ? classDatesPayload.dates.filter(d => d.date === localDateStr)
+                            : [];
+
+                        if (todayEntries.length === 0) continue;
+
+                        // Default to PRESENT if today's value is null/not-set.
+                        const status = todayEntries.some(d => d.attended === false) ? false : true;
+                        todayAttendanceDraft[course.courseId] = { date: localDateStr, attended: status };
+
+                        items.push({
+                            courseId: course.courseId,
+                            courseCode: course.courseCode,
+                            courseName: course.courseName,
+                            attended: status
+                        });
+                    } catch (e) {
+                        console.error('Failed to load course calendar', e);
+                    }
+                }
+
+                if (items.length === 0) {
+                    list.innerHTML = '<div class="today-empty">No classes scheduled for today.</div>';
+                    saveBtn.style.display = 'none';
+                    return;
+                }
+
+                list.innerHTML = '';
+                items.forEach(item => {
+                    const row = document.createElement('div');
+                    row.className = 'today-attendance-item';
+                    row.innerHTML = `
+                        <div>
+                            <div class="today-title">${item.courseCode}</div>
+                            <div class="today-subtitle">${item.courseName}</div>
+                        </div>
+                        <div class="today-actions">
+                            <button id="today-p-${item.courseId}" class="today-btn present ${item.attended ? 'active present' : ''}" onclick="markTodayStatus(${item.courseId}, true)">Present</button>
+                            <button id="today-a-${item.courseId}" class="today-btn absent ${!item.attended ? 'active absent' : ''}" onclick="markTodayStatus(${item.courseId}, false)">Absent</button>
+                        </div>
+                    `;
+                    list.appendChild(row);
+                });
+
+                saveBtn.style.display = 'inline-block';
+            } catch (e) {
+                console.error('Error loading today quick attendance', e);
+                list.innerHTML = '<div class="today-empty">Failed to load today\'s attendance.</div>';
+            }
+        }
+
+        function markTodayStatus(courseId, attended) {
+            todayAttendanceDraft[courseId] = { date: localDateStr, attended };
+
+            const pBtn = document.getElementById(`today-p-${courseId}`);
+            const aBtn = document.getElementById(`today-a-${courseId}`);
+            if (!pBtn || !aBtn) return;
+
+            pBtn.classList.toggle('active', attended === true);
+            pBtn.classList.toggle('present', attended === true);
+            aBtn.classList.toggle('active', attended === false);
+            aBtn.classList.toggle('absent', attended === false);
+        }
+
+        async function saveTodayAttendanceQuick() {
+            const saveBtn = document.getElementById('todaySaveBtn');
+            const token = localStorage.getItem('jwtToken');
+            const entries = Object.entries(todayAttendanceDraft);
+
+            if (entries.length === 0) {
+                showToast('No classes to save for today.');
+                return;
+            }
+
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Saving...';
+
+            let errors = 0;
+            for (const [courseId, data] of entries) {
+                try {
+                    const res = await fetch(`/api/student/attendance/update/${courseId}`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify([{ date: data.date, attended: data.attended }])
+                    });
+                    if (!res.ok) errors++;
+                } catch (e) {
+                    errors++;
+                }
+            }
+
+            if (errors === 0) {
+                showToast('Today\'s attendance saved successfully.');
+                // Trigger report sync so report page reflects this immediately.
+                await refreshReport();
+                // Refresh summary data in-place without reloading the full dashboard.
+                await checkStaleStatus();
+            } else {
+                showToast('Some entries failed to save. Please retry.');
+            }
+
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '<i class="fas fa-save"></i> Save Today\'s Attendance';
+        }
 
         async function checkStaleStatus() {
             try {
@@ -674,13 +987,14 @@
             grid.innerHTML = '';
             card.style.display = 'block';
 
-            reports.slice(0, 4).forEach(report => {
+            reports.forEach(report => {
                 const pct = Math.ceil(report.currentPercentage);
                 const isSafe = pct >= 75;
                 const mini = document.createElement('div');
                 mini.style = 'padding: 1rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.75rem; display: flex; flex-direction: column; gap: 0.25rem;';
                 mini.innerHTML = `
                     <span style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">${report.courseCode}</span>
+                    <span style="font-size: 0.78rem; font-weight: 600; color: var(--text-main);">${report.courseName || ''}</span>
                     <span style="font-size: 1.25rem; font-weight: 900; color: ${isSafe ? 'var(--success)' : 'var(--danger)'}">${pct}%</span>
                     <div style="height: 4px; background: #e2e8f0; border-radius: 2px; overflow: hidden; margin-top: 2px;">
                         <div style="width: ${Math.min(pct, 100)}%; height: 100%; background: ${isSafe ? 'var(--success)' : 'var(--danger)'};"></div>

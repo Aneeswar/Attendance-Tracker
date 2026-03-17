@@ -42,4 +42,9 @@ public class AdminPageController {
     public String adminHolidayRequests() {
         return "admin-holiday-requests";
     }
+
+    @GetMapping("/courses")
+    public String adminCourses() {
+        return "admin-courses";
+    }
 }

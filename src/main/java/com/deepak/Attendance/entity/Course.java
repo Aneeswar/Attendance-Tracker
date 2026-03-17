@@ -21,6 +21,10 @@ public class Course {
     @Column(nullable = false)
     private Long userId; // Foreign key to User (student)
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "course_catalog_id")
+    private CourseCatalog courseCatalog;
+
     @Column(nullable = false)
     private String courseCode;
 
@@ -41,4 +45,18 @@ public class Course {
 
     @OneToMany(mappedBy = "course", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<AttendanceResult> attendanceResults;
+
+    public String getCourseCode() {
+        if (courseCatalog != null && courseCatalog.getCourseCode() != null) {
+            return courseCatalog.getCourseCode();
+        }
+        return courseCode;
+    }
+
+    public String getCourseName() {
+        if (courseCatalog != null && courseCatalog.getCourseName() != null) {
+            return courseCatalog.getCourseName();
+        }
+        return courseName;
+    }
 }

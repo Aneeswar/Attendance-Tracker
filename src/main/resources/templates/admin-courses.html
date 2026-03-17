@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Course Registry - AttenTrack Admin</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #0f172a;
+            --accent: #4f46e5;
+            --background: #f1f5f9;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: var(--background); color: var(--text-main); min-height: 100vh; }
+
+        .navbar {
+            background: var(--primary);
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .navbar-brand { font-size: 1.25rem; font-weight: 800; display: flex; align-items: center; gap: 0.75rem; }
+        .navbar-brand i { color: #818cf8; }
+
+        .container { max-width: 1350px; margin: 2rem auto; padding: 0 1.5rem; }
+
+        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; }
+        .page-header h1 { font-size: 1.875rem; font-weight: 800; letter-spacing: -0.025em; }
+
+        .controls-card {
+            background: white;
+            padding: 1rem;
+            border-radius: 1rem;
+            border: 1px solid #e2e8f0;
+            margin-bottom: 1.25rem;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .search-wrapper { position: relative; flex: 1; }
+        .search-wrapper i { position: absolute; left: 0.9rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
+        .search-wrapper input {
+            width: 100%;
+            padding: 0.7rem 0.9rem 0.7rem 2.4rem;
+            border-radius: 0.7rem;
+            border: 1px solid #e2e8f0;
+            background: #f8fafc;
+            font-size: 0.9rem;
+        }
+
+        .table-card {
+            background: white;
+            border-radius: 1rem;
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+        }
+
+        table { width: 100%; border-collapse: collapse; }
+        th {
+            background: #f8fafc;
+            padding: 0.9rem 1rem;
+            text-align: left;
+            font-size: 0.72rem;
+            font-weight: 800;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            border-bottom: 1px solid #e2e8f0;
+            letter-spacing: 0.04em;
+        }
+        td { padding: 0.9rem 1rem; border-bottom: 1px solid #f1f5f9; font-size: 0.87rem; }
+
+        .course-code { font-weight: 800; color: var(--text-main); }
+        .course-name { color: var(--text-main); font-weight: 600; }
+
+        .act-btn {
+            width: 2.1rem;
+            height: 2.1rem;
+            border-radius: 0.5rem;
+            border: 1px solid #e2e8f0;
+            background: white;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: #ef4444;
+        }
+
+        .pagination {
+            padding: 0.9rem 1rem;
+            background: #f8fafc;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 0.5rem 0.9rem;
+            border-radius: 0.5rem;
+            border: 1px solid #e2e8f0;
+            background: white;
+            font-size: 0.82rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        code { background: #f1f5f9; padding: 0.25rem 0.45rem; border-radius: 0.3rem; }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <div class="navbar-brand">
+            <i class="fas fa-shield-alt"></i>
+            <span>AttenTrack Admin</span>
+        </div>
+        <div>
+            <a href="/admin/dashboard" style="color:white;text-decoration:none;font-size:0.875rem;font-weight:700;">
+                <i class="fas fa-arrow-left"></i> Dashboard
+            </a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="page-header">
+            <h1>Global Course Registry</h1>
+            <div>
+                <span id="courseCount" style="font-weight:800;color:var(--accent);">0</span>
+                <span style="color:var(--text-muted);font-size:0.875rem;font-weight:600;"> courses in database</span>
+            </div>
+        </div>
+
+        <div class="controls-card">
+            <div class="search-wrapper">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchInput" placeholder="Search by course code or name..." oninput="handleSearch()">
+            </div>
+        </div>
+
+        <div class="table-card">
+            <table>
+                <thead>
+                <tr>
+                    <th>Course</th>
+                    <th>Owner Student</th>
+                    <th>Slot</th>
+                    <th>Start Date</th>
+                    <th>Actions</th>
+                </tr>
+                </thead>
+                <tbody id="courseTable"></tbody>
+            </table>
+
+            <div class="pagination">
+                <div id="pageInfo" style="font-size:0.8125rem;color:var(--text-muted);font-weight:600;">Page 1 of 1</div>
+                <div style="display:flex;gap:0.5rem;">
+                    <button class="btn" id="prevBtn" onclick="changePage(-1)">Previous</button>
+                    <button class="btn" id="nextBtn" onclick="changePage(1)">Next</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/ux-popup.js"></script>
+    <script>
+        const token = localStorage.getItem('jwtToken');
+        if (!token) window.location.href = '/login?mode=admin';
+
+        let currentPage = 0;
+        const pageSize = 10;
+        let coursesData = { courses: [], totalPages: 1, totalElements: 0 };
+
+        document.addEventListener('DOMContentLoaded', loadCourses);
+
+        async function loadCourses() {
+            const q = document.getElementById('searchInput').value.trim();
+            const params = new URLSearchParams({
+                page: String(currentPage),
+                size: String(pageSize),
+                sortBy: 'id',
+                sortDir: 'desc'
+            });
+            if (q) params.set('q', q);
+
+            try {
+                const res = await fetch(`/api/admin/courses?${params.toString()}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+
+                if (!res.ok) {
+                    uxNotify(data.error || 'Failed to load courses', 'error');
+                    return;
+                }
+
+                coursesData = data;
+                document.getElementById('courseCount').textContent = data.totalElements || 0;
+                renderTable();
+            } catch (e) {
+                uxNotify('Network error while loading courses', 'error');
+            }
+        }
+
+        function handleSearch() {
+            currentPage = 0;
+            loadCourses();
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('courseTable');
+            tbody.innerHTML = '';
+            const rows = coursesData.courses || [];
+
+            if (!rows.length) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:2.2rem;color:var(--text-muted);font-weight:600;">No courses found.</td></tr>';
+                updatePager();
+                return;
+            }
+
+            rows.forEach(c => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>
+                        <div class="course-code">${c.courseCode || '-'}</div>
+                        <div class="course-name">${c.courseName || '-'}</div>
+                    </td>
+                    <td>
+                        <div><code>#STU-${c.studentId}</code></div>
+                        <div style="font-size:0.8rem;color:var(--text-muted);margin-top:0.2rem;">${c.studentUsername || 'Unknown'}</div>
+                    </td>
+                    <td>${c.slot || '-'}</td>
+                    <td>${c.courseStartDate || '-'}</td>
+                    <td>
+                        <button class="act-btn" title="Delete Course" onclick="confirmDeleteCourse(${c.id}, '${(c.courseCode || '').replace(/'/g, "\\'")}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            updatePager();
+        }
+
+        function updatePager() {
+            const totalPages = coursesData.totalPages || 1;
+            document.getElementById('pageInfo').textContent = `Page ${currentPage + 1} of ${totalPages}`;
+            document.getElementById('prevBtn').disabled = currentPage === 0;
+            document.getElementById('nextBtn').disabled = currentPage >= totalPages - 1;
+        }
+
+        function changePage(dir) {
+            currentPage += dir;
+            loadCourses();
+        }
+
+        async function confirmDeleteCourse(courseId, code) {
+            const ok = await uxConfirm(`Delete course ${code || '#'+courseId} from the database?\n\nThis removes related timetable, attendance, and report records.`, {
+                title: 'Delete Course',
+                okText: 'Delete'
+            });
+            if (!ok) return;
+
+            try {
+                const res = await fetch(`/api/admin/courses/${courseId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const body = await res.json();
+                if (res.ok) {
+                    uxNotify(body.message || 'Course deleted successfully', 'success');
+                    loadCourses();
+                } else {
+                    uxNotify(body.error || 'Failed to delete course', 'error');
+                }
+            } catch (e) {
+                uxNotify('Network error while deleting course', 'error');
+            }
+        }
+    </script>
+</body>
+</html>
