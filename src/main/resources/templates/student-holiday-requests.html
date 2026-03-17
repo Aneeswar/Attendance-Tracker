@@ -186,8 +186,11 @@
             <span>AttenTrack</span>
         </div>
         <div class="navbar-menu">
-            <a href="/student-dashboard" style="color: white; text-decoration: none; font-size: 0.875rem; font-weight: 700;">
+            <a href="/student/dashboard" style="color: white; text-decoration: none; font-size: 0.875rem; font-weight: 700;">
                 <i class="fas fa-arrow-left"></i> Dashboard
+            </a>
+            <a href="/student/profile" style="color: white; text-decoration: none; font-size: 0.875rem; font-weight: 700; margin-left: 1.5rem;">
+                <i class="fas fa-user-circle"></i> Profile
             </a>
         </div>
     </div>
@@ -195,13 +198,13 @@
     <div class="container">
         <div class="page-header">
             <div>
-                <h1>Holiday Requests</h1>
+                <h1>Suggest Missing Holiday</h1>
                 <p style="color: var(--text-muted); font-size: 0.875rem; margin-top: 0.25rem;">
-                    Request holidays and track their approval status.
+                    Help the admin by reporting institutional holidays not currently in the calendar.
                 </p>
             </div>
             <button class="btn btn-primary" onclick="openModal()">
-                <i class="fas fa-plus"></i> New Request
+                <i class="fas fa-plus"></i> Suggest Holiday
             </button>
         </div>
 
@@ -213,25 +216,25 @@
         <div id="sectionsContainer" style="display: none;">
             <div class="section-container">
                 <h2 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 1rem; color: var(--primary); display: flex; align-items: center; gap: 0.5rem;">
-                    <i class="fas fa-user-circle"></i> My Requests
+                    <i class="fas fa-bullhorn"></i> My Suggestions
                 </h2>
                 <div id="myRequestList"></div>
                 <div id="myEmptyState" class="empty-state" style="display: none; margin-bottom: 2rem;">
-                    <i class="fas fa-calendar-day fa-3x" style="margin-bottom: 1rem; opacity: 0.3;"></i>
-                    <h3>No requests found</h3>
-                    <p>You haven't submitted any holiday requests yet.</p>
+                    <i class="fas fa-calendar-check fa-3x" style="margin-bottom: 1rem; opacity: 0.3;"></i>
+                    <h3>No suggestions yet</h3>
+                    <p>Help the community by suggesting missing holidays.</p>
                 </div>
             </div>
 
             <div class="section-container" style="margin-top: 3rem;">
                 <h2 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 1rem; color: var(--secondary); display: flex; align-items: center; gap: 0.5rem;">
-                    <i class="fas fa-users"></i> Other Students' Requests
+                    <i class="fas fa-users"></i> Suggestions from Peers
                 </h2>
                 <div id="otherRequestList"></div>
                 <div id="otherEmptyState" class="empty-state" style="display: none;">
                     <i class="fas fa-info-circle fa-3x" style="margin-bottom: 1rem; opacity: 0.3;"></i>
-                    <h3>No other requests</h3>
-                    <p>There are no holiday requests from other students yet.</p>
+                    <h3>No other suggestions</h3>
+                    <p>No holiday suggestions reported by other students yet.</p>
                 </div>
             </div>
         </div>
@@ -241,16 +244,16 @@
     <div id="requestModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 id="modalTitle">New Holiday Request</h2>
+                <h2 id="modalTitle">Suggest Missing Holiday</h2>
             </div>
             <form id="requestForm">
                 <input type="hidden" id="requestId">
                 <div class="form-group">
-                    <label>Date</label>
+                    <label>Holiday Date</label>
                     <input type="date" id="holidayDate" required>
                 </div>
                 <div class="form-group">
-                    <label>Session Type</label>
+                    <label>Holiday Extent</label>
                     <select id="scope" required>
                         <option value="FULL">Full Day</option>
                         <option value="MORNING">Morning Only</option>
@@ -258,12 +261,12 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>Reason</label>
-                    <textarea id="reason" rows="3" placeholder="Enter reason for holiday..." required></textarea>
+                    <label>Holiday Description / Reason</label>
+                    <textarea id="reason" rows="3" placeholder="e.g., Regional festival, Local holiday, etc." required></textarea>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-                    <button type="submit" class="btn btn-primary" id="submitBtn">Submit Request</button>
+                    <button type="submit" class="btn btn-primary" id="submitBtn">Submit Suggestion</button>
                 </div>
             </form>
         </div>

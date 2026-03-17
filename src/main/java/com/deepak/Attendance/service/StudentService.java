@@ -858,11 +858,11 @@ public class StudentService {
         
         // Add exam periods (CAT-1, CAT-2, FAT) as FULL day exclusions
         Set<LocalDate> examDates = new HashSet<>();
-        Optional<AcademicCalendar> currentCalendar = academicCalendarRepository
+        List<AcademicCalendar> calendars = academicCalendarRepository
                 .findBySemesterStartDateLessThanEqualAndExamStartDateGreaterThanEqual(today, today);
         
-        if (currentCalendar.isPresent()) {
-            AcademicCalendar calendar = currentCalendar.get();
+        if (!calendars.isEmpty()) {
+            AcademicCalendar calendar = calendars.get(0); // Take the most relevant one
             
             if (calendar.getCat1StartDate() != null && calendar.getCat1EndDate() != null) {
                 LocalDate examDate = calendar.getCat1StartDate();

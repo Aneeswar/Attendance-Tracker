@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -92,7 +92,7 @@
         .form-group label { display: block; font-size: 0.8125rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--text-main); }
         .form-group input {
             width: 100%;
-            padding: 0.75rem 1rem;
+            padding: 0.75rem 2.5rem 0.75rem 1rem;
             border-radius: 0.75rem;
             border: 1px solid #e2e8f0;
             font-family: inherit;
@@ -101,6 +101,25 @@
             color: var(--text-main);
             transition: all 0.2s;
         }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            cursor: pointer;
+            transition: color 0.15s ease;
+        }
+
+        .toggle-password:hover {
+            color: var(--primary);
+        }
+
         .form-group input:focus { outline: none; border-color: var(--primary); background: white; box-shadow: 0 0 0 3px #4f46e522; }
         .form-group input:disabled { opacity: 0.6; cursor: not-allowed; }
 
@@ -144,7 +163,7 @@
             <span>AttenTrack</span>
         </div>
         <div class="navbar-menu">
-            <a href="/student-dashboard" style="color: white; text-decoration: none; font-size: 0.875rem; font-weight: 700;">
+            <a href="/student/dashboard" style="color: white; text-decoration: none; font-size: 0.875rem; font-weight: 700;">
                 <i class="fas fa-arrow-left"></i> Dashboard
             </a>
         </div>
@@ -166,14 +185,21 @@
                 <div class="settings-section">
                     <div class="section-title">Identity Information</div>
                     <form id="profileForm">
+                        <div class="form-group">
+                            <label>Current Password</label>
+                            <div class="input-wrapper">
+                                <input type="password" id="profileCurrentPassword" placeholder="Required to save changes" required>
+                                <i class="fas fa-eye toggle-password" onclick="togglePass('profileCurrentPassword', this)"></i>
+                            </div>
+                        </div>
                         <div class="form-grid">
                             <div class="form-group">
                                 <label>Full Name</label>
-                                <input type="text" id="fullName" placeholder="Your Name">
+                                <input type="text" id="fullName" placeholder="Your Name" style="padding: 0.75rem 1rem;">
                             </div>
                             <div class="form-group">
                                 <label>Email Address</label>
-                                <input type="email" id="email" placeholder="email@university.edu">
+                                <input type="email" id="email" placeholder="email@university.edu" style="padding: 0.75rem 1rem;">
                             </div>
                         </div>
                         <button type="submit" class="btn btn-primary">Update Profile</button>
@@ -185,16 +211,25 @@
                     <form id="passwordForm">
                         <div class="form-group">
                             <label>Current Password</label>
-                            <input type="password" id="currentPassword" placeholder="">
+                            <div class="input-wrapper">
+                                <input type="password" id="currentPassword" placeholder="">
+                                <i class="fas fa-eye toggle-password" onclick="togglePass('currentPassword', this)"></i>
+                            </div>
                         </div>
                         <div class="form-grid">
                             <div class="form-group">
                                 <label>New Password</label>
-                                <input type="password" id="newPassword" placeholder="Minimum 8 chars">
+                                <div class="input-wrapper">
+                                    <input type="password" id="newPassword" placeholder="Minimum 8 chars">
+                                    <i class="fas fa-eye toggle-password" onclick="togglePass('newPassword', this)"></i>
+                                </div>
                             </div>
                             <div class="form-group">
                                 <label>Confirm Password</label>
-                                <input type="password" id="confirmPassword" placeholder="">
+                                <div class="input-wrapper">
+                                    <input type="password" id="confirmPassword" placeholder="">
+                                    <i class="fas fa-eye toggle-password" onclick="togglePass('confirmPassword', this)"></i>
+                                </div>
                             </div>
                         </div>
                         <button type="submit" class="btn btn-primary" style="background: var(--nav-bg);">Update Security</button>
@@ -207,6 +242,14 @@
     <script>
         const token = localStorage.getItem('jwtToken');
         if (!token) window.location.href = '/login';
+
+        function togglePass(id, icon) {
+            const input = document.getElementById(id);
+            const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
+            input.setAttribute('type', type);
+            icon.classList.toggle('fa-eye');
+            icon.classList.toggle('fa-eye-slash');
+        }
 
         document.addEventListener('DOMContentLoaded', loadProfile);
 
@@ -230,7 +273,8 @@
             e.preventDefault();
             const username = document.getElementById('fullName').value;
             const email = document.getElementById('email').value;
-            await updateProfile({ username, email });
+            const currentPassword = document.getElementById('profileCurrentPassword').value;
+            await updateProfile({ username, email, currentPassword });
         };
 
         document.getElementById('passwordForm').onsubmit = async (e) => {
@@ -259,19 +303,12 @@
                 });
                 
                 if (res.ok) {
+                    const result = await res.json();
+                    if (result.token) {
+                        localStorage.setItem('jwtToken', result.token);
+                    }
                     showAlert('Profile updated successfully!', 'success');
                     setTimeout(() => location.reload(), 1500);
-                } else {
-                    const err = await res.json();
-                    showAlert(err.error || 'Update failed', 'error');
-                }
-            } catch (e) { showAlert('Connection error', 'error'); }
-        }
-                    body: JSON.stringify(data)
-                });
-                if (res.ok) {
-                    showAlert('Settings updated successfully!', 'success');
-                    loadProfile();
                 } else {
                     const err = await res.json();
                     showAlert(err.error || 'Update failed', 'error');

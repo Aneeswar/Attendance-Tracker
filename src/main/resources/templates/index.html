@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -8,19 +8,14 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #4f46e5;
-            --primary-hover: #4338ca;
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
             --secondary: #64748b;
-            --success: #10b981;
-            --warning: #f59e0b;
-            --danger: #ef4444;
             --background: #f8fafc;
             --card-bg: #ffffff;
-            --text-main: #1e293b;
-            --text-muted: #64748b;
-            --nav-bg: rgba(15, 23, 42, 0.9);
-            --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            --text-main: #0f172a;
+            --text-muted: #475569;
+            --nav-bg: rgba(15, 23, 42, 0.95);
         }
 
         * {
@@ -33,15 +28,15 @@
             font-family: 'Inter', system-ui, -apple-system, sans-serif;
             background-color: var(--background);
             color: var(--text-main);
-            line-height: 1.5;
+            line-height: 1.6;
             overflow-x: hidden;
         }
 
         .navbar {
             background: var(--nav-bg);
-            backdrop-filter: blur(8px);
+            backdrop-filter: blur(12px);
             color: white;
-            padding: 1rem 2rem;
+            padding: 1.25rem 2rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -61,7 +56,113 @@
         }
 
         .navbar-brand i {
-            color: #818cf8;
+            background: linear-gradient(135deg, #818cf8, #6366f1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero-section {
+            background: #0f172a;
+            background-image: 
+                radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
+                radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0, transparent 50%), 
+                radial-gradient(at 100% 0%, hsla(339,49%,30%,1) 0, transparent 50%);
+            padding: 10rem 2rem 8rem;
+            text-align: center;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-section::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.12'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2v-4h4v-2h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2v-4h4v-2H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            opacity: 0.3;
+        }
+
+        .hero-section::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 6rem;
+            background: linear-gradient(to top, var(--background), transparent);
+        }
+
+        .hero-content {
+            max-width: 900px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-content h1 {
+            font-size: 4rem;
+            font-weight: 900;
+            margin-bottom: 2rem;
+            letter-spacing: -0.05em;
+            line-height: 1.1;
+        }
+
+        .hero-content h1 span {
+            display: inline-block;
+            background: linear-gradient(to right, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero-content p {
+            font-size: 1.35rem;
+            margin-bottom: 3.5rem;
+            color: #94a3b8;
+            line-height: 1.7;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .cta-btn {
+            padding: 1.25rem 3rem;
+            font-size: 1.125rem;
+            font-weight: 700;
+            border-radius: 1rem;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 20px 25px -5px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-4px) scale(1.02);
+            background: var(--primary-hover);
+            box-shadow: 0 25px 30px -5px rgba(99, 102, 241, 0.5);
+        }
+
+        .feature-card {
+            background: white;
+            padding: 3rem 2.5rem;
+            border-radius: 2rem;
+            border: 1px solid #e2e8f0;
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-8px);
+            border-color: var(--primary);
+            box-shadow: 0 30px 40px -15px rgba(0, 0, 0, 0.1);
         }
 
         .navbar-menu {
@@ -349,7 +450,7 @@
 
     <div class="hero-section">
         <div class="hero-content">
-            <h1>Stay Ahead of Your <span>Attendance</span></h1>
+            <h1>Automated <span>Attendance</span> Intelligence</h1>
             <p>Smart, date-based tracking with predictive analytics to ensure you're always eligible for your exams. Manage courses, track holidays, and predict success.</p>
             <div class="cta-buttons">
                 <a href="/login?mode=student" class="cta-btn btn-primary">
@@ -366,57 +467,57 @@
 
     <div class="section-container" id="features">
         <div class="section-header">
-            <h2>Powerful Features</h2>
-            <p>Everything you need to manage academic attendance efficiently.</p>
+            <h2>Next-Gen Features</h2>
+            <p>Everything you need to manage academic attendance with precision and ease.</p>
         </div>
         
         <div class="features-grid">
             <div class="feature-card">
                 <div class="feature-icon-wrapper">
-                    <i class="fas fa-chart-line"></i>
+                    <i class="fas fa-bolt"></i>
                 </div>
-                <h3>Predictive Eligibility</h3>
-                <p>Know exactly how many classes you must attend to reach 75% or 65% thresholds before exams start.</p>
+                <h3>Dynamic Prediction</h3>
+                <p>Advanced algorithms forecast your eligibility for CAT-1, CAT-2, and FAT exams based on future working days.</p>
             </div>
             
             <div class="feature-card">
                 <div class="feature-icon-wrapper">
-                    <i class="fas fa-calendar-check"></i>
+                    <i class="fas fa-calendar-alt"></i>
                 </div>
-                <h3>Smart Calendar</h3>
-                <p>Interactive calendar that automatically accounts for institutional holidays and study breaks.</p>
+                <h3>Automated Calendar</h3>
+                <p>Syncs directly with institutional holidays, study breaks, and exam periods to provide zero-effort tracking.</p>
             </div>
             
             <div class="feature-card">
                 <div class="feature-icon-wrapper">
-                    <i class="fas fa-bell"></i>
+                    <i class="fas fa-history"></i>
                 </div>
-                <h3>Real-time Updates</h3>
-                <p>Instant recalculation when academic schedules change. Get notified when your reports need refreshing.</p>
+                <h3>Real-time Sync</h3>
+                <p>Instant recalculation when academic schedules change. Stay informed with automated report invalidation.</p>
             </div>
 
             <div class="feature-card">
                 <div class="feature-icon-wrapper">
-                    <i class="fas fa-shield-alt"></i>
+                    <i class="fas fa-fingerprint"></i>
                 </div>
-                <h3>Secure Access</h3>
-                <p>JWT-secured dashboard with role-based access for both students and administrators.</p>
+                <h3>JWT Security</h3>
+                <p>Military-grade authentication ensuring your academic records are private and role-protected.</p>
             </div>
 
             <div class="feature-card">
                 <div class="feature-icon-wrapper">
-                    <i class="fas fa-file-invoice"></i>
+                    <i class="fas fa-chart-pie"></i>
                 </div>
-                <h3>Detailed Insights</h3>
-                <p>Examine future class dates, upcoming exam schedules, and medical relaxation options.</p>
+                <h3>Deep Analytics</h3>
+                <p>Visualize your attendance trends and understand exactly how many classes you can afford to miss.</p>
             </div>
 
             <div class="feature-card">
                 <div class="feature-icon-wrapper">
-                    <i class="fas fa-tasks"></i>
+                    <i class="fas fa-magic"></i>
                 </div>
-                <h3>Easy Management</h3>
-                <p>Admin tools to manage university-wide academic calendars and holiday schedules with one click.</p>
+                <h3>Admin Efficiency</h3>
+                <p>Streamlined tools for managing university-wide sessions, holidays, and student data with one click.</p>
             </div>
         </div>
     </div>

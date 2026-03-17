@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
@@ -160,6 +160,35 @@
         }
 
         .day-badge span { color: var(--primary); }
+
+        /* Session Toggle Styling */
+        .session-toggle {
+            display: flex;
+            background: #f1f5f9;
+            padding: 0.2rem;
+            border-radius: 0.5rem;
+            gap: 0.2rem;
+            margin-top: 0.25rem;
+            width: fit-content;
+        }
+
+        .tog-btn {
+            border: none;
+            background: transparent;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.4rem;
+            font-size: 0.65rem;
+            font-weight: 700;
+            cursor: pointer;
+            color: var(--text-muted);
+            transition: all 0.2s;
+        }
+
+        .tog-btn.active {
+            background: white;
+            color: var(--primary);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
 
         .card-actions {
             display: flex;
@@ -381,7 +410,7 @@
             <span>AttenTrack</span>
         </div>
         <div class="navbar-menu">
-            <a href="/student-dashboard" class="btn btn-outline" style="color: white; border-color: #334155;"><i class="fas fa-arrow-left"></i> Dashboard</a>
+            <a href="/student/dashboard" class="btn btn-outline" style="color: white; border-color: #334155;"><i class="fas fa-arrow-left"></i> Dashboard</a>
         </div>
     </div>
 
@@ -519,7 +548,7 @@
     </div>
 
     <script>
-        const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+        const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
         let availableCourses = [];
         let windowCoursesData = {};
 
@@ -538,23 +567,43 @@
                 const container = document.getElementById(conf.id);
                 container.innerHTML = weekdays.map(day => `
                     <div class="day-input-card">
-                        <div class="day-header">
-                            <input type="checkbox" id="${conf.prefix}-check-${day}" onchange="toggleDayInput('${conf.prefix}', '${day}')">
-                            <label for="${conf.prefix}-check-${day}">${day}</label>
-                        </div>
-                        <div id="${conf.prefix}-sessions-${day}" class="session-group">
-                            <div class="session-row">
-                                <input type="checkbox" id="${conf.prefix}-morning-${day}">
-                                <span>Morning</span>
+                        <div class="day-header" style="justify-content: space-between; width: 100%;">
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <input type="checkbox" id="${conf.prefix}-check-${day}" onchange="toggleDayInput('${conf.prefix}', '${day}')">
+                                <label for="${conf.prefix}-check-${day}">${day}</label>
                             </div>
-                            <div class="session-row">
-                                <input type="checkbox" id="${conf.prefix}-afternoon-${day}">
-                                <span>Afternoon</span>
+                            <div id="${conf.prefix}-sessions-${day}" class="session-toggle" style="display: none;">
+                                <button type="button" id="${conf.prefix}-tog-morning-${day}" class="tog-btn" onclick="toggleSession('${conf.prefix}', '${day}', 'morning')">AM</button>
+                                <button type="button" id="${conf.prefix}-tog-afternoon-${day}" class="tog-btn" onclick="toggleSession('${conf.prefix}', '${day}', 'afternoon')">PM</button>
+                                <input type="checkbox" id="${conf.prefix}-morning-${day}" style="display: none;">
+                                <input type="checkbox" id="${conf.prefix}-afternoon-${day}" style="display: none;">
                             </div>
                         </div>
                     </div>
                 `).join('');
             });
+        }
+
+        function toggleSession(prefix, day, session) {
+            const morningCheckbox = document.getElementById(`${prefix}-morning-${day}`);
+            const afternoonCheckbox = document.getElementById(`${prefix}-afternoon-${day}`);
+            const morningBtn = document.getElementById(`${prefix}-tog-morning-${day}`);
+            const afternoonBtn = document.getElementById(`${prefix}-tog-afternoon-${day}`);
+
+            if (session === 'morning') {
+                morningCheckbox.checked = !morningCheckbox.checked;
+                if (morningCheckbox.checked) {
+                    afternoonCheckbox.checked = false;
+                }
+            } else {
+                afternoonCheckbox.checked = !afternoonCheckbox.checked;
+                if (afternoonCheckbox.checked) {
+                    morningCheckbox.checked = false;
+                }
+            }
+
+            morningBtn.classList.toggle('active', morningCheckbox.checked);
+            afternoonBtn.classList.toggle('active', afternoonCheckbox.checked);
         }
 
         function toggleDayInput(prefix, day) {
@@ -707,12 +756,17 @@
                 const sessions = document.getElementById(`edit-sessions-${day}`);
                 const morningCheck = document.getElementById(`edit-morning-${day}`);
                 const afternoonCheck = document.getElementById(`edit-afternoon-${day}`);
+                const morningBtn = document.getElementById(`edit-tog-morning-${day}`);
+                const afternoonBtn = document.getElementById(`edit-tog-afternoon-${day}`);
 
                 check.checked = entries.length > 0;
                 sessions.style.display = check.checked ? 'flex' : 'none';
                 
                 morningCheck.checked = entries.some(e => e.session === 'MORNING');
                 afternoonCheck.checked = entries.some(e => e.session === 'AFTERNOON');
+                
+                morningBtn.classList.toggle('active', morningCheck.checked);
+                afternoonBtn.classList.toggle('active', afternoonCheck.checked);
             });
 
             document.getElementById('editCourseModal').classList.add('show');

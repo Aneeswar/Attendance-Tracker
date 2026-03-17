@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -132,7 +132,7 @@
             <span>AttenTrack Admin</span>
         </div>
         <div class="navbar-menu">
-            <a href="/admin-dashboard" style="color: white; text-decoration: none; font-size: 0.875rem; font-weight: 700;">
+            <a href="/admin/dashboard" style="color: white; text-decoration: none; font-size: 0.875rem; font-weight: 700;">
                 <i class="fas fa-arrow-left"></i> Dashboard
             </a>
         </div>
@@ -264,6 +264,7 @@
                     <td>
                         <div class="action-btns">
                             <button class="act-btn" onclick="viewDetails(${s.id})" title="View Details Dashboard"><i class="fas fa-chart-line"></i></button>
+                            <button class="act-btn del-btn" onclick="confirmDelete(${s.id}, '${s.username}')" title="Delete Student Account"><i class="fas fa-trash-alt"></i></button>
                         </div>
                     </td>
                 `;
@@ -284,8 +285,30 @@
             loadStudents();
         }
 
+        async function confirmDelete(id, username) {
+            if (confirm(`CRITICAL ACTION: Are you sure you want to PERMANENTLY delete student "${username}" (#STU-${id}) and ALL their attendance records?\n\nThis cannot be undone.`)) {
+                await deleteStudent(id);
+            }
+        }
+
         async function deleteStudent(id) {
-            alert('Student deletion is restricted to system administrators via direct database access in this version.');
+            try {
+                const res = await fetch(`/api/admin/students/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const result = await res.json();
+                
+                if (res.ok) {
+                    alert(result.message || 'Student account terminated successfully');
+                    loadStudents();
+                } else {
+                    alert('Error deleting student: ' + (result.error || 'System constraint violation'));
+                }
+            } catch (e) {
+                console.error('Network failure during deletion:', e);
+                alert('Connection breakdown. Could not complete deletion.');
+            }
         }
 
         async function viewDetails(id) {

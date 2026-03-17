@@ -3,7 +3,6 @@ package com.deepak.Attendance.dto;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import java.time.LocalDate;
 import java.util.List;
 
 @Data
@@ -15,8 +14,10 @@ public class BulkHolidayRequest {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class Holiday {
-        private LocalDate date;
+        private String date; // Changed to String to handle incoming JSON
         private String reason;
+        private String type; // New field
+        private String scope; // New field
     }
     
     private List<Holiday> holidays;

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -459,10 +459,10 @@
             <span>AttenTrack</span>
         </div>
         <div class="navbar-menu">
-            <a href="/student-dashboard" class="active"><i class="fas fa-home"></i> Home</a>
-            <a href="/student-manage-courses"><i class="fas fa-book"></i> Courses</a>
-            <a href="/student-attendance-report"><i class="fas fa-chart-pie"></i> Report</a>
-            <a href="/student-profile"><i class="fas fa-user-circle"></i> Profile</a>
+            <a href="/student/dashboard" class="active"><i class="fas fa-home"></i> Home</a>
+            <a href="/student/manage-courses"><i class="fas fa-book"></i> Courses</a>
+            <a href="/student/attendance-report"><i class="fas fa-chart-pie"></i> Report</a>
+            <a href="/student/profile"><i class="fas fa-user-circle"></i> Profile</a>
             <div class="user-profile">
                 <div class="avatar" id="userInitials">U</div>
                 <a href="#" onclick="logout()" class="logout-btn">Logout</a>
@@ -501,95 +501,90 @@
         </div>
 
         <div class="dashboard-grid">
-            <div class="main-col">
+            <div class="side-col">
                 <div class="card" id="statsCard" style="display: none;">
-                    <h2 class="card-title"><i class="fas fa-chart-line"></i> Attendance Overview</h2>
-                    <div id="statsGrid" class="report-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                    <h2 class="card-title"><i class="fas fa-chart-line"></i> Summary</h2>
+                    <div id="statsGrid" class="report-grid" style="display: grid; grid-template-columns: 1fr; gap: 1rem;">
                         <!-- Mini cards will be injected here -->
                     </div>
                 </div>
 
                 <div class="card">
-                    <h2 class="card-title"><i class="fas fa-rocket"></i> Fast Actions</h2>
-                    <div class="action-grid">
-                        <a href="/student-manage-courses" class="action-card">
-                            <div class="action-icon icon-blue"><i class="fas fa-plus"></i></div>
-                            <h3>Manage Courses</h3>
-                            <p>Add or edit your enrolled courses and class schedules.</p>
-                        </a>
-                        <a href="/student-attendance-report" class="action-card">
-                            <div class="action-icon icon-purple"><i class="fas fa-chart-bar"></i></div>
-                            <h3>View Report</h3>
-                            <p>Deep dive into your eligibility and percentage stats.</p>
-                        </a>
-                        <a href="/student-mark-by-date" class="action-card">
-                            <div class="action-icon icon-green"><i class="fas fa-calendar-plus"></i></div>
-                            <h3>Mark Attendance</h3>
-                            <p>Keep your records up to date by marking daily attendance.</p>
-                        </a>
-                        <a href="/student/holidays" class="action-card">
-                            <div class="action-icon icon-amber"><i class="fas fa-umbrella-beach"></i></div>
-                            <h3>Academic Calendar</h3>
-                            <p>View upcoming institutional holidays and exam dates.</p>
-                        </a>
-                        <a href="/student/holiday-requests" class="action-card">
-                            <div class="action-icon" style="background: #eef2ff; color: #4f46e5;"><i class="fas fa-file-medical"></i></div>
-                            <h3>Request Holiday</h3>
-                            <p>Submit requests for personal or medical leaves to the admin.</p>
-                        </a>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <h2 class="card-title"><i class="fas fa-lightbulb"></i> Quick Guide</h2>
-                    <div class="info-step">
-                        <div class="step-num">1</div>
-                        <div class="step-content">
-                            <h4>Set up your profile</h4>
-                            <p>Complete your course list and configure schedules for accurate predictions.</p>
-                        </div>
-                    </div>
-                    <div class="info-step">
-                        <div class="step-num">2</div>
-                        <div class="step-content">
-                            <h4>Record daily attendance</h4>
-                            <p>Mark yourself present or absent daily to maintain a real-time record.</p>
-                        </div>
-                    </div>
-                    <div class="info-step">
-                        <div class="step-num">3</div>
-                        <div class="step-content">
-                            <h4>Monitor eligibility</h4>
-                            <p>The system predicts if you'll meet the 75% goal based on future working days.</p>
-                        </div>
+                    <h2 class="card-title"><i class="fas fa-shield-alt"></i> Passing Criteria</h2>
+                    <div class="step-content" style="padding: 0.25rem">
+                        <ul style="list-style: none; font-size: 0.75rem; display: grid; gap: 0.75rem;">
+                            <li style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; background: #ecfdf5; border-radius: 0.5rem; color: #065f46;">
+                                <i class="fas fa-check-circle"></i>
+                                <span><strong>75%+</strong> Safe</span>
+                            </li>
+                            <li style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; background: #fffbeb; border-radius: 0.5rem; color: #92400e;">
+                                <i class="fas fa-exclamation-circle"></i>
+                                <span><strong>65-75%</strong> Warning</span>
+                            </li>
+                            <li style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; background: #fef2f2; border-radius: 0.5rem; color: #991b1b;">
+                                <i class="fas fa-times-circle"></i>
+                                <span><strong>< 65%</strong> Debarred</span>
+                            </li>
+                        </ul>
                     </div>
                 </div>
             </div>
 
-            <div class="side-col">
+            <div class="main-col">
                 <div class="card">
-                    <h2 class="card-title"><i class="fas fa-user-circle"></i> Profile Overview</h2>
-                    <div class="quick-stats">
-                        <div class="stat-box">
-                            <span class="stat-lbl">Role</span>
-                            <span class="stat-val">Student</span>
-                        </div>
-                        <div class="stat-box">
-                            <span class="stat-lbl">Status</span>
-                            <span class="stat-val" style="color: var(--success)">Active</span>
-                        </div>
+                    <h2 class="card-title"><i class="fas fa-rocket"></i> Fast Actions</h2>
+                    <div class="action-grid" style="grid-template-columns: repeat(3, 1fr);">
+                        <a href="/student/mark-by-date" class="action-card" style="padding: 1.25rem; background: #ecfdf5; border-color: #10b98133;">
+                            <div class="action-icon" style="background: white; color: #059669; margin-bottom: 0.5rem;"><i class="fas fa-calendar-check"></i></div>
+                            <h3>Mark Attendance</h3>
+                            <p style="font-size: 0.75rem; color: #059669; margin-top: 0.25rem;">Daily record</p>
+                        </a>
+                        <a href="/student/attendance-report" class="action-card" style="padding: 1.25rem; background: #eff6ff; border-color: #3b82f633;">
+                            <div class="action-icon" style="background: white; color: #2563eb; margin-bottom: 0.5rem;"><i class="fas fa-chart-pie"></i></div>
+                            <h3>View Analysis</h3>
+                            <p style="font-size: 0.75rem; color: #2563eb; margin-top: 0.25rem;">Eligibility stats</p>
+                        </a>
+                        <a href="/student/manage-courses" class="action-card" style="padding: 1.25rem;">
+                            <div class="action-icon icon-blue" style="margin-bottom: 0.5rem;"><i class="fas fa-book"></i></div>
+                            <h3>Courses</h3>
+                            <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Manage subjects</p>
+                        </a>
+                        <a href="/student/holidays" class="action-card" style="padding: 1.25rem;">
+                            <div class="action-icon icon-amber" style="margin-bottom: 0.5rem;"><i class="fas fa-mountain-sun"></i></div>
+                            <h3>Academic Cal</h3>
+                            <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Term holidays</p>
+                        </a>
+                        <a href="/student/holiday-requests" class="action-card" style="padding: 1.25rem;">
+                            <div class="action-icon" style="background: #fdf2f8; color: #db2777; margin-bottom: 0.5rem;"><i class="fas fa-bullhorn"></i></div>
+                            <h3>Suggest Holiday</h3>
+                            <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Notify admin of missing term holidays</p>
+                        </a>
+                        <a href="/student/profile" class="action-card" style="padding: 1.25rem;">
+                            <div class="action-icon" style="background: #f8fafc; color: #475569; margin-bottom: 0.5rem;"><i class="fas fa-user-shield"></i></div>
+                            <h3>Privacy</h3>
+                            <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Secure profile</p>
+                        </a>
                     </div>
                 </div>
 
                 <div class="card">
-                    <h2 class="card-title"><i class="fas fa-shield-alt"></i> Attendance Policy</h2>
-                    <div class="step-content" style="padding: 0.5rem">
-                        <p style="font-size: 0.875rem; margin-bottom: 1rem;">The university maintains a strict attendance policy for exam eligibility:</p>
-                        <ul style="list-style: none; font-size: 0.8125rem; display: grid; gap: 0.75rem;">
-                            <li><i class="fas fa-chevron-right" style="color: var(--primary); font-size: 0.6rem;"></i> <strong>75% & Above</strong>: Standard eligibility for all exams.</li>
-                            <li><i class="fas fa-chevron-right" style="color: var(--primary); font-size: 0.6rem;"></i> <strong>65% - 75%</strong>: Medical/Special case relaxation required.</li>
-                            <li><i class="fas fa-chevron-right" style="color: var(--primary); font-size: 0.6rem;"></i> <strong>Below 65%</strong>: Strictly ineligible for examinations.</li>
-                        </ul>
+                    <h2 class="card-title"><i class="fas fa-info-circle"></i> Intelligence Hub</h2>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+                        <div style="background: #f8fafc; padding: 1.25rem; border-radius: 0.75rem;">
+                            <div style="color: var(--primary); font-size: 1.25rem; margin-bottom: 0.5rem;"><i class="fas fa-microchip"></i></div>
+                            <h4 style="font-size: 0.875rem; font-weight: 700;">Smart Refresh</h4>
+                            <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Reports auto-invalidate when admins update holiday data.</p>
+                        </div>
+                        <div style="background: #f8fafc; padding: 1.25rem; border-radius: 0.75rem;">
+                            <div style="color: var(--success); font-size: 1.25rem; margin-bottom: 0.5rem;"><i class="fas fa-stethoscope"></i></div>
+                            <h4 style="font-size: 0.875rem; font-weight: 700;">Relaxation Logic</h4>
+                            <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Dynamic 65% thresholding applied when medical leave is approved.</p>
+                        </div>
+                        <div style="background: #f8fafc; padding: 1.25rem; border-radius: 0.75rem;">
+                            <div style="color: var(--warning); font-size: 1.25rem; margin-bottom: 0.5rem;"><i class="fas fa-glasses"></i></div>
+                            <h4 style="font-size: 0.875rem; font-weight: 700;">Exam Forecaster</h4>
+                            <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Predicts CAT & FAT status based on future session density.</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -605,6 +600,12 @@
             const username = localStorage.getItem('username') || 'User';
             document.getElementById('welcomeName').textContent = username;
             document.getElementById('userInitials').textContent = username.charAt(0).toUpperCase();
+            
+            // Update profile section
+            const profileName = document.getElementById('profileName');
+            const profileAvatar = document.getElementById('profileAvatar');
+            if (profileName) profileName.textContent = username;
+            if (profileAvatar) profileAvatar.textContent = username.charAt(0).toUpperCase();
 
             checkStaleStatus();
         });
@@ -643,7 +644,7 @@
                     <i class="fas fa-book-open" style="font-size: 2rem; color: var(--primary); margin-bottom: 1rem; opacity: 0.5;"></i>
                     <h3 style="font-size: 1rem; margin-bottom: 0.5rem;">No Courses Yet</h3>
                     <p style="font-size: 0.8125rem; color: var(--text-muted); margin-bottom: 1rem;">Add courses to your schedule to see attendance insights here.</p>
-                    <a href="/student-manage-courses" class="refresh-btn" style="display: inline-flex; text-decoration: none; justify-content: center; background: var(--primary);">Add Course</a>
+                    <a href="/student/manage-courses" class="refresh-btn" style="display: inline-flex; text-decoration: none; justify-content: center; background: var(--primary);">Add Course</a>
                 </div>
             `;
         }

@@ -29,7 +29,15 @@ public class JwtTokenProvider {
 
     public String generateToken(UserDetails userDetails) {
         Map<String, Object> claims = new HashMap<>();
+        // Note: The userId is typically not stored in standard UserDetails
+        // but can be added here if we had a custom UserDetails implementation.
+        // For now, we'll keep it simple and fix the extraction logic in controllers.
         return createToken(claims, userDetails.getUsername());
+    }
+
+    public String generateTokenForUsername(String username) {
+        Map<String, Object> claims = new HashMap<>();
+        return createToken(claims, username);
     }
 
     private String createToken(Map<String, Object> claims, String subject) {

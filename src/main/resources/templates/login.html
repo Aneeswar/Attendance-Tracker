@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -8,16 +8,14 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #4f46e5;
-            --primary-hover: #4338ca;
-            --secondary: #64748b;
-            --success: #10b981;
-            --warning: #f59e0b;
-            --danger: #ef4444;
-            --background: #f8fafc;
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --accent: #818cf8;
+            --background: #0f172a;
             --card-bg: #ffffff;
             --text-main: #1e293b;
             --text-muted: #64748b;
+            --glass: rgba(255, 255, 255, 0.95);
         }
 
         * {
@@ -28,32 +26,227 @@
 
         body {
             font-family: 'Inter', system-ui, -apple-system, sans-serif;
-            background: radial-gradient(circle at top left, #4f46e5, #764ba2);
+            background: #0f172a;
+            background-image: 
+                radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
+                radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0, transparent 50%), 
+                radial-gradient(at 100% 0%, hsla(339,49%,30%,1) 0, transparent 50%);
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
             color: var(--text-main);
             padding: 1.5rem;
+            overflow: hidden;
+        }
+
+        /* Animated background elements */
+        .bg-blob {
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            background: var(--primary);
+            filter: blur(80px);
+            opacity: 0.15;
+            border-radius: 50%;
+            z-index: -1;
+            animation: move 20s infinite alternate;
+        }
+
+        @keyframes move {
+            from { transform: translate(-10%, -10%); }
+            to { transform: translate(10%, 10%); }
         }
 
         .container {
             width: 100%;
             max-width: 440px;
+            position: relative;
         }
 
         .login-box {
-            background: var(--card-bg);
-            padding: 2.5rem;
-            border-radius: 1.5rem;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            padding: 3rem 2.5rem;
+            border-radius: 2rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             position: relative;
+            transform: translateY(0);
+            transition: all 0.3s ease;
+        }
+
+        .login-box:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.6);
         }
 
         .home-link {
             position: absolute;
-            top: -3.5rem;
+            top: -4rem;
             left: 0;
+        }
+
+        .home-link a {
+            color: white;
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            opacity: 0.7;
+            transition: all 0.2s;
+            padding: 0.5rem 1rem;
+            border-radius: 1rem;
+            background: rgba(255,255,255,0.05);
+        }
+
+        .home-link a:hover {
+            opacity: 1;
+            background: rgba(255,255,255,0.1);
+            transform: translateX(-5px);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .header .logo {
+            width: 4rem;
+            height: 4rem;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: white;
+            border-radius: 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            margin: 0 auto 1.5rem;
+            box-shadow: 0 10px 20px -5px rgba(99, 102, 241, 0.5);
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            letter-spacing: -0.025em;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(to bottom right, #1e293b, #475569);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        .user-type-selector {
+            display: flex;
+            background: #f1f5f9;
+            padding: 0.4rem;
+            border-radius: 1rem;
+            margin-bottom: 2.5rem;
+            border: 1px solid #e2e8f0;
+        }
+
+        .user-type-btn {
+            flex: 1;
+            padding: 0.75rem;
+            border: none;
+            background: transparent;
+            border-radius: 0.75rem;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+        }
+
+        .user-type-btn.active {
+            background: white;
+            color: var(--primary);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            transform: scale(1.02);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.6rem;
+            color: #475569;
+            font-weight: 700;
+            font-size: 0.8125rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-wrapper i {
+            position: absolute;
+            left: 1.125rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            transition: color 0.2s;
+        }
+
+        input {
+            width: 100%;
+            padding: 0.875rem 1.125rem 0.875rem 3rem;
+            border: 2px solid #f1f5f9;
+            border-radius: 1rem;
+            font-size: 1rem;
+            transition: all 0.2s;
+            font-family: inherit;
+            background: #f8fafc;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: white;
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+        }
+
+        input:focus + i {
+            color: var(--primary);
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+            color: white;
+            border: none;
+            border-radius: 1rem;
+            font-size: 1.125rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            margin-top: 2.5rem;
+            box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 30px -5px rgba(99, 102, 241, 0.5);
+            filter: brightness(1.1);
         }
 
         .home-link a {
@@ -274,9 +467,12 @@
     </style>
 </head>
 <body>
+    <div class="bg-blob" style="top: -10%; left: -10%;"></div>
+    <div class="bg-blob" style="bottom: -10%; right: -10%; background: #a855f7; animation-delay: -5s;"></div>
+    
     <div class="container">
         <div class="home-link">
-            <a href="/"><i class="fas fa-arrow-left"></i> Back to Home</a>
+            <a href="/"><i class="fas fa-chevron-left"></i> Home</a>
         </div>
 
         <div class="login-box">
@@ -284,8 +480,8 @@
                 <div class="logo">
                     <i class="fas fa-graduation-cap"></i>
                 </div>
-                <h1 id="headerTitle">Login</h1>
-                <p id="headerSubtitle">Sign in to your account</p>
+                <h1 id="headerTitle">Welcome Back</h1>
+                <p id="headerSubtitle">Sign in to your dashboard</p>
             </div>
 
             <div class="user-type-selector">
@@ -315,6 +511,7 @@
                     <div class="input-wrapper">
                         <i class="fas fa-lock"></i>
                         <input type="password" id="password" placeholder="" required>
+                        <i class="fas fa-eye toggle-password" id="togglePassword" style="left: auto; right: 1.125rem; cursor: pointer; pointer-events: all;"></i>
                     </div>
                 </div>
                 <button type="submit" class="btn-login" id="loginBtn">
@@ -376,6 +573,16 @@
             clearMessages();
         }
 
+        const togglePassword = document.getElementById('togglePassword');
+        const passwordInput = document.getElementById('password');
+
+        togglePassword.addEventListener('click', function() {
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            this.classList.toggle('fa-eye');
+            this.classList.toggle('fa-eye-slash');
+        });
+
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const username = document.getElementById('username').value.trim();
@@ -409,7 +616,7 @@
 
                     showSuccess();
                     setTimeout(() => {
-                        window.location.href = selectedUserType === 'admin' ? '/admin-dashboard' : '/student-dashboard';
+                        window.location.href = selectedUserType === 'admin' ? '/admin/dashboard' : '/student/dashboard';
                     }, 1500);
                 } else {
                     showError('Invalid username or password');

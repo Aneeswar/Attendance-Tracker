@@ -112,11 +112,33 @@ public class HolidayService {
         
         List<HolidayDTO> savedHolidays = request.getHolidays().stream()
                 .map(h -> {
-                    if (holidayRepository.findByDate(h.getDate()).isEmpty()) {
+                    LocalDate date = LocalDate.parse(h.getDate());
+                    if (holidayRepository.findByDate(date).isEmpty()) {
                         Holiday holiday = new Holiday();
-                        holiday.setDate(h.getDate());
+                        holiday.setDate(date);
                         holiday.setReason(h.getReason());
-                        holiday.setType(Holiday.HolidayType.CALENDAR);
+                        
+                        // Parse type and scope if provided, else defaults
+                        try {
+                            if (h.getType() != null && !h.getType().isEmpty()) {
+                                holiday.setType(Holiday.HolidayType.valueOf(h.getType().toUpperCase()));
+                            } else {
+                                holiday.setType(Holiday.HolidayType.CALENDAR);
+                            }
+                        } catch (Exception e) {
+                            holiday.setType(Holiday.HolidayType.CALENDAR);
+                        }
+
+                        try {
+                            if (h.getScope() != null && !h.getScope().isEmpty()) {
+                                holiday.setScope(Holiday.HolidayScope.valueOf(h.getScope().toUpperCase()));
+                            } else {
+                                holiday.setScope(Holiday.HolidayScope.FULL);
+                            }
+                        } catch (Exception e) {
+                            holiday.setScope(Holiday.HolidayScope.FULL);
+                        }
+
                         holiday.setAcademicCalendarId(calendarId);
                         log.debug("Setting academicCalendarId {} for holiday on {}", calendarId, h.getDate());
                         return convertToDTO(holidayRepository.save(holiday));

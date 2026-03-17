@@ -147,17 +147,20 @@
             <span>AttenTrack Admin</span>
         </div>
         <div class="navbar-menu">
-            <a href="/admin-dashboard" style="color: white; text-decoration: none; font-size: 0.875rem; font-weight: 700;">
+            <a href="/admin/dashboard" style="color: white; text-decoration: none; font-size: 0.875rem; font-weight: 700;">
                 <i class="fas fa-arrow-left"></i> Dashboard
+            </a>
+            <a href="/admin/profile" style="color: white; text-decoration: none; font-size: 0.875rem; font-weight: 700; margin-left: 1.5rem;">
+                <i class="fas fa-user-circle"></i> Profile
             </a>
         </div>
     </div>
 
     <div class="container">
         <div class="page-header">
-            <h1>Student Holiday Requests</h1>
+            <h1>Student Holiday Suggestions</h1>
             <p style="color: var(--text-muted); font-size: 0.875rem; margin-top: 0.25rem;">
-                Review and manage student-initiated holiday requests. APPROVED requests are automatically added to the main calendar.
+                Review institutional holidays suggested by students. APPROVED suggestions are automatically added to the main calendar.
             </p>
         </div>
 
@@ -165,7 +168,7 @@
             <div class="filter-group">
                 <label>Status</label>
                 <select id="statusFilter" onchange="filterRequests()">
-                    <option value="ALL">All Requests</option>
+                    <option value="ALL">All Suggestions</option>
                     <option value="PENDING" selected>Pending</option>
                     <option value="APPROVED">Approved</option>
                     <option value="REJECTED">Rejected</option>
@@ -208,15 +211,15 @@
     <div id="reviewModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 id="reviewTitle">Approve Request</h2>
+                <h2 id="reviewTitle">Approve Suggestion</h2>
             </div>
             <div class="form-prompt">
                 <label>Admin Comment (Optional)</label>
-                <textarea id="adminComment" rows="3" placeholder="Enter reason or additional notes..."></textarea>
+                <textarea id="adminComment" rows="3" placeholder="Explain decision or add details..."></textarea>
             </div>
             <div class="modal-footer">
                 <button class="btn-secondary" onclick="closeModal()" style="background: #e2e8f0;">Cancel</button>
-                <button id="confirmBtn" class="btn" style="color: white;">Confirm</button>
+                <button id="confirmBtn" class="btn" style="color: white; padding: 10px; border-radius: 8px;">Confirm Action</button>
             </div>
         </div>
     </div>

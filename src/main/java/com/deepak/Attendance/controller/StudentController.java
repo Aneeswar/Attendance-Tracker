@@ -531,8 +531,11 @@ public class StudentController {
     public ResponseEntity<?> updateProfile(@RequestBody Map<String, String> updateData,
                                            @RequestHeader("Authorization") String authHeader) {
         try {
-            Long userId = extractUserIdFromToken(authHeader);
-            Optional<User> user = userRepository.findById(userId);
+            // Manual token extraction to get username before update
+            String token = authHeader.substring(7);
+            String currentUsernameFromToken = jwtTokenProvider.extractUsername(token);
+            
+            Optional<User> user = userRepository.findByUsername(currentUsernameFromToken);
 
             if (user.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -542,6 +545,7 @@ public class StudentController {
             }
 
             User userData = user.get();
+            Long userId = userData.getId();
             String newUsername = updateData.get("username");
             String newEmail = updateData.get("email");
             String currentPassword = updateData.get("currentPassword");
@@ -571,6 +575,15 @@ public class StudentController {
                         }});
             }
 
+            // Check if email already exists (and it's not the same user)
+            Optional<User> existingEmailUser = userRepository.findByEmail(newEmail);
+            if (existingEmailUser.isPresent() && !existingEmailUser.get().getId().equals(userId)) {
+                return ResponseEntity.badRequest()
+                        .body(new HashMap<String, String>() {{
+                            put("error", "Email already exists");
+                        }});
+            }
+
             userData.setUsername(newUsername);
             userData.setEmail(newEmail);
 
@@ -597,10 +610,19 @@ public class StudentController {
 
             userRepository.save(userData);
 
+            // Generate new token if username was changed
+            String newToken = null;
+            if (!currentUsernameFromToken.equals(userData.getUsername())) {
+                newToken = jwtTokenProvider.generateTokenForUsername(userData.getUsername());
+            }
+
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Profile updated successfully");
             response.put("username", userData.getUsername());
             response.put("email", userData.getEmail());
+            if (newToken != null) {
+                response.put("token", newToken);
+            }
 
             return ResponseEntity.ok(response);
 

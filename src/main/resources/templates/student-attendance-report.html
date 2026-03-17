@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -362,7 +362,7 @@
             <span>AttenTrack</span>
         </div>
         <div class="navbar-menu">
-            <a href="/student-dashboard"><i class="fas fa-home"></i> Dashboard</a>
+            <a href="/student/dashboard"><i class="fas fa-home"></i> Dashboard</a>
         </div>
     </div>
 
@@ -417,7 +417,7 @@
             <div style="font-size: 3rem; margin-bottom: 1.5rem;"></div>
             <h2 style="font-size: 1.5rem; font-weight: 800;">No Courses Found</h2>
             <p style="color: var(--text-muted);">Start by adding your course schedule in the dashboard.</p>
-            <a href="/student-manage-courses" style="display: inline-block; margin-top: 1.5rem; background: var(--primary); color: white; padding: 0.75rem 2rem; border-radius: 0.75rem; text-decoration: none; font-weight: 700;">Add First Course</a>
+            <a href="/student/manage-courses" style="display: inline-block; margin-top: 1.5rem; background: var(--primary); color: white; padding: 0.75rem 2rem; border-radius: 0.75rem; text-decoration: none; font-weight: 700;">Add First Course</a>
         </div>
     </div>
 
@@ -674,7 +674,7 @@
             const subtitle = document.getElementById('modalSubtitle');
             
             title.textContent = report.courseName || 'Course Detail';
-            subtitle.textContent = `${report.courseCode} ${examType ? '• ' + examType : ''}`;
+            subtitle.textContent = `${report.courseCode} ${examType ? '� ' + examType : ''}`;
 
             let datesToShow = [];
             list.innerHTML = '';

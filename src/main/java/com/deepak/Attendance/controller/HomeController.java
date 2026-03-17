@@ -21,27 +21,7 @@ public class HomeController {
         return "register";
     }
 
-    @GetMapping("/admin-dashboard")
-    public String adminDashboard() {
-        return "admin-dashboard";
-    }
-
-    @GetMapping("/admin/holidays")
-    public String adminHolidays() {
-        return "admin-holidays";
-    }
-
-    @GetMapping("/admin/academic-calendar")
-    public String adminAcademicCalendar() {
-        return "admin-academic-calendar";
-    }
-
-    @GetMapping("/admin/students")
-    public String adminStudents() {
-        return "admin-students";
-    }
-
-    @GetMapping("/student-dashboard")
+    @GetMapping("/student/dashboard")
     public String studentDashboard() {
         return "student-dashboard";
     }
@@ -56,37 +36,27 @@ public class HomeController {
         return "student-attendance";
     }
 
-    @GetMapping("/student-attendance")
-    public String studentAttendanceEntry() {
-        return "student-attendance";
-    }
-
-    @GetMapping("/student-attendance-report")
+    @GetMapping("/student/attendance-report")
     public String studentAttendanceReport() {
         return "student-attendance-report";
     }
 
-    @GetMapping("/student-attendance-calendar")
+    @GetMapping("/student/attendance-calendar")
     public String studentAttendanceCalendar() {
         return "student-attendance-calendar";
     }
 
-    @GetMapping("/student-manage-courses")
+    @GetMapping("/student/manage-courses")
     public String studentManageCourses() {
         return "student-manage-courses";
     }
 
-    @GetMapping("/student-mark-by-date")
+    @GetMapping("/student/mark-by-date")
     public String studentMarkByDate() {
         return "student-mark-by-date";
     }
 
-    @GetMapping("/mark-attendance-by-date")
-    public String markAttendanceByDate() {
-        return "mark-attendance-by-date";
-    }
-
-    @GetMapping("/student-profile")
+    @GetMapping("/student/profile")
     public String studentProfile() {
         return "student-profile";
     }
@@ -94,10 +64,5 @@ public class HomeController {
     @GetMapping("/student/holiday-requests")
     public String studentHolidayRequests() {
         return "student-holiday-requests";
-    }
-
-    @GetMapping("/admin/holiday-requests")
-    public String adminHolidayRequests() {
-        return "admin-holiday-requests";
     }
 }

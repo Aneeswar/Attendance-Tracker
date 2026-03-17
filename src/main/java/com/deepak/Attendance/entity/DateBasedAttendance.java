@@ -29,7 +29,6 @@ public class DateBasedAttendance {
 
     @Column(nullable = false)
     private Boolean attended; // true = attended, false = didn't attend
-
     @Column(nullable = false, columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
     private LocalDateTime recordedAt;
 

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -142,9 +142,14 @@
             <i class="fas fa-shield-alt"></i>
             <span>AttenTrack Admin</span>
         </div>
-        <button class="btn-logout" onclick="logout()">
-            <i class="fas fa-sign-out-alt"></i> Logout
-        </button>
+        <div>
+            <a href="/admin/profile" style="color: white; text-decoration: none; font-size: 0.875rem; font-weight: 700; margin-right: 1.5rem;">
+                <i class="fas fa-user-shield"></i> Profile
+            </a>
+            <button class="btn-logout" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </button>
+        </div>
     </div>
 
     <div class="container">
@@ -200,10 +205,10 @@
                 </div>
             </a>
             <a href="/admin/holiday-requests" class="action-card">
-                <div class="action-icon"><i class="fas fa-clipboard-check"></i></div>
+                <div class="action-icon"><i class="fas fa-bullhorn"></i></div>
                 <div class="action-info">
-                    <h2>Holiday Requests</h2>
-                    <p>Review and approve specific holiday requests submitted by students.</p>
+                    <h2>Holiday Suggestions</h2>
+                    <p>Review institutional holidays suggested by students to reduce administrative overhead.</p>
                 </div>
             </a>
             <a href="/admin/profile" class="action-card">

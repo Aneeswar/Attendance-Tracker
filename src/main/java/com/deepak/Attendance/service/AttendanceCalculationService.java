@@ -37,14 +37,14 @@ public class AttendanceCalculationService {
      */
     public List<LocalDate> getValidWorkingDays(LocalDate startDate) {
         // Get current academic calendar
-        Optional<AcademicCalendar> currentCalendar = academicCalendarRepository
+        List<AcademicCalendar> calendarList = academicCalendarRepository
                 .findBySemesterStartDateLessThanEqualAndExamStartDateGreaterThanEqual(startDate, startDate);
 
-        if (currentCalendar.isEmpty()) {
+        if (calendarList.isEmpty()) {
             return new ArrayList<>();
         }
 
-        AcademicCalendar calendar = currentCalendar.get();
+        AcademicCalendar calendar = calendarList.get(0);
         LocalDate examStart = calendar.getExamStartDate();
 
         List<LocalDate> validDays = new ArrayList<>();

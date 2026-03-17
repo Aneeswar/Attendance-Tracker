@@ -15,11 +15,31 @@ public class AdminPageController {
 
     @GetMapping("/dashboard")
     public String dashboardPage() {
-        return "dashboard";
+        return "admin-dashboard";
     }
 
     @GetMapping("/profile")
     public String profilePage() {
         return "admin-profile";
+    }
+
+    @GetMapping("/holidays")
+    public String adminHolidays() {
+        return "admin-holidays";
+    }
+
+    @GetMapping("/academic-calendar")
+    public String adminAcademicCalendar() {
+        return "admin-academic-calendar";
+    }
+
+    @GetMapping("/students")
+    public String adminStudents() {
+        return "admin-students";
+    }
+
+    @GetMapping("/holiday-requests")
+    public String adminHolidayRequests() {
+        return "admin-holiday-requests";
     }
 }
