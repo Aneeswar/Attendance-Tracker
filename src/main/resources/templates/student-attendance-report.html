@@ -447,16 +447,9 @@
     <script>
         let currentReports = [];
         let relaxationEnabled = false;
-        let lastKnownStale = false;
-        let stalePopupShownForCurrentCycle = false;
-        let isAutoRefreshInFlight = false;
-        let lastAutoRefreshAt = 0;
-        const AUTO_REFRESH_COOLDOWN_MS = 45000;
-        let shownBackgroundSyncToast = false;
 
         document.addEventListener('DOMContentLoaded', async () => {
             await loadReport();
-            startStaleWatcher();
         });
 
         async function loadReport() {
@@ -473,13 +466,9 @@
                     const isStaleNow = Boolean(data.isStale) || data.reports.some(r => r.stale);
                     if (isStaleNow) {
                         document.getElementById('staleBanner').style.display = 'flex';
-                        triggerBackgroundRefresh();
                     } else {
                         document.getElementById('staleBanner').style.display = 'none';
-                        stalePopupShownForCurrentCycle = false;
-                        shownBackgroundSyncToast = false;
                     }
-                    lastKnownStale = isStaleNow;
                     if (data.generatedAt) {
                         document.getElementById('lastRefresh').textContent = `CALCULATED: ${new Date(data.generatedAt).toLocaleString()}`;
                     }
@@ -489,40 +478,6 @@
                 }
             } catch (e) {
                 console.error(e);
-            }
-        }
-
-        function startStaleWatcher() {
-            setInterval(async () => {
-                await loadReport();
-            }, 30000);
-        }
-
-        async function triggerBackgroundRefresh() {
-            const now = Date.now();
-            if (isAutoRefreshInFlight) return;
-            if (now - lastAutoRefreshAt < AUTO_REFRESH_COOLDOWN_MS) return;
-
-            isAutoRefreshInFlight = true;
-            lastAutoRefreshAt = now;
-
-            try {
-                const res = await fetch('/api/student/attendance-report/refresh', {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${localStorage.getItem('jwtToken')}` }
-                });
-
-                if (res.ok) {
-                    await loadReport();
-                    if (!shownBackgroundSyncToast) {
-                        uxNotify('Report synced in background.', 'success');
-                        shownBackgroundSyncToast = true;
-                    }
-                }
-            } catch (e) {
-                // Silent fail to avoid distracting the user.
-            } finally {
-                isAutoRefreshInFlight = false;
             }
         }
 
@@ -540,8 +495,6 @@
             const threshold = relaxationEnabled ? 65 : 75;
 
             currentReports.forEach(report => {
-                const roundedPercentage = Math.ceil(report.currentPercentage);
-                const status = roundedPercentage >= threshold ? 'SAFE' : (report.status === 'IMPOSSIBLE' ? 'IMPOSSIBLE' : 'AT_RISK');
                 const canSkip = relaxationEnabled ? report.classesCanSkip65 : report.classesCanSkip75;
                 
                 // Get main report details
@@ -559,12 +512,18 @@
                 const projected = hasMainExam ? Math.ceil(mainExam.projectedPercentage || 0) : '0';
                 const cutoffStr = (hasMainExam && mainExam.attendanceCutoffDate) ? new Date(mainExam.attendanceCutoffDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : 'N/A';
                 const examNameInCard = hasMainExam ? (mainExam.examName || report.mainReportExam) : 'Exam';
+                const attendedOverall = report.classesAttended != null ? report.classesAttended : 0;
+                const conductedOverall = report.totalClassesConducted != null ? report.totalClassesConducted : 0;
                 const attendedForCard = hasMainExam && mainExam.classesAttendedUntilCutoff != null
                     ? mainExam.classesAttendedUntilCutoff
                     : report.classesAttended;
                 const conductedForCard = hasMainExam && mainExam.totalClassesConductedUntilCutoff != null
                     ? mainExam.totalClassesConductedUntilCutoff
                     : report.totalClassesConducted;
+                const displayCurrentPercentage = conductedOverall > 0
+                    ? Math.ceil((attendedOverall / conductedOverall) * 100)
+                    : 0;
+                const status = displayCurrentPercentage >= threshold ? 'SAFE' : (report.status === 'IMPOSSIBLE' ? 'IMPOSSIBLE' : 'AT_RISK');
 
                 const card = document.createElement('div');
                 card.className = 'course-card';
@@ -575,15 +534,15 @@
                             <p>${report.courseCode}</p>
                         </div>
                         <div class="percentage-display">
-                            <span class="pct-val">${Math.ceil(report.currentPercentage)}%</span>
-                            <div class="pct-lbl">CURRENT</div>
+                            <span class="pct-val">${displayCurrentPercentage}%</span>
+                            <div class="pct-lbl">CURRENT (OVERALL)</div>
                         </div>
                     </div>
                     <div class="course-body">
                         <div onclick="showModal(currentReports.find(r => r.courseId === ${report.courseId}), '${report.mainReportExam}')">
                             <div class="stat-line">
-                                <span class="stat-label">Classes Attended</span>
-                                <span class="stat-value">${attendedForCard} / ${conductedForCard}</span>
+                                <span class="stat-label">Classes Attended (Overall)</span>
+                                <span class="stat-value">${attendedOverall} / ${conductedOverall}</span>
                             </div>
                             <div class="stat-line">
                                 <span class="stat-label">Available to Skip</span>
@@ -593,7 +552,7 @@
                             ${hasMainExam ? `
                             <div class="exam-prediction">
                                 <div class="exam-header">
-                                    <span class="exam-name"><i class="fas fa-scroll"></i> ${examNameInCard} Standing</span>
+                                    <span class="exam-name"><i class="fas fa-scroll"></i> ${examNameInCard} Standing <span style="font-size: 0.625rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; margin-left: 0.25rem;">Cutoff-based</span></span>
                                     <span class="eligibility-check ${isEligible ? 'check-yes' : 'check-no'}">
                                         ${isEligible ? 'ELIGIBLE' : 'NOT ELIGIBLE'}
                                     </span>
@@ -653,8 +612,6 @@
                 });
                 if (res.ok) {
                     await loadReport();
-                    // Avoid repeated watcher popups while the user is actively syncing.
-                    stalePopupShownForCurrentCycle = true;
                     uxNotify('Report refreshed with latest admin updates.', 'success');
                 } else {
                     const errorText = await res.text();

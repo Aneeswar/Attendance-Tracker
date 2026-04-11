@@ -773,17 +773,8 @@
         });
 
         async function refreshSummaryOnLoad() {
-            const token = localStorage.getItem('jwtToken');
-
-            try {
-                await fetch('/api/student/attendance-report/refresh', {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-            } catch (e) {
-                console.error('Silent summary refresh failed:', e);
-            }
-
+            // Do not auto-refresh attendance reports on every dashboard visit.
+            // This keeps navigation fast and avoids unintended background sync writes.
             await checkStaleStatus();
         }
 
@@ -898,6 +889,7 @@
             saveBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Saving...';
 
             let errors = 0;
+            let successes = 0;
             for (const [courseId, data] of entries) {
                 try {
                     const res = await fetch(`/api/student/attendance/update/${courseId}`, {
@@ -908,20 +900,29 @@
                         },
                         body: JSON.stringify([{ date: data.date, attended: data.attended }])
                     });
-                    if (!res.ok) errors++;
+                    if (!res.ok) {
+                        errors++;
+                    } else {
+                        successes++;
+                    }
                 } catch (e) {
                     errors++;
                 }
             }
 
-            if (errors === 0) {
-                showToast('Today\'s attendance saved successfully.');
-                // Trigger report sync so report page reflects this immediately.
+            if (successes > 0) {
+                // Always refresh report when at least one update is persisted.
                 await refreshReport();
                 // Refresh summary data in-place without reloading the full dashboard.
                 await checkStaleStatus();
+            }
+
+            if (errors === 0) {
+                showToast('Today\'s attendance saved successfully.');
             } else {
-                showToast('Some entries failed to save. Please retry.');
+                showToast(successes > 0
+                    ? 'Saved partially. Report refreshed for successful entries.'
+                    : 'Some entries failed to save. Please retry.');
             }
 
             saveBtn.disabled = false;

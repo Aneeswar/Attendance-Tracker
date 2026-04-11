@@ -87,6 +87,11 @@ public class StudentService {
             return false;
         }
 
+        // Exam days are treated as non-instructional days for attendance counting.
+        if (isExamDate(date)) {
+            return false;
+        }
+
         Optional<Holiday> holidayOpt = holidayRepository.findByDate(date);
         if (holidayOpt.isEmpty()) {
             return true;
@@ -107,9 +112,26 @@ public class StudentService {
         return entriesForDay.stream().anyMatch(entry -> entry.getSession() != TimetableEntry.Session.AFTERNOON);
     }
 
+    private boolean isExamDate(LocalDate date) {
+        Optional<AcademicCalendar> calendarOpt = academicCalendarRepository.findFirstByOrderByCreatedAtDesc();
+        if (calendarOpt.isEmpty()) {
+            return false;
+        }
+
+        AcademicCalendar calendar = calendarOpt.get();
+        return isDateWithin(date, calendar.getCat1StartDate(), calendar.getCat1EndDate())
+                || isDateWithin(date, calendar.getCat2StartDate(), calendar.getCat2EndDate())
+                || isDateWithin(date, calendar.getFatStartDate(), calendar.getFatEndDate());
+    }
+
+    private boolean isDateWithin(LocalDate date, LocalDate start, LocalDate end) {
+        return date != null && start != null && end != null && !date.isBefore(start) && !date.isAfter(end);
+    }
+
     /**
      * Confirm and save timetable (add or update courses)
      */
+    @CacheEvict(value = "attendanceReports", key = "#userId")
     public void confirmTimetable(Long userId, List<TimetableEntryDTO> confirmedData) {
         // Save new courses and timetable entries (add/update, don't delete)
         for (TimetableEntryDTO dto : confirmedData) {
@@ -152,6 +174,9 @@ public class StudentService {
                 timetableEntry.setClassesCount(item.getClassesCount());
                 timetableEntryRepository.save(timetableEntry);
             }
+
+            // Course schedule updates change projected attendance, so recalculate cache.
+            calculateAndCacheAttendanceReport(course);
         }
 
         log.info("Timetable confirmed and saved for user: {}", userId);
@@ -160,6 +185,7 @@ public class StudentService {
     /**
      * Confirm and save timetable with course start dates
      */
+    @CacheEvict(value = "attendanceReports", key = "#userId")
     public void confirmTimetableWithDates(Long userId, List<TimetableConfirmRequest> confirmedData) {
         for (TimetableConfirmRequest req : confirmedData) {
             CourseCatalog catalog = resolveOrCreateCourseCatalog(req.getCourseCode(), req.getCourseName());
@@ -205,6 +231,9 @@ public class StudentService {
                 timetableEntry.setClassesCount(item.getClassesCount() != null ? item.getClassesCount() : 1);
                 timetableEntryRepository.save(timetableEntry);
             }
+
+            // Start date/timetable edits should immediately reflect in report values.
+            calculateAndCacheAttendanceReport(course);
         }
 
         log.info("Timetable confirmed and saved for user: {}", userId);
@@ -395,8 +424,13 @@ public class StudentService {
             LocalDate startDate = course.getCourseStartDate() != null ? course.getCourseStartDate() : today.minusMonths(4);
             List<DateBasedAttendance> relevantRecords = dateBasedAttendanceRepository
                     .findByCourseIdAndAttendanceDateBetweenOrderByAttendanceDateAsc(course.getId(), startDate, cutoff);
-            relevantConducted = relevantRecords.size();
-            relevantAttended = (int) relevantRecords.stream().filter(DateBasedAttendance::getAttended).count();
+
+            List<DateBasedAttendance> validRelevantRecords = relevantRecords.stream()
+                .filter(record -> isClassConductedOnDate(course, record.getAttendanceDate()))
+                .toList();
+
+            relevantConducted = validRelevantRecords.size();
+            relevantAttended = (int) validRelevantRecords.stream().filter(DateBasedAttendance::getAttended).count();
         }
 
         dto.setTotalClassesConductedUntilCutoff(relevantConducted);
@@ -462,13 +496,9 @@ public class StudentService {
             int attendedClasses;
             
             if (!dateBasedRecords.isEmpty()) {
-                // Exclude records that fall on non-conducted days (full/partial holiday session conflicts).
-                List<DateBasedAttendance> validRecords = dateBasedRecords.stream()
-                        .filter(record -> isClassConductedOnDate(course, record.getAttendanceDate()))
-                        .toList();
-
-                totalClasses = validRecords.size();
-                attendedClasses = (int) validRecords.stream().filter(DateBasedAttendance::getAttended).count();
+                // Use date-wise attendance records as the source of truth for overall counters.
+                totalClasses = dateBasedRecords.size();
+                attendedClasses = (int) dateBasedRecords.stream().filter(DateBasedAttendance::getAttended).count();
             } else {
                 Optional<AttendanceInput> input = attendanceInputRepository.findByCourseId(course.getId());
                 if (input.isPresent()) {
@@ -675,10 +705,26 @@ public class StudentService {
         boolean refreshed = !courses.isEmpty();
         
         for (Course course : courses) {
+            removeInvalidDateBasedRecords(course);
             // User-triggered refresh should always recompute so UI reflects latest attendance immediately.
             calculateAndCacheAttendanceReport(course);
         }
         return refreshed;
+    }
+
+    private void removeInvalidDateBasedRecords(Course course) {
+        LocalDate today = LocalDate.now();
+        LocalDate startDate = course.getCourseStartDate() != null ? course.getCourseStartDate() : today.minusMonths(6);
+
+        List<DateBasedAttendance> records = dateBasedAttendanceRepository
+                .findByCourseIdAndAttendanceDateBetweenOrderByAttendanceDateAsc(course.getId(), startDate, today);
+
+        for (DateBasedAttendance record : records) {
+            if (!isClassConductedOnDate(course, record.getAttendanceDate())) {
+                dateBasedAttendanceRepository.delete(record);
+                log.info("Removed invalid attendance record for course {} on {}", course.getCourseCode(), record.getAttendanceDate());
+            }
+        }
     }
 
     /**
@@ -920,7 +966,7 @@ public class StudentService {
         LocalDate current = start;
         while (!current.isAfter(today)) {
             String dayName = current.getDayOfWeek().name().toUpperCase();
-            if (schedule.containsKey(dayName) && !holidays.contains(current)) {
+            if (schedule.containsKey(dayName) && !holidays.contains(current) && !isExamDate(current)) {
                 // Only create if it doesn't exist
                 Optional<DateBasedAttendance> existing = dateBasedAttendanceRepository.findByCourseIdAndAttendanceDate(courseId, current);
                 if (existing.isEmpty()) {
@@ -978,48 +1024,19 @@ public class StudentService {
         List<Holiday> holidays = holidayRepository.findAll();
         holidays.forEach(h -> holidayMap.put(h.getDate(), h.getScope() != null ? h.getScope() : Holiday.HolidayScope.FULL));
         
-        // Add exam periods (CAT-1, CAT-2, FAT) as FULL day exclusions
-        Set<LocalDate> examDates = new HashSet<>();
-        List<AcademicCalendar> calendars = academicCalendarRepository
-                .findBySemesterStartDateLessThanEqualAndExamStartDateGreaterThanEqual(today, today);
-        
-        if (!calendars.isEmpty()) {
-            AcademicCalendar calendar = calendars.get(0); // Take the most relevant one
-            
-            if (calendar.getCat1StartDate() != null && calendar.getCat1EndDate() != null) {
-                LocalDate examDate = calendar.getCat1StartDate();
-                while (!examDate.isAfter(calendar.getCat1EndDate())) {
-                    examDates.add(examDate);
-                    examDate = examDate.plusDays(1);
-                }
-            }
-            if (calendar.getCat2StartDate() != null && calendar.getCat2EndDate() != null) {
-                LocalDate examDate = calendar.getCat2StartDate();
-                while (!examDate.isAfter(calendar.getCat2EndDate())) {
-                    examDates.add(examDate);
-                    examDate = examDate.plusDays(1);
-                }
-            }
-            if (calendar.getFatStartDate() != null && calendar.getFatEndDate() != null) {
-                LocalDate examDate = calendar.getFatStartDate();
-                while (!examDate.isAfter(calendar.getFatEndDate())) {
-                    examDates.add(examDate);
-                    examDate = examDate.plusDays(1);
-                }
-            }
-        }
-
         // Generate list of class dates
         List<Map<String, Object>> classDates = new ArrayList<>();
         LocalDate currentDate = startDate;
 
         while (!currentDate.isAfter(today)) {
             Holiday.HolidayScope holidayScope = holidayMap.get(currentDate);
-            boolean isExamDay = examDates.contains(currentDate);
+            boolean isExamDay = isExamDate(currentDate);
 
             if (!isExamDay && (holidayScope == null || holidayScope != Holiday.HolidayScope.FULL)) {
                 for (TimetableEntry entry : timetableEntries) {
-                    if (entry.getDayOfWeek().equalsIgnoreCase(currentDate.getDayOfWeek().name())) {
+                    String cleanEntryDay = entry.getDayOfWeek().replaceAll("\\s+", "").toUpperCase();
+                    String cleanCurrentDay = currentDate.getDayOfWeek().name().toUpperCase();
+                    if (cleanEntryDay.equals(cleanCurrentDay)) {
                         // Check partial holidays
                         boolean isHoliday = false;
                         if (holidayScope == Holiday.HolidayScope.MORNING && entry.getSession() == TimetableEntry.Session.MORNING) {

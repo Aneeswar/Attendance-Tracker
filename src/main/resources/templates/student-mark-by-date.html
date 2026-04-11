@@ -331,6 +331,18 @@
             }
         }
 
+        async function syncAttendanceReport() {
+            try {
+                await fetch('/api/student/attendance-report/refresh', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('jwtToken')}` }
+                });
+            } catch (e) {
+                // Keep save UX successful even if report sync fails transiently.
+                console.error('Attendance report sync failed after save', e);
+            }
+        }
+
         async function submitAttendance() {
             const btn = document.getElementById('saveBtn');
             const cid = document.getElementById('courseSelect').value;
@@ -357,6 +369,8 @@
                 });
                 
                 if (res.ok) {
+                    await syncAttendanceReport();
+
                     btn.classList.replace('btn-primary', 'btn-success');
                     btn.innerHTML = '<i class="fas fa-check"></i> Saved Successfully!';
                     setTimeout(() => {
