@@ -16,6 +16,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByUsername(String username);
     Optional<User> findByEmail(String email);
     boolean existsByUsername(String username);
+    List<User> findByCurrentSemesterIsNull();
+    long countByCurrentSemester_Id(Long semesterId);
     
     // Admin student management queries - using @Query to handle Set<Role> relationship
     @Query("SELECT u FROM User u JOIN u.roles r WHERE r.name = :roleName")

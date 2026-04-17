@@ -7,7 +7,7 @@ import jakarta.persistence.*;
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "holidays", uniqueConstraints = @UniqueConstraint(columnNames = "date"))
+@Table(name = "holidays", uniqueConstraints = @UniqueConstraint(columnNames = {"semester_id", "date"}))
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -20,7 +20,11 @@ public class Holiday {
     @Column
     private Long academicCalendarId;
 
-    @Column(nullable = false, unique = true)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "semester_id")
+    private Semester semester;
+
+    @Column(nullable = false)
     private LocalDate date;
 
     @Column(nullable = false)

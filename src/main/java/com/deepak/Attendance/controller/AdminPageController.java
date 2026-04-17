@@ -33,6 +33,11 @@ public class AdminPageController {
         return "admin-academic-calendar";
     }
 
+    @GetMapping("/semesters")
+    public String adminSemesters() {
+        return "admin-semesters";
+    }
+
     @GetMapping("/students")
     public String adminStudents() {
         return "admin-students";

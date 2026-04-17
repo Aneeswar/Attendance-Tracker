@@ -3,6 +3,7 @@ package com.deepak.Attendance.controller;
 import com.deepak.Attendance.entity.Course;
 import com.deepak.Attendance.repository.CourseRepository;
 import com.deepak.Attendance.repository.UserRepository;
+import com.deepak.Attendance.service.AcademicCalendarService;
 import com.deepak.Attendance.service.StudentService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,6 +43,9 @@ public class AdminCourseManagementController {
     @Autowired
     private StudentService studentService;
 
+    @Autowired
+    private AcademicCalendarService academicCalendarService;
+
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> getAllCourses(
@@ -49,15 +53,25 @@ public class AdminCourseManagementController {
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDir,
-            @RequestParam(required = false) String q) {
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) Long semesterId) {
         try {
+            if (semesterId == null) {
+                semesterId = academicCalendarService.getCurrentSemesterEntity().map(s -> s.getId()).orElse(null);
+            }
+
             Sort.Direction direction = sortDir.equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC;
             Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
 
             Page<Course> coursesPage;
-            if (q != null && !q.trim().isEmpty()) {
+            if (semesterId != null && q != null && !q.trim().isEmpty()) {
+                String search = q.trim();
+                coursesPage = courseRepository.findBySemesterIdAndCourseCatalog_CourseCodeContainingIgnoreCaseOrSemesterIdAndCourseCatalog_CourseNameContainingIgnoreCase(semesterId, search, semesterId, search, pageable);
+            } else if (q != null && !q.trim().isEmpty()) {
                 String search = q.trim();
                 coursesPage = courseRepository.findByCourseCatalog_CourseCodeContainingIgnoreCaseOrCourseCatalog_CourseNameContainingIgnoreCase(search, search, pageable);
+            } else if (semesterId != null) {
+                coursesPage = courseRepository.findBySemesterId(semesterId, pageable);
             } else {
                 coursesPage = courseRepository.findAll(pageable);
             }
@@ -69,6 +83,8 @@ public class AdminCourseManagementController {
                 row.put("courseName", c.getCourseName());
                 row.put("slot", c.getSlot());
                 row.put("courseStartDate", c.getCourseStartDate());
+                row.put("semesterId", c.getSemester() != null ? c.getSemester().getId() : null);
+                row.put("semesterName", c.getSemester() != null ? c.getSemester().getSemesterName() : "Legacy");
                 row.put("studentId", c.getUserId());
                 row.put("studentUsername", userRepository.findById(c.getUserId()).map(u -> u.getUsername()).orElse("Unknown"));
                 return row;

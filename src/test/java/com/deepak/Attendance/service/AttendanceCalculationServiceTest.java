@@ -2,6 +2,9 @@ package com.deepak.Attendance.service;
 
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDate;
+import java.util.Set;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class AttendanceCalculationServiceTest {
@@ -33,5 +36,15 @@ class AttendanceCalculationServiceTest {
 
         assertEquals("IMPOSSIBLE", result.status());
         assertEquals(6, result.minClassesRequired());
+    }
+
+    @Test
+    void getAttendanceCutoffDate_forFat_usesPreviousWorkingDay() {
+        LocalDate fatDate = LocalDate.of(2026, 5, 2);
+        Set<LocalDate> holidays = Set.of(LocalDate.of(2026, 5, 1));
+
+        LocalDate cutoff = service.getAttendanceCutoffDate(fatDate, "FAT", holidays);
+
+        assertEquals(LocalDate.of(2026, 4, 30), cutoff);
     }
 }

@@ -193,12 +193,24 @@ public class AdminRestController {
      */
     @GetMapping("/holiday-requests")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> getAllHolidayRequests() {
+    public ResponseEntity<?> getAllHolidayRequests(@RequestParam(required = false) Long semesterId) {
         try {
-            List<StudentHolidayRequestDTO> requests = studentHolidayService.getAllRequests();
+            List<StudentHolidayRequestDTO> requests = studentHolidayService.getAllRequests(semesterId);
             return ResponseEntity.ok(requests);
         } catch (Exception e) {
             log.error("Error fetching all holiday requests", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new HashMap<String, String>() {{
+                        put("error", "Failed to fetch holiday requests");
+                    }});
+        }
+    }
+
+    // Compatibility overload used by existing tests.
+    public ResponseEntity<?> getAllHolidayRequests() {
+        try {
+            return ResponseEntity.ok(studentHolidayService.getAllRequests());
+        } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new HashMap<String, String>() {{
                         put("error", "Failed to fetch holiday requests");

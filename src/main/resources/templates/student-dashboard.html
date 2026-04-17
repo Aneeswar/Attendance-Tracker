@@ -207,6 +207,20 @@
             margin-top: 0.25rem;
         }
 
+        .semester-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+            padding: 0.375rem 0.75rem;
+            border-radius: 999px;
+            background: #eef2ff;
+            color: #3730a3;
+            font-size: 0.75rem;
+            font-weight: 700;
+            border: 1px solid #c7d2fe;
+        }
+
         /* Stale Alert */
         .stale-banner {
             background: #fffbeb;
@@ -639,6 +653,10 @@
         <div class="page-header">
             <h1 id="greeting">Dashboard</h1>
             <p>Welcome back, <span id="welcomeName">Student</span>! Here's your academic overview.</p>
+            <div id="currentSemesterBadge" class="semester-badge" style="display: none;">
+                <i class="fas fa-layer-group"></i>
+                <span id="currentSemesterText">Viewing: Semester</span>
+            </div>
         </div>
 
         <!-- Toast Notification -->
@@ -768,9 +786,34 @@
                 sessionStorage.removeItem('attendanceSyncToastPending');
             }
 
+            await loadCurrentSemesterBadge();
             await refreshSummaryOnLoad();
             loadTodayAttendanceQuick();
         });
+
+        async function loadCurrentSemesterBadge() {
+            try {
+                const response = await fetch('/api/student/profile', {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('jwtToken')}` }
+                });
+
+                if (!response.ok) {
+                    return;
+                }
+
+                const profile = await response.json();
+                const semesterName = profile.currentSemesterName || null;
+                const badge = document.getElementById('currentSemesterBadge');
+                const text = document.getElementById('currentSemesterText');
+
+                if (semesterName) {
+                    text.textContent = `Viewing: ${semesterName}`;
+                    badge.style.display = 'inline-flex';
+                }
+            } catch (e) {
+                console.error('Failed to load current semester badge', e);
+            }
+        }
 
         async function refreshSummaryOnLoad() {
             // Do not auto-refresh attendance reports on every dashboard visit.

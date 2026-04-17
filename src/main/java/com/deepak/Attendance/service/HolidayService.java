@@ -4,9 +4,12 @@ import com.deepak.Attendance.dto.HolidayDTO;
 import com.deepak.Attendance.dto.BulkHolidayRequest;
 import com.deepak.Attendance.dto.DateRangeHolidayRequest;
 import com.deepak.Attendance.entity.Holiday;
+import com.deepak.Attendance.entity.Semester;
 import com.deepak.Attendance.repository.AcademicCalendarRepository;
 import com.deepak.Attendance.repository.HolidayRepository;
+import com.deepak.Attendance.repository.SemesterRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -14,6 +17,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -25,28 +29,42 @@ public class HolidayService {
     
     @Autowired
     private AcademicCalendarRepository academicCalendarRepository;
+
+    @Autowired
+    private SemesterRepository semesterRepository;
     
     @Autowired
     private ObjectProvider<StudentService> studentServiceProvider;
 
     public HolidayDTO addHoliday(HolidayDTO dto) {
-        if (holidayRepository.findByDate(dto.getDate()).isPresent()) {
-            throw new IllegalArgumentException("Holiday already exists for this date");
+        List<Semester> targetSemesters = resolveTargetSemesters(dto.getSemesterId(), dto.getTargetSemesterIds());
+        Holiday saved = null;
+
+        for (Semester semester : targetSemesters) {
+            if (holidayRepository.existsByDateAndSemesterId(dto.getDate(), semester.getId())) {
+                continue;
+            }
+
+            Holiday holiday = new Holiday();
+            holiday.setDate(dto.getDate());
+            holiday.setReason(dto.getReason());
+            holiday.setType(Holiday.HolidayType.valueOf(dto.getType() != null ? dto.getType() : "PUBLIC"));
+            holiday.setScope(dto.getScope() != null
+                    ? Holiday.HolidayScope.valueOf(dto.getScope())
+                    : Holiday.HolidayScope.FULL);
+            holiday.setAcademicCalendarId(semester.getId());
+            holiday.setSemester(semester);
+            log.debug("Setting academicCalendarId {} for holiday on {}", semester.getId(), dto.getDate());
+
+            Holiday inserted = saveHolidaySafely(holiday);
+            if (saved == null) {
+                saved = inserted;
+            }
         }
 
-        Holiday holiday = new Holiday();
-        holiday.setDate(dto.getDate());
-        holiday.setReason(dto.getReason());
-        holiday.setType(Holiday.HolidayType.valueOf(dto.getType() != null ? dto.getType() : "PUBLIC"));
-        holiday.setScope(dto.getScope() != null ? 
-                Holiday.HolidayScope.valueOf(dto.getScope()) : Holiday.HolidayScope.FULL);
-        
-        // Set the current academic calendar ID
-        Long calendarId = getCurrentCalendarId();
-        holiday.setAcademicCalendarId(calendarId);
-        log.debug("Setting academicCalendarId {} for holiday on {}", calendarId, dto.getDate());
-
-        Holiday saved = holidayRepository.save(holiday);
+        if (saved == null) {
+            throw new IllegalArgumentException("Holiday already added");
+        }
         
         // Mark all attendance reports as stale when holiday is added
         log.info("Holiday added on {}. Marking all attendance reports as stale.", dto.getDate());
@@ -62,6 +80,7 @@ public class HolidayService {
     }
 
     public List<HolidayDTO> addHolidayRange(DateRangeHolidayRequest request) {
+        List<Semester> targetSemesters = resolveTargetSemesters(request.getSemesterId(), request.getTargetSemesterIds());
         LocalDate startDate = LocalDate.parse(request.getStartDate());
         LocalDate endDate = LocalDate.parse(request.getEndDate());
         
@@ -73,22 +92,30 @@ public class HolidayService {
         LocalDate currentDate = startDate;
         
         while (!currentDate.isAfter(endDate)) {
-            if (holidayRepository.findByDate(currentDate).isEmpty()) {
-                Holiday holiday = new Holiday();
-                holiday.setDate(currentDate);
-                holiday.setReason(request.getName());
-                holiday.setType(Holiday.HolidayType.valueOf(request.getType() != null ? request.getType() : "PUBLIC"));
-                holiday.setScope(request.getScope() != null ? 
-                        Holiday.HolidayScope.valueOf(request.getScope()) : Holiday.HolidayScope.FULL);
-                
-                // Set the current academic calendar ID
-                Long calendarId = getCurrentCalendarId();
-                holiday.setAcademicCalendarId(calendarId);
-                log.debug("Setting academicCalendarId {} for holiday on {}", calendarId, currentDate);
-                
-                addedHolidays.add(convertToDTO(holidayRepository.save(holiday)));
+            for (Semester semester : targetSemesters) {
+                boolean missingForSemester = holidayRepository.findByDateAndSemesterId(currentDate, semester.getId()).isEmpty();
+
+                if (missingForSemester) {
+                    Holiday holiday = new Holiday();
+                    holiday.setDate(currentDate);
+                    holiday.setReason(request.getName());
+                    holiday.setType(Holiday.HolidayType.valueOf(request.getType() != null ? request.getType() : "PUBLIC"));
+                    holiday.setScope(request.getScope() != null
+                            ? Holiday.HolidayScope.valueOf(request.getScope())
+                            : Holiday.HolidayScope.FULL);
+
+                    holiday.setAcademicCalendarId(semester.getId());
+                    holiday.setSemester(semester);
+                    log.debug("Setting academicCalendarId {} for holiday on {}", semester.getId(), currentDate);
+
+                    addedHolidays.add(convertToDTO(saveHolidaySafely(holiday)));
+                }
             }
             currentDate = currentDate.plusDays(1);
+        }
+
+        if (addedHolidays.isEmpty()) {
+            throw new IllegalArgumentException("Holiday already added");
         }
         
         // Mark all attendance reports as stale when holidays are added in bulk
@@ -107,46 +134,50 @@ public class HolidayService {
     }
 
     public List<HolidayDTO> bulkAddHolidays(BulkHolidayRequest request) {
-        // Get the current academic calendar ID
-        Long calendarId = getCurrentCalendarId();
+        List<Semester> targetSemesters = resolveTargetSemesters(request.getSemesterId(), request.getTargetSemesterIds());
         
-        List<HolidayDTO> savedHolidays = request.getHolidays().stream()
-                .map(h -> {
-                    LocalDate date = LocalDate.parse(h.getDate());
-                    if (holidayRepository.findByDate(date).isEmpty()) {
-                        Holiday holiday = new Holiday();
-                        holiday.setDate(date);
-                        holiday.setReason(h.getReason());
-                        
-                        // Parse type and scope if provided, else defaults
-                        try {
-                            if (h.getType() != null && !h.getType().isEmpty()) {
-                                holiday.setType(Holiday.HolidayType.valueOf(h.getType().toUpperCase()));
-                            } else {
-                                holiday.setType(Holiday.HolidayType.CALENDAR);
-                            }
-                        } catch (Exception e) {
+        List<HolidayDTO> savedHolidays = new ArrayList<>();
+        for (BulkHolidayRequest.Holiday h : request.getHolidays()) {
+            LocalDate date = LocalDate.parse(h.getDate());
+            for (Semester semester : targetSemesters) {
+                boolean missingForSemester = holidayRepository.findByDateAndSemesterId(date, semester.getId()).isEmpty();
+
+                if (missingForSemester) {
+                    Holiday holiday = new Holiday();
+                    holiday.setDate(date);
+                    holiday.setReason(h.getReason());
+
+                    try {
+                        if (h.getType() != null && !h.getType().isEmpty()) {
+                            holiday.setType(Holiday.HolidayType.valueOf(h.getType().toUpperCase()));
+                        } else {
                             holiday.setType(Holiday.HolidayType.CALENDAR);
                         }
+                    } catch (Exception e) {
+                        holiday.setType(Holiday.HolidayType.CALENDAR);
+                    }
 
-                        try {
-                            if (h.getScope() != null && !h.getScope().isEmpty()) {
-                                holiday.setScope(Holiday.HolidayScope.valueOf(h.getScope().toUpperCase()));
-                            } else {
-                                holiday.setScope(Holiday.HolidayScope.FULL);
-                            }
-                        } catch (Exception e) {
+                    try {
+                        if (h.getScope() != null && !h.getScope().isEmpty()) {
+                            holiday.setScope(Holiday.HolidayScope.valueOf(h.getScope().toUpperCase()));
+                        } else {
                             holiday.setScope(Holiday.HolidayScope.FULL);
                         }
-
-                        holiday.setAcademicCalendarId(calendarId);
-                        log.debug("Setting academicCalendarId {} for holiday on {}", calendarId, h.getDate());
-                        return convertToDTO(holidayRepository.save(holiday));
+                    } catch (Exception e) {
+                        holiday.setScope(Holiday.HolidayScope.FULL);
                     }
-                    return null;
-                })
-                .filter(h -> h != null)
-                .collect(Collectors.toList());
+
+                    holiday.setAcademicCalendarId(semester.getId());
+                    holiday.setSemester(semester);
+                    log.debug("Setting academicCalendarId {} for holiday on {}", semester.getId(), h.getDate());
+                    savedHolidays.add(convertToDTO(saveHolidaySafely(holiday)));
+                }
+            }
+        }
+
+        if (savedHolidays.isEmpty()) {
+            throw new IllegalArgumentException("Holiday already added");
+        }
         
         // Mark all attendance reports as stale when holidays are added in bulk
         if (!savedHolidays.isEmpty()) {
@@ -164,13 +195,59 @@ public class HolidayService {
     }
 
     private Long getCurrentCalendarId() {
-        return academicCalendarRepository.findFirstByOrderByCreatedAtDesc()
-                .map(c -> c.getId())
-                .orElseThrow(() -> new IllegalArgumentException("No academic calendar found. Please create an academic calendar first."));
+        if (semesterRepository == null) {
+            return academicCalendarRepository.findFirstByOrderByCreatedAtDesc()
+                    .map(c -> c.getId())
+                    .orElseThrow(() -> new IllegalArgumentException("No academic calendar found. Please create an academic calendar first."));
+        }
+
+        return semesterRepository.findFirstByActiveTrueOrderBySemesterStartDateDesc()
+                .map(Semester::getId)
+                .orElseThrow(() -> new IllegalArgumentException("No active semester found. Please create a semester first."));
+    }
+
+    private Semester resolveSemester(Long semesterId) {
+        if (semesterId != null) {
+            return semesterRepository.findById(semesterId)
+                    .orElseThrow(() -> new IllegalArgumentException("Invalid semester selected"));
+        }
+
+        Long currentId = getCurrentCalendarId();
+        return semesterRepository.findById(currentId)
+                .orElseThrow(() -> new IllegalArgumentException("No active semester found. Please create a semester first."));
+    }
+
+    private List<Semester> resolveTargetSemesters(Long semesterId, List<Long> targetSemesterIds) {
+        List<Long> ids = new ArrayList<>();
+
+        if (targetSemesterIds != null && !targetSemesterIds.isEmpty()) {
+            ids = targetSemesterIds.stream()
+                    .filter(Objects::nonNull)
+                    .distinct()
+                    .collect(Collectors.toList());
+        } else {
+            ids.add(resolveSemester(semesterId).getId());
+        }
+
+        List<Semester> semesters = semesterRepository.findAllById(ids);
+        if (semesters.size() != ids.size()) {
+            throw new IllegalArgumentException("Invalid semester selection");
+        }
+        return semesters;
     }
 
     public List<HolidayDTO> getAllHolidays() {
         return holidayRepository.findAllByOrderByDateAsc()
+                .stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    public List<HolidayDTO> getHolidaysBySemester(Long semesterId) {
+        if (semesterId == null) {
+            return getAllHolidays();
+        }
+        return holidayRepository.findBySemesterIdOrderByDateAsc(semesterId)
                 .stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
@@ -215,12 +292,21 @@ public class HolidayService {
     private HolidayDTO convertToDTO(Holiday holiday) {
         HolidayDTO dto = new HolidayDTO();
         dto.setId(holiday.getId());
+        dto.setSemesterId(holiday.getSemester() != null ? holiday.getSemester().getId() : holiday.getAcademicCalendarId());
         dto.setDate(holiday.getDate());
         dto.setReason(holiday.getReason());
         dto.setType(holiday.getType().toString());
         dto.setScope(holiday.getScope() != null ? holiday.getScope().toString() : "FULL");
         dto.setCreatedAt(holiday.getCreatedAt());
         return dto;
+    }
+
+    private Holiday saveHolidaySafely(Holiday holiday) {
+        try {
+            return holidayRepository.save(holiday);
+        } catch (DataIntegrityViolationException e) {
+            throw new IllegalArgumentException("Holiday already added");
+        }
     }
 }
 

@@ -4,6 +4,7 @@ import com.deepak.Attendance.dto.HolidayDTO;
 import com.deepak.Attendance.dto.BulkHolidayRequest;
 import com.deepak.Attendance.dto.DateRangeHolidayRequest;
 import com.deepak.Attendance.service.HolidayService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -14,6 +15,7 @@ import java.util.List;
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
 @RequestMapping("/api/admin/holidays")
+@Slf4j
 public class HolidayController {
 
     @Autowired
@@ -36,8 +38,11 @@ public class HolidayController {
         try {
             List<HolidayDTO> saved = holidayService.bulkAddHolidays(request);
             return ResponseEntity.ok(saved);
-        } catch (Exception e) {
+        } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            log.error("Failed to bulk add holidays", e);
+            return ResponseEntity.badRequest().body("Unable to add holidays");
         }
     }
 
@@ -47,15 +52,18 @@ public class HolidayController {
         try {
             List<HolidayDTO> saved = holidayService.addHolidayRange(request);
             return ResponseEntity.ok(saved);
-        } catch (Exception e) {
+        } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            log.error("Failed to add holiday range", e);
+            return ResponseEntity.badRequest().body("Unable to add holiday range");
         }
     }
 
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> getAllHolidays() {
-        List<HolidayDTO> holidays = holidayService.getAllHolidays();
+    public ResponseEntity<?> getAllHolidays(@RequestParam(required = false) Long semesterId) {
+        List<HolidayDTO> holidays = holidayService.getHolidaysBySemester(semesterId);
         return ResponseEntity.ok(holidays);
     }
 
@@ -76,8 +84,11 @@ public class HolidayController {
         try {
             holidayService.deleteHolidays(ids);
             return ResponseEntity.ok("Holidays deleted successfully");
-        } catch (Exception e) {
+        } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            log.error("Failed to bulk delete holidays", e);
+            return ResponseEntity.badRequest().body("Unable to delete holidays");
         }
     }
 }

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Academic Calendar - AttenTrack Admin</title>
+    <title>Semester Management - AttenTrack Admin</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -81,6 +81,59 @@
             font-family: inherit;
         }
 
+        .checkbox-dropdown {
+            position: relative;
+        }
+
+        .checkbox-dropdown-btn {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 0.75rem;
+            border: 1px solid #e2e8f0;
+            font-size: 0.875rem;
+            background: #f8fafc;
+            font-family: inherit;
+            text-align: left;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .checkbox-dropdown-panel {
+            position: absolute;
+            z-index: 20;
+            width: 100%;
+            margin-top: 0.5rem;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.75rem;
+            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
+            max-height: 240px;
+            overflow: auto;
+            display: none;
+            padding: 0.5rem;
+        }
+
+        .checkbox-dropdown-panel.open {
+            display: block;
+        }
+
+        .checkbox-option {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            font-size: 0.8125rem;
+            color: var(--text-main);
+            cursor: pointer;
+        }
+
+        .checkbox-option:hover {
+            background: #f8fafc;
+        }
+
         .info-panel {
             background: #f8fafc;
             border-radius: 1rem;
@@ -154,6 +207,9 @@
             <a href="/admin/dashboard" style="color: white; text-decoration: none; font-size: 0.875rem; font-weight: 700;">
                 <i class="fas fa-arrow-left"></i> Dashboard
             </a>
+            <a href="/admin/semesters" style="color: white; text-decoration: none; font-size: 0.875rem; font-weight: 700; margin-left: 1.5rem;">
+                <i class="fas fa-layer-group"></i> Semesters
+            </a>
             <a href="/admin/profile" style="color: white; text-decoration: none; font-size: 0.875rem; font-weight: 700; margin-left: 1.5rem;">
                 <i class="fas fa-user-circle"></i> Profile
             </a>
@@ -173,6 +229,21 @@
                         <div class="info-panel">
                             <h4>Core Timeline</h4>
                             <p>Define the operational dates for the current academic session. These dates serve as the boundary for all attendance calculations and holiday overrides.</p>
+                        </div>
+                        <div class="form-group">
+                            <label>Select Semester</label>
+                            <select id="semesterSelect" onchange="onSemesterChange()" style="width: 100%; padding: 0.75rem; border-radius: 0.75rem; border: 1px solid #e2e8f0; font-size: 0.875rem; background: #f8fafc; font-family: inherit;"></select>
+                        </div>
+                        <div class="form-group">
+                            <label>Also Copy Exam Dates To (Optional)</label>
+                            <div class="checkbox-dropdown" id="propagateSemesterDropdown">
+                                <button type="button" class="checkbox-dropdown-btn" onclick="togglePropagationDropdown()">
+                                    <span id="propagateSemesterSummary">Select semesters</span>
+                                    <i class="fas fa-chevron-down"></i>
+                                </button>
+                                <div id="propagateSemesterOptions" class="checkbox-dropdown-panel"></div>
+                            </div>
+                            <div style="font-size: 0.75rem; color: #64748b; margin-top: 0.5rem;">Choose specific semesters. Only CAT-1/CAT-2/FAT dates are copied.</div>
                         </div>
                         <div class="form-group">
                             <label>Academic Year</label>
@@ -252,8 +323,28 @@
                 </div>
 
                 <button class="btn-save" onclick="saveCalendar()">
-                    <i class="fas fa-cloud-upload-alt"></i> Update Academic Calendar
+                    <i class="fas fa-cloud-upload-alt"></i> Save Semester
                 </button>
+
+                <div class="card" style="margin-top: 1.5rem;">
+                    <div class="card-header">
+                        <i class="fas fa-layer-group"></i>
+                        <h2>Configured Semesters</h2>
+                    </div>
+                    <div class="card-body">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                            <thead>
+                                <tr style="text-align: left; border-bottom: 1px solid #e2e8f0;">
+                                    <th style="padding: 0.5rem;">Semester</th>
+                                    <th style="padding: 0.5rem;">Academic Year</th>
+                                    <th style="padding: 0.5rem;">Range</th>
+                                    <th style="padding: 0.5rem;">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="semesterRows"></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
 
             <!-- Summary Sidebar -->
@@ -297,45 +388,139 @@
     <script src="/js/ux-popup.js"></script>
     <script>
         const token = localStorage.getItem('jwtToken');
+        let selectedSemesterId = null;
+        let semesterCache = [];
         if (!token) window.location.href = '/login?mode=admin';
 
-        document.addEventListener('DOMContentLoaded', loadCalendar);
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadSemesters();
+            document.addEventListener('click', (event) => {
+                const wrapper = document.getElementById('propagateSemesterDropdown');
+                if (wrapper && !wrapper.contains(event.target)) {
+                    closePropagationDropdown();
+                }
+            });
+        });
 
-        async function loadCalendar() {
+        async function loadSemesters() {
             try {
-                const res = await fetch('/api/admin/academic-calendar/current', {
+                const res = await fetch('/api/admin/semesters', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
-                if (res.ok) {
-                    const c = await res.json();
-                    
-                    // Update Summary
-                    document.getElementById('currentYear').textContent = c.academicYear || 'Not Configured';
-                    if(c.semesterStartDate) {
-                        document.getElementById('currentSpan').textContent = `${c.semesterStartDate} to ${c.semesterEndDate || c.examStartDate}`;
-                    }
-                    
-                    if(c.cat1StartDate) document.getElementById('currentCat1').textContent = `${c.cat1StartDate} - ${c.cat1EndDate}`;
-                    if(c.cat2StartDate) document.getElementById('currentCat2').textContent = `${c.cat2StartDate} - ${c.cat2EndDate}`;
-                    if(c.fatStartDate) document.getElementById('currentFat').textContent = `${c.fatStartDate} - ${c.fatEndDate || 'End'}`;
+                const semesters = await res.json();
+                semesterCache = Array.isArray(semesters) ? semesters : [];
+                const tbody = document.getElementById('semesterRows');
+                const select = document.getElementById('semesterSelect');
 
-                    // Fill Form
-                    document.getElementById('academicYear').value = c.academicYear || '';
-                    document.getElementById('semesterStart').value = c.semesterStartDate || '';
-                    document.getElementById('semesterEnd').value = c.semesterEndDate || c.examStartDate || '';
-                    document.getElementById('cat1Start').value = c.cat1StartDate || '';
-                    document.getElementById('cat1End').value = c.cat1EndDate || '';
-                    document.getElementById('cat2Start').value = c.cat2StartDate || '';
-                    document.getElementById('cat2End').value = c.cat2EndDate || '';
-                    document.getElementById('fatStart').value = c.fatStartDate || '';
-                    document.getElementById('fatEnd').value = c.fatEndDate || '';
+                select.innerHTML = '';
+                semesterCache.forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = s.id;
+                    opt.textContent = `${s.semesterName || 'Semester'} (${s.academicYear || 'N/A'})`;
+                    select.appendChild(opt);
+                });
+
+                if (!Array.isArray(semesterCache) || semesterCache.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" style="padding: 0.75rem; color: #64748b;">No semesters created yet.</td></tr>';
+                    renderPropagationOptions();
+                    return;
                 }
+
+                tbody.innerHTML = semesterCache.map(s => `
+                    <tr style="border-bottom: 1px solid #f1f5f9;">
+                        <td style="padding: 0.5rem; font-weight: 700;">${s.semesterName || 'Semester'}</td>
+                        <td style="padding: 0.5rem;">${s.academicYear || '-'}</td>
+                        <td style="padding: 0.5rem;">${s.semesterStartDate || '-'} to ${s.semesterEndDate || s.examStartDate || '-'}</td>
+                        <td style="padding: 0.5rem;">${s.active ? 'Active' : 'Inactive'}</td>
+                    </tr>
+                `).join('');
+
+                const active = semesterCache.find(s => s.active);
+                selectedSemesterId = active ? active.id : semesterCache[0].id;
+                select.value = String(selectedSemesterId);
+                renderPropagationOptions();
+                fillFormForSemester(selectedSemesterId);
             } catch (e) {
-                console.error('Error loading calendar:', e);
+                console.error('Error loading semesters:', e);
             }
         }
 
+        function onSemesterChange() {
+            const selected = document.getElementById('semesterSelect').value;
+            selectedSemesterId = selected ? Number(selected) : null;
+            fillFormForSemester(selectedSemesterId);
+            renderPropagationOptions();
+        }
+
+        function renderPropagationOptions() {
+            const optionsContainer = document.getElementById('propagateSemesterOptions');
+            optionsContainer.innerHTML = '';
+
+            semesterCache
+                .filter(s => s.id !== selectedSemesterId)
+                .forEach(s => {
+                    const label = document.createElement('label');
+                    label.className = 'checkbox-option';
+                    label.innerHTML = `
+                        <input type="checkbox" value="${s.id}" onchange="updatePropagationSummary()">
+                        <span>${s.semesterName || 'Semester'} (${s.academicYear || 'N/A'})</span>
+                    `;
+                    optionsContainer.appendChild(label);
+                });
+
+            updatePropagationSummary();
+        }
+
+        function getSelectedPropagationSemesters() {
+            return Array.from(document.querySelectorAll('#propagateSemesterOptions input[type="checkbox"]:checked'))
+                .map(o => Number(o.value))
+                .filter(Number.isFinite);
+        }
+
+        function updatePropagationSummary() {
+            const count = getSelectedPropagationSemesters().length;
+            document.getElementById('propagateSemesterSummary').textContent = count === 0
+                ? 'Select semesters'
+                : `${count} semester${count > 1 ? 's' : ''} selected`;
+        }
+
+        function togglePropagationDropdown() {
+            document.getElementById('propagateSemesterOptions').classList.toggle('open');
+        }
+
+        function closePropagationDropdown() {
+            document.getElementById('propagateSemesterOptions').classList.remove('open');
+        }
+
+        function fillFormForSemester(semesterId) {
+            const s = semesterCache.find(x => x.id === semesterId);
+            if (!s) {
+                return;
+            }
+
+            document.getElementById('academicYear').value = s.academicYear || '';
+            document.getElementById('semesterStart').value = s.semesterStartDate || '';
+            document.getElementById('semesterEnd').value = s.semesterEndDate || s.examStartDate || '';
+            document.getElementById('cat1Start').value = s.cat1StartDate || '';
+            document.getElementById('cat1End').value = s.cat1EndDate || '';
+            document.getElementById('cat2Start').value = s.cat2StartDate || '';
+            document.getElementById('cat2End').value = s.cat2EndDate || '';
+            document.getElementById('fatStart').value = s.fatStartDate || '';
+            document.getElementById('fatEnd').value = s.fatEndDate || '';
+
+            document.getElementById('currentYear').textContent = s.academicYear || 'Not Configured';
+            document.getElementById('currentSpan').textContent = s.semesterStartDate ? `${s.semesterStartDate} to ${s.semesterEndDate || s.examStartDate}` : '---';
+            document.getElementById('currentCat1').textContent = s.cat1StartDate ? `${s.cat1StartDate} - ${s.cat1EndDate || '---'}` : '---';
+            document.getElementById('currentCat2').textContent = s.cat2StartDate ? `${s.cat2StartDate} - ${s.cat2EndDate || '---'}` : '---';
+            document.getElementById('currentFat').textContent = s.fatStartDate ? `${s.fatStartDate} - ${s.fatEndDate || 'End'}` : '---';
+        }
+
         async function saveCalendar() {
+            if (!selectedSemesterId) {
+                uxNotify('Please select a semester first.', 'error');
+                return;
+            }
+
             const data = {
                 academicYear: document.getElementById('academicYear').value,
                 semesterStartDate: document.getElementById('semesterStart').value,
@@ -345,7 +530,8 @@
                 cat2StartDate: document.getElementById('cat2Start').value || null,
                 cat2EndDate: document.getElementById('cat2End').value || null,
                 fatStartDate: document.getElementById('fatStart').value || null,
-                fatEndDate: document.getElementById('fatEnd').value || null
+                fatEndDate: document.getElementById('fatEnd').value || null,
+                targetSemesterIds: getSelectedPropagationSemesters()
             };
 
             if(!data.academicYear || !data.semesterStartDate || !data.examStartDate) {
@@ -354,8 +540,11 @@
             }
 
             try {
-                const res = await fetch('/api/admin/academic-calendar', {
-                    method: 'PUT',
+                const endpoint = `/api/admin/academic-calendar/semesters/${selectedSemesterId}`;
+                const method = 'PUT';
+
+                const res = await fetch(endpoint, {
+                    method: method,
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
@@ -364,8 +553,8 @@
                 });
 
                 if(res.ok) {
-                    uxNotify('Academic Calendar updated successfully!', 'success');
-                    loadCalendar();
+                    uxNotify('Semester saved successfully!', 'success');
+                    await loadSemesters();
                 } else {
                     const err = await res.text();
                     uxNotify('Error: ' + err, 'error');

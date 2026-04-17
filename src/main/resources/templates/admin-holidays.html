@@ -103,6 +103,59 @@
             background: #f8fafc;
         }
 
+        .checkbox-dropdown {
+            position: relative;
+        }
+
+        .checkbox-dropdown-btn {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 0.75rem;
+            border: 1px solid #e2e8f0;
+            font-size: 0.875rem;
+            background: #f8fafc;
+            font-family: inherit;
+            text-align: left;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .checkbox-dropdown-panel {
+            position: absolute;
+            z-index: 20;
+            width: 100%;
+            margin-top: 0.5rem;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.75rem;
+            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
+            max-height: 240px;
+            overflow: auto;
+            display: none;
+            padding: 0.5rem;
+        }
+
+        .checkbox-dropdown-panel.open {
+            display: block;
+        }
+
+        .checkbox-option {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            font-size: 0.8125rem;
+            color: var(--text-main);
+            cursor: pointer;
+        }
+
+        .checkbox-option:hover {
+            background: #f8fafc;
+        }
+
         .btn-primary {
             width: 100%;
             padding: 0.875rem;
@@ -195,6 +248,9 @@
             <a href="/admin/dashboard" style="color: white; text-decoration: none; font-size: 0.875rem; font-weight: 700;">
                 <i class="fas fa-arrow-left"></i> Dashboard
             </a>
+            <a href="/admin/semesters" style="color: white; text-decoration: none; font-size: 0.875rem; font-weight: 700; margin-left: 1.5rem;">
+                <i class="fas fa-layer-group"></i> Semesters
+            </a>
             <a href="/admin/profile" style="color: white; text-decoration: none; font-size: 0.875rem; font-weight: 700; margin-left: 1.5rem;">
                 <i class="fas fa-user-circle"></i> Profile
             </a>
@@ -209,6 +265,21 @@
                     <h2>Manage Holidays</h2>
                 </div>
                 <div class="card-body">
+                    <div class="form-group">
+                        <label>Semester</label>
+                        <select id="semesterSelect" onchange="loadHolidays()"></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Also Add To Semesters (Optional)</label>
+                        <div class="checkbox-dropdown" id="targetSemesterDropdown">
+                            <button type="button" class="checkbox-dropdown-btn" onclick="toggleTargetSemesterDropdown()">
+                                <span id="targetSemesterSummary">Select semesters</span>
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                            <div id="targetSemesterOptions" class="checkbox-dropdown-panel"></div>
+                        </div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem;">Choose specific semesters. Leave empty to add only to the selected semester.</div>
+                    </div>
                     <div class="form-tabs">
                         <button class="tab-btn active" onclick="switchTab('single')">Single Date</button>
                         <button class="tab-btn" onclick="switchTab('range')">Date Range</button>
@@ -322,9 +393,91 @@
     <script src="/js/ux-popup.js"></script>
     <script>
         const token = localStorage.getItem('jwtToken');
+        let selectedSemesterId = null;
         if (!token) window.location.href = '/login?mode=admin';
 
-        document.addEventListener('DOMContentLoaded', loadHolidays);
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadSemesters();
+            await loadHolidays();
+            document.addEventListener('click', (event) => {
+                const wrapper = document.getElementById('targetSemesterDropdown');
+                if (wrapper && !wrapper.contains(event.target)) {
+                    closeTargetSemesterDropdown();
+                }
+            });
+        });
+
+        async function loadSemesters() {
+            const res = await fetch('/api/admin/semesters?activeOnly=true', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const semesters = await res.json();
+            const select = document.getElementById('semesterSelect');
+            select.innerHTML = '';
+
+            semesters.forEach((s, idx) => {
+                const opt = document.createElement('option');
+                opt.value = s.id;
+                opt.textContent = `${s.semesterName || 'Semester'} (${s.academicYear || 'N/A'})`;
+                if (idx === 0) selectedSemesterId = s.id;
+                select.appendChild(opt);
+            });
+
+            if (selectedSemesterId) {
+                select.value = String(selectedSemesterId);
+            }
+
+            renderTargetSemesterOptions(Array.isArray(semesters) ? semesters : []);
+        }
+
+        function renderTargetSemesterOptions(semesters) {
+            const optionsContainer = document.getElementById('targetSemesterOptions');
+            const currentSemesterId = Number(document.getElementById('semesterSelect').value || selectedSemesterId);
+            optionsContainer.innerHTML = '';
+
+            semesters
+                .filter(s => Number(s.id) !== currentSemesterId)
+                .forEach(s => {
+                    const label = document.createElement('label');
+                    label.className = 'checkbox-option';
+                    label.innerHTML = `
+                        <input type="checkbox" value="${s.id}" onchange="updateTargetSemesterSummary()">
+                        <span>${s.semesterName || 'Semester'} (${s.academicYear || 'N/A'})</span>
+                    `;
+                    optionsContainer.appendChild(label);
+                });
+
+            updateTargetSemesterSummary();
+        }
+
+        function getTargetSemesterIds() {
+            const currentSemesterId = Number(document.getElementById('semesterSelect').value);
+            const selectedTargets = Array.from(document.querySelectorAll('#targetSemesterOptions input[type="checkbox"]:checked'))
+                .map(o => Number(o.value))
+                .filter(Number.isFinite);
+
+            if (selectedTargets.length === 0) {
+                return [];
+            }
+
+            return [currentSemesterId, ...selectedTargets];
+        }
+
+        function updateTargetSemesterSummary() {
+            const selectedTargets = Array.from(document.querySelectorAll('#targetSemesterOptions input[type="checkbox"]:checked'));
+            const count = selectedTargets.length;
+            document.getElementById('targetSemesterSummary').textContent = count === 0
+                ? 'Select semesters'
+                : `${count + 1} semester${count + 1 > 1 ? 's' : ''} selected`;
+        }
+
+        function toggleTargetSemesterDropdown() {
+            document.getElementById('targetSemesterOptions').classList.toggle('open');
+        }
+
+        function closeTargetSemesterDropdown() {
+            document.getElementById('targetSemesterOptions').classList.remove('open');
+        }
 
         function switchTab(type) {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -347,6 +500,8 @@
                     const holidays = JSON.parse(e.target.result);
                     // Format: [{"date": "...", "reason": "...", "type": "...", "scope": "..."}]
                     const request = {
+                        semesterId: Number(document.getElementById('semesterSelect').value),
+                        targetSemesterIds: getTargetSemesterIds(),
                         holidays: holidays.map(h => ({
                             date: h.date,
                             reason: h.reason || h.name,
@@ -381,7 +536,14 @@
 
         async function loadHolidays() {
             try {
-                const res = await fetch('/api/admin/holidays', {
+                selectedSemesterId = document.getElementById('semesterSelect').value;
+                const semRes = await fetch('/api/admin/semesters?activeOnly=true', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const semList = await semRes.json();
+                renderTargetSemesterOptions(Array.isArray(semList) ? semList : []);
+
+                const res = await fetch(`/api/admin/holidays?semesterId=${selectedSemesterId}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const holidays = await res.json();
@@ -455,7 +617,14 @@
             const res = await fetch('/api/admin/holidays', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ name, date, type, scope })
+                body: JSON.stringify({
+                    name,
+                    date,
+                    type,
+                    scope,
+                    semesterId: Number(document.getElementById('semesterSelect').value),
+                    targetSemesterIds: getTargetSemesterIds()
+                })
             });
             if(res.ok) {
                 showToast('Holiday added!');
@@ -478,7 +647,15 @@
             const res = await fetch('/api/admin/holidays/range', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ name, startDate: start, endDate: end, type, scope })
+                body: JSON.stringify({
+                    name,
+                    startDate: start,
+                    endDate: end,
+                    type,
+                    scope,
+                    semesterId: Number(document.getElementById('semesterSelect').value),
+                    targetSemesterIds: getTargetSemesterIds()
+                })
             });
             if(res.ok) {
                 showToast('Range added!');

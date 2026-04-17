@@ -22,6 +22,10 @@ public class StudentHolidayRequest {
     @JoinColumn(name = "student_id", nullable = false)
     private User student;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "semester_id")
+    private Semester semester;
+
     @Column(nullable = false)
     private LocalDate holidayDate;
 

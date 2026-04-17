@@ -37,4 +37,8 @@ public class User {
 
     @Column(columnDefinition = "boolean default true")
     private Boolean enabled = true;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "current_semester_id")
+    private Semester currentSemester;
 }

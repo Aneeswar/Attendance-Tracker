@@ -36,9 +36,6 @@ public class DateBasedAttendanceService {
     private TimetableEntryRepository timetableEntryRepository;
 
     @Autowired
-    private AcademicCalendarRepository academicCalendarRepository;
-
-    @Autowired
     private HolidayRepository holidayRepository;
 
     @Autowired
@@ -83,12 +80,9 @@ public class DateBasedAttendanceService {
                 .findByCourseIdAndAttendanceDateBetweenOrderByAttendanceDateAsc(courseId, startDate, endDate);
 
         // Get holidays for this period
-        Optional<AcademicCalendar> currentCalendar = academicCalendarRepository
-                .findFirstByOrderByCreatedAtDesc();
-        
         Map<LocalDate, Holiday> holidayMap = new HashMap<>();
-        if (currentCalendar.isPresent()) {
-            List<Holiday> holidays = holidayRepository.findByAcademicCalendarId(currentCalendar.get().getId());
+        if (course.getSemester() != null) {
+            List<Holiday> holidays = holidayRepository.findBySemesterIdOrderByDateAsc(course.getSemester().getId());
             for (Holiday holiday : holidays) {
                 holidayMap.put(holiday.getDate(), holiday);
             }

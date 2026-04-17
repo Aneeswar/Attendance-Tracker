@@ -43,8 +43,8 @@ public class StudentService {
     @Autowired
     private AcademicCalendarService academicCalendarService;
     
-    @Autowired
-    private AcademicCalendarRepository academicCalendarRepository;
+    // @Autowired
+    // private AcademicCalendarRepository academicCalendarRepository;
 
     @Autowired
     private AttendanceReportRepository attendanceReportRepository;
@@ -55,6 +55,15 @@ public class StudentService {
     @Autowired
     private CourseCatalogRepository courseCatalogRepository;
 
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private SemesterRepository semesterRepository;
+
+    @Autowired
+    private SemesterSelectionService semesterSelectionService;
+
     @Value("${app.upload.dir:uploads/timetables}")
     private String uploadDir;
 
@@ -64,6 +73,94 @@ public class StudentService {
 
         return courseCatalogRepository.findByCourseCodeAndCourseName(normalizedCode, normalizedName)
                 .orElseGet(() -> courseCatalogRepository.save(new CourseCatalog(null, normalizedCode, normalizedName)));
+    }
+
+    public Long getActiveSemesterIdForUser(Long userId) {
+        Semester semester = resolveActiveSemesterForUser(userId);
+        if (semester == null || semester.getId() == null) {
+            throw new IllegalArgumentException("No active semester configured. Please ask admin to create and activate a semester.");
+        }
+        return semester.getId();
+    }
+
+    private Semester resolveActiveSemesterForUser(Long userId) {
+        if (semesterSelectionService != null) {
+            Optional<Semester> fromSelection = semesterSelectionService.getCurrentSemesterForUser(userId);
+            if (fromSelection.isPresent()) {
+                return fromSelection.get();
+            }
+        }
+
+        if (userRepository != null) {
+            Optional<User> userOpt = userRepository.findById(userId);
+            if (userOpt.isPresent() && userOpt.get().getCurrentSemester() != null) {
+                return userOpt.get().getCurrentSemester();
+            }
+        }
+
+        if (semesterRepository != null) {
+            return semesterRepository.findFirstByActiveTrueOrderBySemesterStartDateDesc().orElse(null);
+        }
+
+        return null;
+    }
+
+    private List<Course> getCoursesForActiveSemester(Long userId) {
+        Semester semester = resolveActiveSemesterForUser(userId);
+        if (semester == null || semester.getId() == null) {
+            return courseRepository.findByUserId(userId);
+        }
+
+        boolean hasExplicitSelection = userRepository.findById(userId)
+                .map(User::getCurrentSemester)
+                .isPresent();
+
+        List<Course> semesterCourses = courseRepository.findByUserIdAndSemesterId(userId, semester.getId());
+        if (!semesterCourses.isEmpty()) {
+            return semesterCourses;
+        }
+
+        // Legacy fallback to pre-semester rows is only for users who have never selected a semester.
+        if (hasExplicitSelection) {
+            return List.of();
+        }
+
+        return courseRepository.findByUserIdAndSemesterIsNull(userId);
+    }
+
+    private LocalDate resolveFatAnchorDate(Semester semester) {
+        if (semester == null) {
+            return null;
+        }
+        LocalDate fatStart = semester.getFatStartDate();
+        LocalDate semesterEnd = semester.getSemesterEndDate();
+
+        if (fatStart != null && semesterEnd != null) {
+            return fatStart.isBefore(semesterEnd) ? fatStart : semesterEnd;
+        }
+        return fatStart != null ? fatStart : semesterEnd;
+    }
+
+    private Optional<Course> findCourseByCodeInActiveSemester(Long userId, String courseCode) {
+        Semester semester = resolveActiveSemesterForUser(userId);
+        if (semester == null || semester.getId() == null) {
+            return courseRepository.findByUserIdAndCourseCatalog_CourseCodeIgnoreCase(userId, courseCode);
+        }
+
+        boolean hasExplicitSelection = userRepository.findById(userId)
+                .map(User::getCurrentSemester)
+                .isPresent();
+
+        Optional<Course> inSemester = courseRepository.findByUserIdAndSemesterIdAndCourseCatalog_CourseCodeIgnoreCase(userId, semester.getId(), courseCode);
+        if (inSemester.isPresent()) {
+            return inSemester;
+        }
+
+        if (hasExplicitSelection) {
+            return Optional.empty();
+        }
+
+        return courseRepository.findByUserIdAndSemesterIsNullAndCourseCatalog_CourseCodeIgnoreCase(userId, courseCode);
     }
 
     /**
@@ -88,11 +185,16 @@ public class StudentService {
         }
 
         // Exam days are treated as non-instructional days for attendance counting.
-        if (isExamDate(date)) {
+        if (isExamDate(course, date)) {
             return false;
         }
 
-        Optional<Holiday> holidayOpt = holidayRepository.findByDate(date);
+        Semester holidaySemester = course.getSemester() != null
+            ? course.getSemester()
+            : semesterRepository.findFirstByActiveTrueOrderBySemesterStartDateDesc().orElse(null);
+        Optional<Holiday> holidayOpt = holidaySemester != null
+            ? holidayRepository.findByDateAndSemesterId(date, holidaySemester.getId())
+            : Optional.empty();
         if (holidayOpt.isEmpty()) {
             return true;
         }
@@ -112,16 +214,19 @@ public class StudentService {
         return entriesForDay.stream().anyMatch(entry -> entry.getSession() != TimetableEntry.Session.AFTERNOON);
     }
 
-    private boolean isExamDate(LocalDate date) {
-        Optional<AcademicCalendar> calendarOpt = academicCalendarRepository.findFirstByOrderByCreatedAtDesc();
-        if (calendarOpt.isEmpty()) {
+    private boolean isExamDate(Course course, LocalDate date) {
+        Semester semester = course != null ? course.getSemester() : null;
+        if (semester == null) {
+            semester = semesterRepository.findFirstByActiveTrueOrderBySemesterStartDateDesc().orElse(null);
+        }
+
+        if (semester == null) {
             return false;
         }
 
-        AcademicCalendar calendar = calendarOpt.get();
-        return isDateWithin(date, calendar.getCat1StartDate(), calendar.getCat1EndDate())
-                || isDateWithin(date, calendar.getCat2StartDate(), calendar.getCat2EndDate())
-                || isDateWithin(date, calendar.getFatStartDate(), calendar.getFatEndDate());
+        return isDateWithin(date, semester.getCat1StartDate(), semester.getCat1EndDate())
+                || isDateWithin(date, semester.getCat2StartDate(), semester.getCat2EndDate())
+                || isDateWithin(date, semester.getFatStartDate(), semester.getFatEndDate());
     }
 
     private boolean isDateWithin(LocalDate date, LocalDate start, LocalDate end) {
@@ -133,16 +238,19 @@ public class StudentService {
      */
     @CacheEvict(value = "attendanceReports", key = "#userId")
     public void confirmTimetable(Long userId, List<TimetableEntryDTO> confirmedData) {
+        Semester semester = resolveActiveSemesterForUser(userId);
         // Save new courses and timetable entries (add/update, don't delete)
         for (TimetableEntryDTO dto : confirmedData) {
             CourseCatalog catalog = resolveOrCreateCourseCatalog(dto.getCourseCode(), dto.getCourseName());
             // Check if course already exists
-            Optional<Course> existing = courseRepository
-                    .findByUserIdAndCourseCatalog_CourseCodeIgnoreCase(userId, dto.getCourseCode());
+            Optional<Course> existing = findCourseByCodeInActiveSemester(userId, dto.getCourseCode());
 
             Course course;
             if (existing.isPresent()) {
                 course = existing.get();
+                if (course.getSemester() == null) {
+                    course.setSemester(semester);
+                }
                 course.setCourseName(dto.getCourseName());
                 course.setCourseCode(dto.getCourseCode());
                 course.setCourseCatalog(catalog);
@@ -150,6 +258,7 @@ public class StudentService {
             } else {
                 course = new Course();
                 course.setUserId(userId);
+                course.setSemester(semester);
                 course.setCourseCode(dto.getCourseCode());
                 course.setCourseName(dto.getCourseName());
                 course.setCourseCatalog(catalog);
@@ -187,15 +296,18 @@ public class StudentService {
      */
     @CacheEvict(value = "attendanceReports", key = "#userId")
     public void confirmTimetableWithDates(Long userId, List<TimetableConfirmRequest> confirmedData) {
+        Semester semester = resolveActiveSemesterForUser(userId);
         for (TimetableConfirmRequest req : confirmedData) {
             CourseCatalog catalog = resolveOrCreateCourseCatalog(req.getCourseCode(), req.getCourseName());
             // Check if course already exists
-            Optional<Course> existing = courseRepository
-                    .findByUserIdAndCourseCatalog_CourseCodeIgnoreCase(userId, req.getCourseCode());
+            Optional<Course> existing = findCourseByCodeInActiveSemester(userId, req.getCourseCode());
 
             Course course;
             if (existing.isPresent()) {
                 course = existing.get();
+                if (course.getSemester() == null) {
+                    course.setSemester(semester);
+                }
                 course.setCourseName(req.getCourseName());
                 course.setCourseCode(req.getCourseCode());
                 course.setCourseCatalog(catalog);
@@ -206,6 +318,7 @@ public class StudentService {
             } else {
                 course = new Course();
                 course.setUserId(userId);
+                course.setSemester(semester);
                 course.setCourseCode(req.getCourseCode());
                 course.setCourseName(req.getCourseName());
                 course.setCourseCatalog(catalog);
@@ -245,7 +358,7 @@ public class StudentService {
     @CacheEvict(value = "attendanceReports", key = "#userId")
     public void saveAttendanceInput(Long userId, String courseCode, 
                                    Integer totalConducted, Integer attended) {
-        Optional<Course> course = courseRepository.findByUserIdAndCourseCatalog_CourseCodeIgnoreCase(userId, courseCode);
+        Optional<Course> course = findCourseByCodeInActiveSemester(userId, courseCode);
         if (course.isEmpty()) {
             throw new IllegalArgumentException("Course not found for user: " + courseCode);
         }
@@ -333,6 +446,25 @@ public class StudentService {
     @Cacheable(value = "attendanceReports", key = "#userId")
     public List<AttendanceReportDTO> getAttendanceReport(Long userId) {
         List<AttendanceReport> cachedReports = attendanceReportRepository.findByCourse_UserId(userId);
+
+        Semester selectedSemester = resolveActiveSemesterForUser(userId);
+        Long selectedSemesterId = selectedSemester != null ? selectedSemester.getId() : null;
+        boolean hasExplicitSelection = userRepository.findById(userId)
+                .map(User::getCurrentSemester)
+                .isPresent();
+
+        if (selectedSemesterId != null) {
+            cachedReports = cachedReports.stream()
+                    .filter(report -> {
+                        Semester reportSemester = report.getCourse().getSemester();
+                        if (reportSemester != null && reportSemester.getId() != null) {
+                            return reportSemester.getId().equals(selectedSemesterId);
+                        }
+                        return !hasExplicitSelection;
+                    })
+                    .toList();
+        }
+
         List<AttendanceReportDTO> reports = new ArrayList<>();
 
         for (AttendanceReport cached : cachedReports) {
@@ -373,21 +505,35 @@ public class StudentService {
             }
 
             // Populate multi-exam reports
-            AcademicCalendar calendar = academicCalendarRepository.findFirstByOrderByCreatedAtDesc().orElse(null);
-            if (calendar != null) {
-                Set<LocalDate> holidays = new HashSet<>(holidayService.getAllHolidays().stream().map(h -> h.getDate()).toList());
-                
-                report.setCat1Report(calculateExamEligibility(cached.getCourse(), "CAT-1", calendar.getCat1StartDate(), calendar.getCat1EndDate(), cached.getClassesAttended(), cached.getTotalClassesConducted(), holidays));
-                report.setCat2Report(calculateExamEligibility(cached.getCourse(), "CAT-2", calendar.getCat2StartDate(), calendar.getCat2EndDate(), cached.getClassesAttended(), cached.getTotalClassesConducted(), holidays));
-                // Use calendar.getExamStartDate() as the Instructional End Date for FAT analysis
-                report.setFatReport(calculateExamEligibility(cached.getCourse(), "FAT", calendar.getExamStartDate(), calendar.getFatEndDate(), cached.getClassesAttended(), cached.getTotalClassesConducted(), holidays));
-                
-                // Determine main report exam
-                LocalDate today = LocalDate.now();
-                if (calendar.getCat1StartDate() != null && !today.isAfter(calendar.getCat1EndDate())) {
-                    report.setMainReportExam("CAT-1");
-                } else if (calendar.getCat2StartDate() != null && !today.isAfter(calendar.getCat2EndDate())) {
+            Semester courseSemester = cached.getCourse().getSemester();
+            if (courseSemester == null) {
+                courseSemester = resolveActiveSemesterForUser(userId);
+            }
+            if (courseSemester != null) {
+                Set<LocalDate> holidays = new HashSet<>(holidayService.getHolidaysBySemester(courseSemester.getId()).stream().map(h -> h.getDate()).toList());
+
+                var cat1Report = calculateExamEligibility(cached.getCourse(), "CAT-1", courseSemester.getCat1StartDate(), courseSemester.getCat1EndDate(), cached.getClassesAttended(), cached.getTotalClassesConducted(), holidays);
+                var cat2Report = calculateExamEligibility(cached.getCourse(), "CAT-2", courseSemester.getCat2StartDate(), courseSemester.getCat2EndDate(), cached.getClassesAttended(), cached.getTotalClassesConducted(), holidays);
+                LocalDate fatStart = resolveFatAnchorDate(courseSemester);
+                LocalDate fatEnd = courseSemester.getFatEndDate() != null ? courseSemester.getFatEndDate() : fatStart;
+                var fatReport = calculateExamEligibility(cached.getCourse(), "FAT", fatStart, fatEnd, cached.getClassesAttended(), cached.getTotalClassesConducted(), holidays);
+
+                report.setCat1Report(cat1Report);
+                report.setCat2Report(cat2Report);
+                report.setFatReport(fatReport);
+
+                // Frontend main card is designed to show FAT standing by default whenever available.
+                // CAT-1 and CAT-2 are still exposed via selector chips and modal drill-down.
+                if (fatReport != null && fatReport.isAvailable()) {
+                    report.setMainReportExam("FAT");
+                } else if (cat2Report != null && cat2Report.isAvailable() && !cat2Report.isCompleted()) {
                     report.setMainReportExam("CAT-2");
+                } else if (cat1Report != null && cat1Report.isAvailable() && !cat1Report.isCompleted()) {
+                    report.setMainReportExam("CAT-1");
+                } else if (cat2Report != null && cat2Report.isAvailable()) {
+                    report.setMainReportExam("CAT-2");
+                } else if (cat1Report != null && cat1Report.isAvailable()) {
+                    report.setMainReportExam("CAT-1");
                 } else {
                     report.setMainReportExam("FAT");
                 }
@@ -397,6 +543,11 @@ public class StudentService {
         }
 
         return reports;
+    }
+
+    @CacheEvict(value = "attendanceReports", key = "#userId")
+    public void evictAttendanceCache(Long userId) {
+        log.debug("Attendance cache evicted for user {}", userId);
     }
 
     private com.deepak.Attendance.dto.ExamEligibilityDTO calculateExamEligibility(Course course, String examType, LocalDate start, LocalDate end, int attended, int totalConducted, Set<LocalDate> holidays) {
@@ -484,7 +635,29 @@ public class StudentService {
      */
     private void calculateAndCacheAttendanceReport(Course course) {
         try {
-            Optional<AcademicCalendarDTO> calendarOpt = academicCalendarService.getCurrentAcademicCalendar();
+            Optional<AcademicCalendarDTO> legacyCalendarOpt = academicCalendarService != null
+                    ? academicCalendarService.getCurrentAcademicCalendar()
+                    : Optional.empty();
+            Semester semester = course.getSemester();
+            if (semester == null) {
+                semester = resolveActiveSemesterForUser(course.getUserId());
+                if (semester != null) {
+                    course.setSemester(semester);
+                    courseRepository.save(course);
+                }
+            }
+
+            if (semester == null && legacyCalendarOpt.isPresent()) {
+                AcademicCalendarDTO legacy = legacyCalendarOpt.get();
+                semester = new Semester();
+                semester.setCat1StartDate(legacy.getCat1StartDate());
+                semester.setCat1EndDate(legacy.getCat1EndDate());
+                semester.setCat2StartDate(legacy.getCat2StartDate());
+                semester.setCat2EndDate(legacy.getCat2EndDate());
+                semester.setFatStartDate(legacy.getFatStartDate());
+                semester.setFatEndDate(legacy.getFatEndDate());
+                semester.setSemesterEndDate(legacy.getExamStartDate());
+            }
             LocalDate today = LocalDate.now();
 
             // Get attendance data
@@ -557,25 +730,25 @@ public class StudentService {
             cachedReport.setMinimumClassesToAttend65(Math.max(0, minFor65 - attended));
             
             // Handle upcoming exam info if available
-            if (calendarOpt.isPresent()) {
-                AcademicCalendarDTO calendar = calendarOpt.get();
+            if (semester != null) {
                 
                 String upcomingExam = null;
                 LocalDate upcomingStart = null;
                 LocalDate upcomingEnd = null;
                 
-                if (calendar.getCat1StartDate() != null && today.isBefore(calendar.getCat1StartDate())) {
+                if (semester.getCat1StartDate() != null && today.isBefore(semester.getCat1StartDate())) {
                     upcomingExam = "CAT-1";
-                    upcomingStart = calendar.getCat1StartDate();
-                    upcomingEnd = calendar.getCat1EndDate();
-                } else if (calendar.getCat2StartDate() != null && today.isBefore(calendar.getCat2StartDate())) {
+                    upcomingStart = semester.getCat1StartDate();
+                    upcomingEnd = semester.getCat1EndDate();
+                } else if (semester.getCat2StartDate() != null && today.isBefore(semester.getCat2StartDate())) {
                     upcomingExam = "CAT-2";
-                    upcomingStart = calendar.getCat2StartDate();
-                    upcomingEnd = calendar.getCat2EndDate();
-                } else if (calendar.getFatStartDate() != null && today.isBefore(calendar.getFatStartDate())) {
+                    upcomingStart = semester.getCat2StartDate();
+                    upcomingEnd = semester.getCat2EndDate();
+                } else if (resolveFatAnchorDate(semester) != null
+                        && today.isBefore(resolveFatAnchorDate(semester))) {
                     upcomingExam = "FAT";
-                    upcomingStart = calendar.getFatStartDate();
-                    upcomingEnd = calendar.getFatEndDate();
+                    upcomingStart = resolveFatAnchorDate(semester);
+                    upcomingEnd = semester.getFatEndDate() != null ? semester.getFatEndDate() : upcomingStart;
                 }
                 
                 if (upcomingExam != null && upcomingStart != null) {
@@ -649,7 +822,7 @@ public class StudentService {
         String dayOfWeek = today.getDayOfWeek().toString();
         log.info("Auto-marking attendance for user: {} for today: {} ({})", userId, today, dayOfWeek);
 
-        List<Course> courses = courseRepository.findByUserId(userId);
+        List<Course> courses = getCoursesForActiveSemester(userId);
         for (Course course : courses) {
             // Check if course has a valid class today after holiday scope rules.
             boolean hasClassToday = isClassConductedOnDate(course, today);
@@ -701,7 +874,7 @@ public class StudentService {
         // Auto-mark today's attendance before refreshing
         autoMarkTodayAttendance(userId);
         
-        List<Course> courses = courseRepository.findByUserId(userId);
+        List<Course> courses = getCoursesForActiveSemester(userId);
         boolean refreshed = !courses.isEmpty();
         
         for (Course course : courses) {
@@ -744,7 +917,7 @@ public class StudentService {
     }
 
     public List<Course> getStudentCourses(Long userId) {
-        return courseRepository.findByUserId(userId);
+        return getCoursesForActiveSemester(userId);
     }
 
     /**
@@ -785,7 +958,7 @@ public class StudentService {
             log.info("Starting recalculation of attendance reports for student: {}", userId);
             
             // Get all courses for this student
-            List<Course> studentCourses = courseRepository.findByUserId(userId);
+            List<Course> studentCourses = getCoursesForActiveSemester(userId);
             
             for (Course course : studentCourses) {
                 try {
@@ -829,7 +1002,7 @@ public class StudentService {
      * Get student's timetable
      */
     public List<TimetableEntryDTO> getStudentTimetable(Long userId) {
-        List<Course> courses = courseRepository.findByUserId(userId);
+        List<Course> courses = getCoursesForActiveSemester(userId);
         List<TimetableEntryDTO> timetables = new ArrayList<>();
 
         for (Course course : courses) {
@@ -867,12 +1040,20 @@ public class StudentService {
     }
 
     public List<Course> getStudentCoursesEntity(Long userId) {
-        return courseRepository.findByUserId(userId);
+        return getCoursesForActiveSemester(userId);
     }
 
     /**
      * Get all holidays for student viewing
      */
+    public List<com.deepak.Attendance.dto.HolidayDTO> getAllHolidays(Long userId) {
+        Semester semester = resolveActiveSemesterForUser(userId);
+        if (semester == null || semester.getId() == null) {
+            return holidayService.getAllHolidays();
+        }
+        return holidayService.getHolidaysBySemester(semester.getId());
+    }
+
     public List<com.deepak.Attendance.dto.HolidayDTO> getAllHolidays() {
         return holidayService.getAllHolidays();
     }
@@ -881,7 +1062,7 @@ public class StudentService {
      * Delete a course by course code for a specific user
      */
     public void deleteCourse(Long userId, String courseCode) {
-        Optional<Course> course = courseRepository.findByUserIdAndCourseCatalog_CourseCodeIgnoreCase(userId, courseCode);
+        Optional<Course> course = findCourseByCodeInActiveSemester(userId, courseCode);
         if (course.isEmpty()) {
             throw new IllegalArgumentException("Course not found: " + courseCode);
         }
@@ -953,7 +1134,12 @@ public class StudentService {
         }
 
         // Get all holidays to exclude them
-        Set<LocalDate> holidays = new HashSet<>(holidayService.getAllHolidays().stream().map(h -> h.getDate()).toList());
+        Set<LocalDate> holidays = new HashSet<>(
+            holidayService.getHolidaysBySemester(course.getSemester() != null ? course.getSemester().getId() : null)
+                .stream()
+                .map(h -> h.getDate())
+                .toList()
+        );
         
         // Get valid working days for this course's timetable
         Map<String, Integer> schedule = new HashMap<>();
@@ -966,7 +1152,7 @@ public class StudentService {
         LocalDate current = start;
         while (!current.isAfter(today)) {
             String dayName = current.getDayOfWeek().name().toUpperCase();
-            if (schedule.containsKey(dayName) && !holidays.contains(current) && !isExamDate(current)) {
+            if (schedule.containsKey(dayName) && !holidays.contains(current) && !isExamDate(course, current)) {
                 // Only create if it doesn't exist
                 Optional<DateBasedAttendance> existing = dateBasedAttendanceRepository.findByCourseIdAndAttendanceDate(courseId, current);
                 if (existing.isEmpty()) {
@@ -1021,7 +1207,10 @@ public class StudentService {
         Map<LocalDate, Holiday.HolidayScope> holidayMap = new HashMap<>();
         
         // Add holidays
-        List<Holiday> holidays = holidayRepository.findAll();
+        Long holidaySemesterId = c.getSemester() != null
+            ? c.getSemester().getId()
+            : resolveActiveSemesterForUser(userId).getId();
+        List<Holiday> holidays = holidayRepository.findBySemesterIdOrderByDateAsc(holidaySemesterId);
         holidays.forEach(h -> holidayMap.put(h.getDate(), h.getScope() != null ? h.getScope() : Holiday.HolidayScope.FULL));
         
         // Generate list of class dates
@@ -1030,7 +1219,7 @@ public class StudentService {
 
         while (!currentDate.isAfter(today)) {
             Holiday.HolidayScope holidayScope = holidayMap.get(currentDate);
-            boolean isExamDay = isExamDate(currentDate);
+            boolean isExamDay = isExamDate(c, currentDate);
 
             if (!isExamDay && (holidayScope == null || holidayScope != Holiday.HolidayScope.FULL)) {
                 for (TimetableEntry entry : timetableEntries) {
@@ -1134,8 +1323,8 @@ public class StudentService {
      * Get all available courses (excluding ones already added by the student)
      */
     public List<Map<String, Object>> getAllAvailableCourses(Long userId) {
-        List<Course> allCourses = courseRepository.findAll();
-        List<Course> studentCourses = courseRepository.findByUserId(userId);
+        List<Course> allCourses = courseRepository.findBySemesterId(resolveActiveSemesterForUser(userId).getId());
+        List<Course> studentCourses = getCoursesForActiveSemester(userId);
         List<Long> studentCourseIds = studentCourses.stream().map(Course::getId).toList();
 
         List<Map<String, Object>> availableCourses = new ArrayList<>();
@@ -1187,7 +1376,7 @@ public class StudentService {
         
         // Check if student already has this course
         Optional<Course> studentCourse = courseRepository
-            .findByUserIdAndCourseCatalog_CourseCodeIgnoreCase(userId, originalCourse.getCourseCode());
+            .findByUserIdAndSemesterIdAndCourseCatalog_CourseCodeIgnoreCase(userId, resolveActiveSemesterForUser(userId).getId(), originalCourse.getCourseCode());
         if (studentCourse.isPresent()) {
             throw new IllegalArgumentException("You already have this course");
         }
@@ -1195,6 +1384,7 @@ public class StudentService {
         // Create a new course entry for the student (with custom start date)
         Course newCourse = new Course();
         newCourse.setUserId(userId);
+        newCourse.setSemester(resolveActiveSemesterForUser(userId));
         newCourse.setCourseCode(originalCourse.getCourseCode());
         newCourse.setCourseName(originalCourse.getCourseName());
         newCourse.setCourseCatalog(originalCourse.getCourseCatalog() != null

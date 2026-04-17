@@ -15,7 +15,7 @@ import java.util.*;
 public class AttendanceCalculationService {
 
     @Autowired
-    private AcademicCalendarRepository academicCalendarRepository;
+    private SemesterRepository semesterRepository;
 
     @Autowired
     private TimetableEntryRepository timetableEntryRepository;
@@ -36,23 +36,23 @@ public class AttendanceCalculationService {
      * Only considers: Tuesday to Saturday, excludes holidays, excludes exam periods
      */
     public List<LocalDate> getValidWorkingDays(LocalDate startDate) {
-        // Get current academic calendar
-        List<AcademicCalendar> calendarList = academicCalendarRepository
-                .findBySemesterStartDateLessThanEqualAndExamStartDateGreaterThanEqual(startDate, startDate);
+        // Get current active semester
+        List<Semester> calendarList = semesterRepository
+            .findBySemesterStartDateLessThanEqualAndSemesterEndDateGreaterThanEqual(startDate, startDate);
 
         if (calendarList.isEmpty()) {
             return new ArrayList<>();
         }
 
-        AcademicCalendar calendar = calendarList.get(0);
-        LocalDate examStart = calendar.getExamStartDate();
+        Semester calendar = calendarList.get(0);
+        LocalDate examStart = calendar.getSemesterEndDate();
 
         List<LocalDate> validDays = new ArrayList<>();
         LocalDate current = startDate;
 
         // Use all configured holidays to avoid mismatches with report cutoff logic.
         Set<LocalDate> holidays = new HashSet<>(
-            holidayRepository.findAllByOrderByDateAsc().stream()
+            holidayRepository.findBySemesterIdOrderByDateAsc(calendar.getId()).stream()
                 .map(Holiday::getDate)
                 .toList()
         );
@@ -122,6 +122,51 @@ public class AttendanceCalculationService {
         return null;
     }
 
+    private LocalDate resolveAttendanceWindowEndBeforeExam(LocalDate examDate, Set<LocalDate> fullHolidays) {
+        if (examDate == null) {
+            return null;
+        }
+
+        // Last working day (LWD) is the working day before the exam date.
+        LocalDate lwd = getLastWorkingDayBeforeDate(examDate, fullHolidays);
+        if (lwd == null) {
+            lwd = examDate.minusDays(1);
+        }
+
+        // Attendance cutoff is the working day before LWD.
+        LocalDate cutoff = getLastWorkingDayBeforeDate(lwd, fullHolidays);
+        if (cutoff == null) {
+            cutoff = lwd.minusDays(1);
+        }
+        return cutoff;
+    }
+
+    private LocalDate resolveFatAttendanceWindowEnd(LocalDate requestedUntilDate, Set<LocalDate> fullHolidays) {
+        if (requestedUntilDate == null) {
+            return null;
+        }
+
+        LocalDate cutoff = getLastWorkingDayBeforeDate(requestedUntilDate, fullHolidays);
+        if (cutoff == null) {
+            cutoff = requestedUntilDate.minusDays(1);
+        }
+        return cutoff;
+    }
+
+    private LocalDate resolveFatAnchorDate(Semester semester) {
+        if (semester == null) {
+            return null;
+        }
+
+        LocalDate fatStart = semester.getFatStartDate();
+        LocalDate semesterEnd = semester.getSemesterEndDate();
+
+        if (fatStart != null && semesterEnd != null) {
+            return fatStart.isBefore(semesterEnd) ? fatStart : semesterEnd;
+        }
+        return fatStart != null ? fatStart : semesterEnd;
+    }
+
     /**
      * Calculate future classes available for a course until a specific date
      * Only considers: Tuesday to Saturday, excludes holidays
@@ -135,17 +180,17 @@ public class AttendanceCalculationService {
         log.info("Calculating future classes for course {} until {} (exam: {})", course.getId(), untilDate, examType);
 
         // Get academic calendar
-        Optional<AcademicCalendar> currentCalendarForCalc = academicCalendarRepository
-                .findFirstByOrderByCreatedAtDesc();
+        Optional<Semester> currentCalendarForCalc = Optional.ofNullable(course.getSemester())
+            .or(() -> semesterRepository.findFirstByActiveTrueOrderBySemesterStartDateDesc());
 
         Set<LocalDate> excludedDates = new HashSet<>();
         List<Holiday> calendarHolidays = new ArrayList<>();
         
         if (currentCalendarForCalc.isPresent()) {
-            AcademicCalendar calendar = currentCalendarForCalc.get();
+            Semester calendar = currentCalendarForCalc.get();
             
                 // Use all holidays for consistent behavior with cutoff date calculation.
-                calendarHolidays = holidayRepository.findAllByOrderByDateAsc();
+                calendarHolidays = holidayRepository.findBySemesterIdOrderByDateAsc(calendar.getId());
             excludedDates.addAll(calendarHolidays.stream()
                     .filter(h -> h.getScope() == Holiday.HolidayScope.FULL)
                     .map(Holiday::getDate)
@@ -228,23 +273,9 @@ public class AttendanceCalculationService {
                 .collect(java.util.stream.Collectors.toSet());
 
         if ("FAT".equals(examType)) {
-            lastClassDay = untilDate;
+            lastClassDay = resolveFatAttendanceWindowEnd(untilDate, finalFullHolidays);
         } else {
-            // Last working day (LWD) is the day before the exam
-            LocalDate lwd = getLastWorkingDayBeforeDate(untilDate, finalFullHolidays);
-            if (lwd == null) {
-                lwd = untilDate.minusDays(1);
-            }
-            
-            // Study holiday is the working day BEFORE the last working day
-            // Attendance is calculated UPTO the study holiday (which is a working day)
-            // Example: Exam=Mon (untilDate), LWD=Fri, Study Holiday=Thu, Cutoff=Thu.
-            lastClassDay = getLastWorkingDayBeforeDate(lwd, finalFullHolidays);
-            
-            // Fallback if we cannot calculate back properly
-            if (lastClassDay == null) {
-                lastClassDay = lwd.minusDays(1);
-            }
+            lastClassDay = resolveAttendanceWindowEndBeforeExam(untilDate, finalFullHolidays);
         }
 
         // Start from today if not yet marked, otherwise start from tomorrow
@@ -313,21 +344,22 @@ public class AttendanceCalculationService {
     public int calculateFutureClassesAvailable(Course course) {
         LocalDate today = LocalDate.now();
         // Use consistent exam-based logic for the total count as well
-        Optional<AcademicCalendar> currentCalendar = academicCalendarRepository.findFirstByOrderByCreatedAtDesc();
+        Optional<Semester> currentCalendar = Optional.ofNullable(course.getSemester())
+            .or(() -> semesterRepository.findFirstByActiveTrueOrderBySemesterStartDateDesc());
         String examType = "FAT";
         LocalDate untilDate = today.plusMonths(4);
 
         if (currentCalendar.isPresent()) {
-            AcademicCalendar calendar = currentCalendar.get();
+            Semester calendar = currentCalendar.get();
             if (calendar.getCat1StartDate() != null && !today.isAfter(calendar.getCat1EndDate())) {
                 examType = "CAT-1";
                 untilDate = calendar.getCat1StartDate();
             } else if (calendar.getCat2StartDate() != null && !today.isAfter(calendar.getCat2EndDate())) {
                 examType = "CAT-2";
                 untilDate = calendar.getCat2StartDate();
-            } else if (calendar.getFatStartDate() != null) {
+            } else if (calendar.getFatStartDate() != null || calendar.getSemesterEndDate() != null) {
                 examType = "FAT";
-                untilDate = calendar.getFatStartDate();
+                untilDate = resolveFatAnchorDate(calendar);
             }
         }
 
@@ -398,21 +430,22 @@ public class AttendanceCalculationService {
     public List<LocalDate> getFutureClassDates(Course course) {
         LocalDate today = LocalDate.now();
         // Determine current active exam type to use consistent exclusion logic
-        Optional<AcademicCalendar> currentCalendar = academicCalendarRepository.findFirstByOrderByCreatedAtDesc();
+        Optional<Semester> currentCalendar = Optional.ofNullable(course.getSemester())
+            .or(() -> semesterRepository.findFirstByActiveTrueOrderBySemesterStartDateDesc());
         String examType = "FAT"; // Default
         LocalDate untilDate = today.plusMonths(4); // Default far future
 
         if (currentCalendar.isPresent()) {
-            AcademicCalendar calendar = currentCalendar.get();
+            Semester calendar = currentCalendar.get();
             if (calendar.getCat1StartDate() != null && !today.isAfter(calendar.getCat1EndDate())) {
                 examType = "CAT-1";
                 untilDate = calendar.getCat1StartDate();
             } else if (calendar.getCat2StartDate() != null && !today.isAfter(calendar.getCat2EndDate())) {
                 examType = "CAT-2";
                 untilDate = calendar.getCat2StartDate();
-            } else if (calendar.getFatStartDate() != null) {
+            } else if (calendar.getFatStartDate() != null || calendar.getSemesterEndDate() != null) {
                 examType = "FAT";
-                untilDate = calendar.getFatStartDate();
+                untilDate = resolveFatAnchorDate(calendar);
             }
         }
 
@@ -430,17 +463,17 @@ public class AttendanceCalculationService {
         log.info("Generating future class dates for course {} until {} (exam: {})", course.getId(), untilDate, examType);
 
         // Get academic calendar
-        Optional<AcademicCalendar> currentCalendarForDates = academicCalendarRepository
-                .findFirstByOrderByCreatedAtDesc();
+        Optional<Semester> currentCalendarForDates = Optional.ofNullable(course.getSemester())
+            .or(() -> semesterRepository.findFirstByActiveTrueOrderBySemesterStartDateDesc());
 
         Set<LocalDate> excludedDates = new HashSet<>();
         List<Holiday> calendarHolidays = new ArrayList<>();
         
         if (currentCalendarForDates.isPresent()) {
-            AcademicCalendar calendar = currentCalendarForDates.get();
+            Semester calendar = currentCalendarForDates.get();
             
                 // Use all holidays for consistent behavior with cutoff date calculation.
-                calendarHolidays = holidayRepository.findAllByOrderByDateAsc();
+                calendarHolidays = holidayRepository.findBySemesterIdOrderByDateAsc(calendar.getId());
             excludedDates.addAll(calendarHolidays.stream()
                     .filter(h -> h.getScope() == Holiday.HolidayScope.FULL)
                     .map(Holiday::getDate)
@@ -521,23 +554,9 @@ public class AttendanceCalculationService {
                 .collect(java.util.stream.Collectors.toSet());
 
         if ("FAT".equals(examType)) {
-            lastClassDay = untilDate;
+            lastClassDay = resolveFatAttendanceWindowEnd(untilDate, finalFullHolidays);
         } else {
-            // Last working day (LWD) is the day before the exam
-            LocalDate lwd = getLastWorkingDayBeforeDate(untilDate, finalFullHolidays);
-            if (lwd == null) {
-                lwd = untilDate.minusDays(1);
-            }
-            
-            // Study holiday is the working day BEFORE the last working day
-            // Attendance is calculated UPTO the study holiday (which is a working day)
-            // Example: Exam=Mon (untilDate), LWD=Fri, Study Holiday=Thu, Cutoff=Thu.
-            lastClassDay = getLastWorkingDayBeforeDate(lwd, finalFullHolidays);
-            
-            // Fallback if we cannot calculate back properly
-            if (lastClassDay == null) {
-                lastClassDay = lwd.minusDays(1);
-            }
+            lastClassDay = resolveAttendanceWindowEndBeforeExam(untilDate, finalFullHolidays);
         }
 
         // Start from today if not yet marked, otherwise start from tomorrow
@@ -582,17 +601,9 @@ public class AttendanceCalculationService {
         if (untilDate == null) return null;
         
         if ("FAT".equals(examType)) {
-            // For FAT, upto the last instructional day in a semester
-            return untilDate;
+            return resolveFatAttendanceWindowEnd(untilDate, holidays);
         } else {
-            // Last working day (LWD) is the day before the exam
-            LocalDate lwd = getLastWorkingDayBeforeDate(untilDate, holidays);
-            if (lwd == null) lwd = untilDate.minusDays(1);
-            
-            // Study holiday is the working day BEFORE the last working day
-            // Attendance is calculated UPTO the study holiday (which is a working day)
-            // Example: Exam=Mon (untilDate), LWD=Fri, Study Holiday=Thu, Cutoff=Thu.
-            return getLastWorkingDayBeforeDate(lwd, holidays);
+            return resolveAttendanceWindowEndBeforeExam(untilDate, holidays);
         }
     }
 }

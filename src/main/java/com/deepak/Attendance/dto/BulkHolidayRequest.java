@@ -9,6 +9,8 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class BulkHolidayRequest {
+    private Long semesterId;
+    private List<Long> targetSemesterIds;
     
     @Data
     @NoArgsConstructor

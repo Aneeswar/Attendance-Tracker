@@ -75,6 +75,20 @@
             letter-spacing: -0.025em;
         }
 
+        .semester-context-pill {
+            margin-top: 0.5rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.35rem 0.65rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            background: #eef2ff;
+            color: var(--primary);
+            border: 1px solid #c7d2fe;
+        }
+
         .stale-banner {
             background: #fffbeb;
             border: 1px solid #fef3c7;
@@ -290,12 +304,15 @@
 
         .exam-card:hover { border-color: var(--primary); transform: translateY(-1px); }
         .exam-card.active { border-color: var(--primary); background: #eef2ff; }
+        .exam-card.disabled { cursor: default; opacity: 0.7; }
+        .exam-card.disabled:hover { border-color: #e2e8f0; transform: none; }
         
         .exam-card-name { font-weight: 800; font-size: 0.625rem; display: block; margin-bottom: 0.125rem; color: var(--text-muted); }
         .exam-card-status { font-size: 0.5rem; font-weight: 700; padding: 0.125rem 0.25rem; border-radius: 0.25rem; text-transform: uppercase; }
         .status-upcoming { background: #e0f2fe; color: #0369a1; }
         .status-ongoing { background: #fefce8; color: #a16207; }
         .status-completed { background: #f1f5f9; color: #475569; }
+        .status-not-set { background: #fee2e2; color: #991b1b; }
 
         .cutoff-info {
             font-size: 0.75rem;
@@ -382,6 +399,10 @@
             <div>
                 <h1>Attendance Analysis</h1>
                 <p style="color: var(--text-muted); font-size: 0.95rem;">Comprehensive breakdown of your academic standing.</p>
+                <div id="activeSemesterContext" class="semester-context-pill">
+                    <i class="fas fa-layer-group"></i>
+                    <span>Viewing: Loading semester...</span>
+                </div>
             </div>
             <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.25rem;">
                 <button onclick="refreshReport(this)" class="refresh-btn" style="background: var(--warning); padding: 0.4rem 0.8rem; font-size: 0.75rem;">
@@ -449,8 +470,35 @@
         let relaxationEnabled = false;
 
         document.addEventListener('DOMContentLoaded', async () => {
+            await loadSemesterContext();
             await loadReport();
         });
+
+        async function loadSemesterContext() {
+            const token = localStorage.getItem('jwtToken');
+            const contextEl = document.getElementById('activeSemesterContext');
+            if (!token || !contextEl) {
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/student/profile', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!res.ok) {
+                    contextEl.innerHTML = '<i class="fas fa-layer-group"></i><span>Viewing: Semester unavailable</span>';
+                    return;
+                }
+
+                const profile = await res.json();
+                const name = profile.currentSemesterName || 'No semester selected';
+                contextEl.innerHTML = `<i class="fas fa-layer-group"></i><span>Viewing: ${name}</span>`;
+            } catch (e) {
+                console.error('Failed to load active semester context:', e);
+                contextEl.innerHTML = '<i class="fas fa-layer-group"></i><span>Viewing: Semester unavailable</span>';
+            }
+        }
 
         async function loadReport() {
             const token = localStorage.getItem('jwtToken');
@@ -576,12 +624,15 @@
                         <div class="exam-selector">
                             ${['CAT-1', 'CAT-2', 'FAT'].map(exam => {
                                 const examData = report[exam.toLowerCase().replace('-', '') + 'Report'];
-                                if (!examData || !examData.available) return '';
-                                const status = examData.upcoming ? 'upcoming' : (examData.ongoing ? 'ongoing' : 'completed');
+                                const available = examData && examData.available;
+                                const status = available ? (examData.upcoming ? 'upcoming' : (examData.ongoing ? 'ongoing' : 'completed')) : 'not-set';
+                                const clickHandler = available
+                                    ? `onclick="showModal(currentReports.find(r => r.courseId === ${report.courseId}), '${exam}')"`
+                                    : '';
                                 return `
-                                    <div class="exam-card ${report.mainReportExam === exam ? 'active' : ''}" onclick="showModal(currentReports.find(r => r.courseId === ${report.courseId}), '${exam}')">
+                                    <div class="exam-card ${report.mainReportExam === exam ? 'active' : ''} ${available ? '' : 'disabled'}" ${clickHandler}>
                                         <span class="exam-card-name">${exam}</span>
-                                        <span class="exam-card-status status-${status}">${status}</span>
+                                        <span class="exam-card-status status-${status}">${status === 'not-set' ? 'not set' : status}</span>
                                     </div>
                                 `;
                             }).join('')}
@@ -667,7 +718,7 @@
             const subtitle = document.getElementById('modalSubtitle');
             
             title.textContent = report.courseName || 'Course Detail';
-            subtitle.textContent = `${report.courseCode} ${examType ? '� ' + examType : ''}`;
+            subtitle.textContent = `${report.courseCode} ${examType ? ' - ' + examType : ''}`;
 
             let datesToShow = [];
             list.innerHTML = '';
@@ -684,7 +735,6 @@
 
                     if (!whatIfModeActive) {
                         // DEFAULT VIEW: Standard Static Info
-                        const isEligible = relaxationEnabled ? exam.eligible75 : exam.eligible65; // Logic fixed to use exam properties directly
                         const minToAttend = relaxationEnabled ? exam.minimumClassesToAttend65 : exam.minimumClassesToAttend75;
                         
                         info.innerHTML = `

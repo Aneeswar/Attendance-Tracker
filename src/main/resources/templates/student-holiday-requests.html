@@ -49,6 +49,20 @@
         }
         .page-header h1 { font-size: 1.875rem; font-weight: 800; letter-spacing: -0.025em; }
 
+        .semester-context-pill {
+            margin-top: 0.5rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.35rem 0.65rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            background: #eef2ff;
+            color: var(--primary);
+            border: 1px solid #c7d2fe;
+        }
+
         .btn {
             padding: 0.625rem 1.25rem;
             border-radius: 0.75rem;
@@ -202,6 +216,10 @@
                 <p style="color: var(--text-muted); font-size: 0.875rem; margin-top: 0.25rem;">
                     Help the admin by reporting institutional holidays not currently in the calendar.
                 </p>
+                <div id="activeSemesterContext" class="semester-context-pill">
+                    <i class="fas fa-layer-group"></i>
+                    <span>Viewing: Loading semester...</span>
+                </div>
             </div>
             <button class="btn btn-primary" onclick="openModal()">
                 <i class="fas fa-plus"></i> Suggest Holiday
@@ -280,7 +298,31 @@
         let myRequests = [];
         let otherRequests = [];
 
-        document.addEventListener('DOMContentLoaded', fetchRequests);
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadSemesterContext();
+            await fetchRequests();
+        });
+
+        async function loadSemesterContext() {
+            const contextEl = document.getElementById('activeSemesterContext');
+            try {
+                const res = await fetch('/api/student/profile', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!res.ok) {
+                    contextEl.innerHTML = '<i class="fas fa-layer-group"></i><span>Viewing: Semester unavailable</span>';
+                    return;
+                }
+
+                const profile = await res.json();
+                const label = profile.currentSemesterName || 'No semester selected';
+                contextEl.innerHTML = `<i class="fas fa-layer-group"></i><span>Viewing: ${label}</span>`;
+            } catch (e) {
+                console.error('Unable to load semester context:', e);
+                contextEl.innerHTML = '<i class="fas fa-layer-group"></i><span>Viewing: Semester unavailable</span>';
+            }
+        }
 
         async function fetchRequests() {
             try {
@@ -357,6 +399,7 @@
                     </div>
                     <div class="request-meta">
                         <span><i class="fas fa-clock"></i> ${formatScope(req.scope)}</span>
+                        <span><i class="fas fa-graduation-cap"></i> ${req.semesterName || 'Not tagged'}</span>
                         <span><i class="fas fa-calendar-check"></i> ${isMine ? 'Submitted' : 'By'} ${formatDate(req.createdAt)}</span>
                     </div>
                     <div class="request-reason">${req.reason}</div>

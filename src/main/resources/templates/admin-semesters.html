@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Semester Management - AttenTrack Admin</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --success: #10b981;
+            --danger: #ef4444;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+            --muted: #64748b;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); }
+        .nav {
+            background: #0f172a;
+            color: #fff;
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .nav a { color: #fff; text-decoration: none; font-weight: 700; font-size: 0.9rem; }
+        .container { max-width: 1160px; margin: 1.5rem auto; padding: 0 1rem; }
+        .grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 1rem; }
+        .card {
+            background: var(--card);
+            border: 1px solid #e2e8f0;
+            border-radius: 1rem;
+            padding: 1rem;
+        }
+        h1 { font-size: 1.35rem; margin-bottom: 1rem; }
+        h2 { font-size: 1rem; margin-bottom: 0.75rem; }
+        .row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem; }
+        .field { display: flex; flex-direction: column; gap: 0.35rem; }
+        .field label { font-size: 0.78rem; font-weight: 700; color: var(--muted); }
+        .field input {
+            border: 1px solid #cbd5e1;
+            border-radius: 0.6rem;
+            padding: 0.6rem 0.7rem;
+            font-size: 0.9rem;
+        }
+        .actions { display: flex; gap: 0.6rem; margin-top: 0.6rem; }
+        .btn {
+            border: none;
+            border-radius: 0.6rem;
+            padding: 0.65rem 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .btn-primary { background: var(--primary); color: #fff; }
+        .btn-muted { background: #e2e8f0; color: #334155; }
+        .btn-danger { background: #fee2e2; color: #b91c1c; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border-bottom: 1px solid #f1f5f9; text-align: left; padding: 0.6rem; font-size: 0.85rem; }
+        th { color: var(--muted); font-size: 0.75rem; text-transform: uppercase; }
+        .pill { padding: 0.2rem 0.5rem; border-radius: 999px; font-size: 0.7rem; font-weight: 700; }
+        .pill.active { background: #dcfce7; color: #166534; }
+        .pill.inactive { background: #e2e8f0; color: #334155; }
+        .table-actions { display: flex; gap: 0.35rem; }
+        .msg { margin-top: 0.5rem; font-size: 0.82rem; font-weight: 700; color: var(--muted); min-height: 1.1rem; }
+        @media (max-width: 980px) {
+            .grid { grid-template-columns: 1fr; }
+            .row { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+<div class="nav">
+    <div><i class="fas fa-layer-group"></i> Semester Management</div>
+    <div style="display:flex; gap:1rem; align-items:center;">
+        <a href="/admin/dashboard">Dashboard</a>
+        <a href="/admin/academic-calendar">Academic Calendar</a>
+        <a href="#" onclick="logout()">Logout</a>
+    </div>
+</div>
+
+<div class="container">
+    <h1>Separate Semester Feature</h1>
+    <div class="grid">
+        <div class="card">
+            <h2>Add or Edit Semester</h2>
+            <div class="field" style="margin-bottom: 0.5rem;">
+                <label>Semester Name</label>
+                <input id="semesterName" type="text" placeholder="Semester 1">
+            </div>
+            <div class="field" style="margin-bottom: 0.5rem;">
+                <label>Academic Year</label>
+                <input id="academicYear" type="text" placeholder="2026-2027">
+            </div>
+            <p style="font-size: 0.78rem; color: var(--muted); margin-bottom: 0.5rem;">
+                Configure dates in Academic Calendar after selecting a semester.
+            </p>
+            <div class="actions">
+                <button class="btn btn-primary" onclick="saveSemester()"><i class="fas fa-save"></i> Save Semester</button>
+                <button class="btn btn-muted" onclick="resetForm()"><i class="fas fa-rotate-left"></i> Reset</button>
+            </div>
+            <div id="formMsg" class="msg"></div>
+        </div>
+
+        <div class="card">
+            <h2>Configured Semesters</h2>
+            <table>
+                <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Year</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+                </thead>
+                <tbody id="semesterTableBody"></tbody>
+            </table>
+            <div id="tableMsg" class="msg"></div>
+        </div>
+    </div>
+</div>
+
+<script src="/js/ux-popup.js"></script>
+<script>
+    const token = localStorage.getItem('jwtToken');
+    let semesterCache = [];
+    let editingId = null;
+
+    if (!token) {
+        window.location.href = '/login?mode=admin';
+    }
+
+    document.addEventListener('DOMContentLoaded', loadSemesters);
+
+    async function loadSemesters() {
+        const res = await fetch('/api/admin/semesters', {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (!res.ok) {
+            setTableMsg('Unable to load semesters.', true);
+            return;
+        }
+
+        semesterCache = await res.json();
+        const tbody = document.getElementById('semesterTableBody');
+
+        if (!Array.isArray(semesterCache) || semesterCache.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4">No semesters available.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = semesterCache.map(s => `
+            <tr>
+                <td>${s.semesterName || 'Semester'}</td>
+                <td>${s.academicYear || '-'}</td>
+                <td><span class="pill ${s.active ? 'active' : 'inactive'}">${s.active ? 'Active' : 'Inactive'}</span></td>
+                <td>
+                    <div class="table-actions">
+                        <button class="btn btn-muted" onclick="startEdit(${s.id})">Edit</button>
+                        <button class="btn btn-muted" onclick="toggleActive(${s.id}, ${!s.active})">${s.active ? 'Deactivate' : 'Activate'}</button>
+                        <button class="btn btn-danger" onclick="deleteSemester(${s.id})">Delete</button>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function startEdit(id) {
+        const s = semesterCache.find(item => item.id === id);
+        if (!s) return;
+        editingId = id;
+
+        setValue('semesterName', s.semesterName);
+        setValue('academicYear', s.academicYear);
+
+        setFormMsg(`Editing ${s.semesterName || 'semester'}.`);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    async function saveSemester() {
+        const payload = {
+            semesterName: value('semesterName'),
+            academicYear: value('academicYear')
+        };
+
+        if (!payload.semesterName || !payload.academicYear) {
+            setFormMsg('Semester name and academic year are required.', true);
+            return;
+        }
+
+        const endpoint = editingId ? `/api/admin/semesters/${editingId}` : '/api/admin/semesters';
+        const method = editingId ? 'PUT' : 'POST';
+
+        const res = await fetch(endpoint, {
+            method,
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+            setFormMsg('Semester saved successfully.');
+            resetForm(false);
+            await loadSemesters();
+            return;
+        }
+
+        const data = await res.json().catch(() => ({}));
+        setFormMsg(data.error || 'Unable to save semester.', true);
+    }
+
+    async function toggleActive(id, active) {
+        const res = await fetch(`/api/admin/semesters/${id}/active?active=${active}`, {
+            method: 'PATCH',
+            headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (res.ok) {
+            setTableMsg(`Semester ${active ? 'activated' : 'deactivated'} successfully.`);
+            await loadSemesters();
+            return;
+        }
+
+        const data = await res.json().catch(() => ({}));
+        setTableMsg(data.error || 'Unable to update active status.', true);
+    }
+
+    async function deleteSemester(id) {
+        if (!confirm('Delete this semester? This works only when the semester is not used by courses, holidays, requests, or student selections.')) {
+            return;
+        }
+
+        const res = await fetch(`/api/admin/semesters/${id}`, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (res.ok) {
+            setTableMsg('Semester deleted successfully.');
+            await loadSemesters();
+            return;
+        }
+
+        const data = await res.json().catch(() => ({}));
+        setTableMsg(data.error || 'Unable to delete semester.', true);
+    }
+
+    function resetForm(showMessage = true) {
+        editingId = null;
+        ['semesterName', 'academicYear']
+            .forEach(id => setValue(id, ''));
+        if (showMessage) setFormMsg('Form reset.');
+    }
+
+    function logout() {
+        localStorage.removeItem('jwtToken');
+        window.location.href = '/login?mode=admin';
+    }
+
+    function value(id) { return document.getElementById(id).value.trim(); }
+    function setValue(id, v) { document.getElementById(id).value = v || ''; }
+    function setFormMsg(msg, isError = false) {
+        const el = document.getElementById('formMsg');
+        el.textContent = msg;
+        el.style.color = isError ? 'var(--danger)' : 'var(--muted)';
+    }
+    function setTableMsg(msg, isError = false) {
+        const el = document.getElementById('tableMsg');
+        el.textContent = msg;
+        el.style.color = isError ? 'var(--danger)' : 'var(--muted)';
+    }
+</script>
+</body>
+</html>

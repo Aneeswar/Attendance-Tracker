@@ -395,6 +395,20 @@
         }
         .loading-spinner i { font-size: 2.5rem; color: var(--primary); margin-bottom: 1rem; }
 
+        .semester-context-pill {
+            margin-top: 0.45rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.35rem 0.65rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            background: #eef2ff;
+            color: var(--primary);
+            border: 1px solid #c7d2fe;
+        }
+
         .empty-state {
             text-align: center;
             padding: 5rem 2rem;
@@ -419,6 +433,10 @@
             <div>
                 <h1>Course Management</h1>
                 <p style="color: var(--text-muted);">Build and organize your academic schedule.</p>
+                <div id="activeSemesterHint" class="semester-context-pill">
+                    <i class="fas fa-layer-group"></i>
+                    <span>Viewing: Loading semester...</span>
+                </div>
             </div>
             <button class="btn btn-primary" onclick="openAddCourseModal()">
                 <i class="fas fa-plus"></i> Add Course
@@ -556,7 +574,29 @@
         document.addEventListener('DOMContentLoaded', () => {
             loadCourses();
             initDayGrids();
+            loadActiveSemesterHint();
         });
+
+        async function loadActiveSemesterHint() {
+            try {
+                const token = localStorage.getItem('jwtToken');
+                const hintEl = document.getElementById('activeSemesterHint');
+                const res = await fetch('/api/student/profile', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok) {
+                    hintEl.innerHTML = '<i class="fas fa-layer-group"></i><span>Viewing: Semester unavailable</span>';
+                    return;
+                }
+                const profile = await res.json();
+                const label = profile.currentSemesterName || 'No semester selected';
+                hintEl.innerHTML = `<i class="fas fa-layer-group"></i><span>Viewing: ${label}</span>`;
+            } catch (e) {
+                console.error('Unable to load semester hint', e);
+                const hintEl = document.getElementById('activeSemesterHint');
+                hintEl.innerHTML = '<i class="fas fa-layer-group"></i><span>Viewing: Semester unavailable</span>';
+            }
+        }
 
         function initDayGrids() {
             const configs = [

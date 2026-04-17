@@ -14,7 +14,8 @@ import org.springframework.http.ResponseEntity;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 
@@ -44,7 +45,7 @@ class DateBasedAttendanceControllerTest {
     void updateAttendance_returnsBadRequestOnFailure() {
         when(jwtTokenProvider.extractUsername("token")).thenReturn("student1");
         doThrow(new RuntimeException("fail"))
-                .when(dateBasedAttendanceService).updateDateBasedAttendance(any(Long.class), any(List.class));
+            .when(dateBasedAttendanceService).updateDateBasedAttendance(anyLong(), anyList());
 
         ResponseEntity<?> response = dateBasedAttendanceController.updateAttendance(1L, List.of(), "Bearer token");
 

@@ -1,6 +1,7 @@
 package com.deepak.Attendance.controller;
 
 import com.deepak.Attendance.dto.AcademicCalendarDTO;
+import com.deepak.Attendance.service.SemesterSelectionService;
 import com.deepak.Attendance.service.AcademicCalendarService;
 import com.deepak.Attendance.repository.CourseRepository;
 import com.deepak.Attendance.repository.UserRepository;
@@ -58,6 +59,48 @@ public class AcademicCalendarController {
         AcademicCalendarDTO emptyCalendar = new AcademicCalendarDTO();
         return ResponseEntity.ok(emptyCalendar);
     }
+
+    @GetMapping("/all")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> getAllSemesters() {
+        return ResponseEntity.ok(academicCalendarService.getAllSemesters());
+    }
+
+    @PostMapping("/semesters")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> createSemester(@RequestBody AcademicCalendarDTO dto) {
+        try {
+            return ResponseEntity.ok(academicCalendarService.createSemester(dto));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/semesters/{semesterId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> updateSemester(@PathVariable Long semesterId, @RequestBody AcademicCalendarDTO dto) {
+        try {
+            return ResponseEntity.ok(academicCalendarService.updateSemester(semesterId, dto));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PatchMapping("/semesters/{semesterId}/active")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> setSemesterActive(@PathVariable Long semesterId, @RequestParam boolean active) {
+        try {
+            return ResponseEntity.ok(academicCalendarService.setSemesterActive(semesterId, active));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/semesters")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> listSemesters(@RequestParam(defaultValue = "false") boolean activeOnly) {
+        return ResponseEntity.ok(activeOnly ? academicCalendarService.getActiveSemesters() : academicCalendarService.getAllSemesters());
+    }
     
     @GetMapping("/stats")
     @PreAuthorize("hasRole('ADMIN')")
@@ -78,6 +121,9 @@ class StudentAcademicCalendarController {
     @Autowired
     private AcademicCalendarService academicCalendarService;
 
+    @Autowired
+    private SemesterSelectionService semesterSelectionService;
+
     @GetMapping
     @PreAuthorize("hasRole('STUDENT')")
     public ResponseEntity<?> getAcademicCalendar() {
@@ -88,5 +134,23 @@ class StudentAcademicCalendarController {
         // Return empty calendar if not found
         AcademicCalendarDTO emptyCalendar = new AcademicCalendarDTO();
         return ResponseEntity.ok(emptyCalendar);
+    }
+
+    @GetMapping("/semesters")
+    @PreAuthorize("hasRole('STUDENT')")
+    public ResponseEntity<?> getAvailableSemesters() {
+        return ResponseEntity.ok(academicCalendarService.getActiveSemesters());
+    }
+
+    @PutMapping("/select-semester/{semesterId}")
+    @PreAuthorize("hasRole('STUDENT')")
+    public ResponseEntity<?> selectSemester(@PathVariable Long semesterId,
+                                            @RequestHeader("Authorization") String authHeader) {
+        try {
+            semesterSelectionService.updateStudentCurrentSemester(authHeader, semesterId);
+            return ResponseEntity.ok(Map.of("message", "Semester selection updated"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 }

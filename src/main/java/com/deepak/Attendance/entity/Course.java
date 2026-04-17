@@ -22,6 +22,10 @@ public class Course {
     private Long userId; // Foreign key to User (student)
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "semester_id")
+    private Semester semester;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "course_catalog_id")
     private CourseCatalog courseCatalog;
 

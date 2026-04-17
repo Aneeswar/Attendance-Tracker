@@ -11,6 +11,8 @@ public class StudentHolidayRequestDTO {
     private Long id;
     private Long studentId;
     private String studentName;
+    private Long semesterId;
+    private String semesterName;
     private LocalDate holidayDate;
     private String reason;
     private Holiday.HolidayScope scope;

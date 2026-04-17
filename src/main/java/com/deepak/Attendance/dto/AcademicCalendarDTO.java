@@ -5,15 +5,18 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.time.LocalDate;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class AcademicCalendarDTO {
     private Long id;
+    private String semesterName;
     private String academicYear;
     private LocalDate semesterStartDate;
     private LocalDate examStartDate;
+    private Boolean active;
     
     // CAT-1 Exam Date Range
     private LocalDate cat1StartDate;
@@ -26,6 +29,9 @@ public class AcademicCalendarDTO {
     // FAT Exam Date Range
     private LocalDate fatStartDate;
     private LocalDate fatEndDate;
+
+    // Optional: when provided, CAT/FAT dates are copied to these semesters too.
+    private List<Long> targetSemesterIds;
     
     private LocalDate createdAt;
     private LocalDate updatedAt;

@@ -5,16 +5,19 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.time.LocalDate;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class HolidayDTO {
     private Long id;
+    private Long semesterId;
     private LocalDate date;
     private String reason;
     private String type;
     private String scope; // FULL, MORNING, AFTERNOON
+    private List<Long> targetSemesterIds;
     private LocalDate createdAt;
 
     // Alias for frontend compatibility
