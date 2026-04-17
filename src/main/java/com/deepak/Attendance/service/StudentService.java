@@ -6,6 +6,7 @@ import com.deepak.Attendance.dto.TimetableConfirmRequest;
 import com.deepak.Attendance.dto.TimetableEntryDTO;
 import com.deepak.Attendance.dto.WeeklyScheduleItemDTO;
 import com.deepak.Attendance.entity.*;
+import com.deepak.Attendance.entity.enums.CourseType;
 import com.deepak.Attendance.repository.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -63,6 +64,9 @@ public class StudentService {
 
     @Autowired
     private SemesterSelectionService semesterSelectionService;
+
+    @Autowired
+    private CourseScheduleRepository courseScheduleRepository;
 
     @Value("${app.upload.dir:uploads/timetables}")
     private String uploadDir;
@@ -139,6 +143,51 @@ public class StudentService {
             return fatStart.isBefore(semesterEnd) ? fatStart : semesterEnd;
         }
         return fatStart != null ? fatStart : semesterEnd;
+    }
+
+    private LocalDate resolveLabFatAnchorDate(Semester semester) {
+        if (semester == null) {
+            return null;
+        }
+
+        LocalDate labFatStart = semester.getLabFatStartDate();
+        LocalDate semesterEnd = semester.getSemesterEndDate();
+
+        if (labFatStart != null && semesterEnd != null) {
+            return labFatStart.isBefore(semesterEnd) ? labFatStart : semesterEnd;
+        }
+        return labFatStart != null ? labFatStart : semesterEnd;
+    }
+
+    private LocalDate resolveFatAnchorDateForCourse(Course course, Semester semester) {
+        if (course != null && course.getCourseType() == CourseType.LAB) {
+            LocalDate labAnchor = resolveLabFatAnchorDate(semester);
+            if (labAnchor != null) {
+                return labAnchor;
+            }
+        }
+        return resolveFatAnchorDate(semester);
+    }
+
+    private LocalDate resolveEffectiveStartDate(Course course) {
+        if (course == null) {
+            return null;
+        }
+
+        LocalDate semesterStart = course.getSemester() != null ? course.getSemester().getSemesterStartDate() : null;
+        LocalDate registeredDate = course.getRegisteredDate();
+        LocalDate legacyStartDate = course.getCourseStartDate();
+
+        if (registeredDate != null && semesterStart != null) {
+            return registeredDate.isAfter(semesterStart) ? registeredDate : semesterStart;
+        }
+        if (registeredDate != null) {
+            return registeredDate;
+        }
+        if (legacyStartDate != null && semesterStart != null) {
+            return legacyStartDate.isAfter(semesterStart) ? legacyStartDate : semesterStart;
+        }
+        return legacyStartDate;
     }
 
     private Optional<Course> findCourseByCodeInActiveSemester(Long userId, String courseCode) {
@@ -226,7 +275,10 @@ public class StudentService {
 
         return isDateWithin(date, semester.getCat1StartDate(), semester.getCat1EndDate())
                 || isDateWithin(date, semester.getCat2StartDate(), semester.getCat2EndDate())
-                || isDateWithin(date, semester.getFatStartDate(), semester.getFatEndDate());
+            || isDateWithin(date, semester.getFatStartDate(), semester.getFatEndDate())
+            || (course != null
+            && course.getCourseType() == CourseType.LAB
+            && isDateWithin(date, semester.getLabFatStartDate(), semester.getLabFatEndDate()));
     }
 
     private boolean isDateWithin(LocalDate date, LocalDate start, LocalDate end) {
@@ -398,7 +450,7 @@ public class StudentService {
     private void generateDateBasedAttendanceFromTotal(Long courseId, Integer attended, Integer total) {
         try {
             Course course = courseRepository.findById(courseId).orElse(null);
-            if (course == null || course.getCourseStartDate() == null) {
+            if (course == null || resolveEffectiveStartDate(course) == null) {
                 return; // Cannot generate without start date
             }
 
@@ -514,8 +566,10 @@ public class StudentService {
 
                 var cat1Report = calculateExamEligibility(cached.getCourse(), "CAT-1", courseSemester.getCat1StartDate(), courseSemester.getCat1EndDate(), cached.getClassesAttended(), cached.getTotalClassesConducted(), holidays);
                 var cat2Report = calculateExamEligibility(cached.getCourse(), "CAT-2", courseSemester.getCat2StartDate(), courseSemester.getCat2EndDate(), cached.getClassesAttended(), cached.getTotalClassesConducted(), holidays);
-                LocalDate fatStart = resolveFatAnchorDate(courseSemester);
-                LocalDate fatEnd = courseSemester.getFatEndDate() != null ? courseSemester.getFatEndDate() : fatStart;
+                LocalDate fatStart = resolveFatAnchorDateForCourse(cached.getCourse(), courseSemester);
+                LocalDate fatEnd = cached.getCourse().getCourseType() == CourseType.LAB
+                    ? (courseSemester.getLabFatEndDate() != null ? courseSemester.getLabFatEndDate() : fatStart)
+                    : (courseSemester.getFatEndDate() != null ? courseSemester.getFatEndDate() : fatStart);
                 var fatReport = calculateExamEligibility(cached.getCourse(), "FAT", fatStart, fatEnd, cached.getClassesAttended(), cached.getTotalClassesConducted(), holidays);
 
                 report.setCat1Report(cat1Report);
@@ -564,7 +618,7 @@ public class StudentService {
         dto.setOngoing(end != null && !today.isBefore(start) && !today.isAfter(end));
         dto.setCompleted(end != null && today.isAfter(end));
         
-        LocalDate cutoff = attendanceCalculationService.getAttendanceCutoffDate(start, examType, holidays);
+        LocalDate cutoff = attendanceCalculationService.getAttendanceCutoffDate(course, start, examType, holidays);
         dto.setAttendanceCutoffDate(cutoff);
         
         // Filter attendance records to only include those up to the cutoff date for this exam.
@@ -572,7 +626,8 @@ public class StudentService {
         int relevantConducted = 0;
         int relevantAttended = 0;
         if (cutoff != null) {
-            LocalDate startDate = course.getCourseStartDate() != null ? course.getCourseStartDate() : today.minusMonths(4);
+                LocalDate effectiveStartDate = resolveEffectiveStartDate(course);
+                LocalDate startDate = effectiveStartDate != null ? effectiveStartDate : today.minusMonths(4);
             List<DateBasedAttendance> relevantRecords = dateBasedAttendanceRepository
                     .findByCourseIdAndAttendanceDateBetweenOrderByAttendanceDateAsc(course.getId(), startDate, cutoff);
 
@@ -656,12 +711,15 @@ public class StudentService {
                 semester.setCat2EndDate(legacy.getCat2EndDate());
                 semester.setFatStartDate(legacy.getFatStartDate());
                 semester.setFatEndDate(legacy.getFatEndDate());
+                semester.setLabFatStartDate(legacy.getLabFatStartDate());
+                semester.setLabFatEndDate(legacy.getLabFatEndDate());
                 semester.setSemesterEndDate(legacy.getExamStartDate());
             }
             LocalDate today = LocalDate.now();
 
             // Get attendance data
-            LocalDate startDate = course.getCourseStartDate() != null ? course.getCourseStartDate() : today.minusMonths(4);
+                LocalDate effectiveStartDate = resolveEffectiveStartDate(course);
+                LocalDate startDate = effectiveStartDate != null ? effectiveStartDate : today.minusMonths(4);
             List<DateBasedAttendance> dateBasedRecords = dateBasedAttendanceRepository
                     .findByCourseIdAndAttendanceDateBetweenOrderByAttendanceDateAsc(course.getId(), startDate, today);
             
@@ -744,11 +802,13 @@ public class StudentService {
                     upcomingExam = "CAT-2";
                     upcomingStart = semester.getCat2StartDate();
                     upcomingEnd = semester.getCat2EndDate();
-                } else if (resolveFatAnchorDate(semester) != null
-                        && today.isBefore(resolveFatAnchorDate(semester))) {
+                } else if (resolveFatAnchorDateForCourse(course, semester) != null
+                        && today.isBefore(resolveFatAnchorDateForCourse(course, semester))) {
                     upcomingExam = "FAT";
-                    upcomingStart = resolveFatAnchorDate(semester);
-                    upcomingEnd = semester.getFatEndDate() != null ? semester.getFatEndDate() : upcomingStart;
+                    upcomingStart = resolveFatAnchorDateForCourse(course, semester);
+                        upcomingEnd = course.getCourseType() == CourseType.LAB
+                            ? (semester.getLabFatEndDate() != null ? semester.getLabFatEndDate() : upcomingStart)
+                            : (semester.getFatEndDate() != null ? semester.getFatEndDate() : upcomingStart);
                 }
                 
                 if (upcomingExam != null && upcomingStart != null) {
@@ -887,7 +947,8 @@ public class StudentService {
 
     private void removeInvalidDateBasedRecords(Course course) {
         LocalDate today = LocalDate.now();
-        LocalDate startDate = course.getCourseStartDate() != null ? course.getCourseStartDate() : today.minusMonths(6);
+        LocalDate effectiveStartDate = resolveEffectiveStartDate(course);
+        LocalDate startDate = effectiveStartDate != null ? effectiveStartDate : today.minusMonths(6);
 
         List<DateBasedAttendance> records = dateBasedAttendanceRepository
                 .findByCourseIdAndAttendanceDateBetweenOrderByAttendanceDateAsc(course.getId(), startDate, today);
@@ -1024,7 +1085,7 @@ public class StudentService {
                     course.getCourseName(),
                     course.getSlot(),
                     weeklySchedule,
-                    course.getCourseStartDate()
+                    resolveEffectiveStartDate(course)
             );
             timetables.add(dto);
         }
@@ -1072,6 +1133,9 @@ public class StudentService {
         // Delete related attendance inputs (may have multiple records)
         List<AttendanceInput> attendanceInputs = attendanceInputRepository.findAllByCourseId(c.getId());
         attendanceInputRepository.deleteAll(attendanceInputs);
+
+        // Delete generated course schedules from manual import pipeline
+        courseScheduleRepository.deleteByCourseId(c.getId());
         
         // Delete the course (this will cascade delete timetable entries)
         courseRepository.delete(c);
@@ -1105,6 +1169,9 @@ public class StudentService {
         // Delete timetable entries
         List<TimetableEntry> entries = timetableEntryRepository.findByCourseId(c.getId());
         timetableEntryRepository.deleteAll(entries);
+
+        // Delete generated course schedules from manual import pipeline
+        courseScheduleRepository.deleteByCourseId(c.getId());
         
         // Delete the course
         courseRepository.delete(c);
@@ -1123,11 +1190,12 @@ public class StudentService {
         }
 
         Course course = courseOpt.get();
-        if (course.getCourseStartDate() == null) {
+        LocalDate effectiveStart = resolveEffectiveStartDate(course);
+        if (effectiveStart == null) {
             throw new IllegalArgumentException("Course start date is not set");
         }
 
-        LocalDate start = course.getCourseStartDate();
+        LocalDate start = effectiveStart;
         LocalDate today = LocalDate.now();
         if (start.isAfter(today)) {
             return 0; // Future course
@@ -1188,12 +1256,13 @@ public class StudentService {
 
         Course c = course.get();
         
-        // Check if course has a start date
-        if (c.getCourseStartDate() == null) {
+        // Check if course has an effective attendance start date
+        LocalDate effectiveStartDate = resolveEffectiveStartDate(c);
+        if (effectiveStartDate == null) {
             throw new IllegalArgumentException("Course start date not set. Please set the course start date first.");
         }
 
-        LocalDate startDate = c.getCourseStartDate();
+        LocalDate startDate = effectiveStartDate;
         LocalDate today = LocalDate.now();
 
         // Get all timetable entries for this course (days of week and class count)
@@ -1334,7 +1403,8 @@ public class StudentService {
                 courseMap.put("id", course.getId());
                 courseMap.put("courseCode", course.getCourseCode());
                 courseMap.put("courseName", course.getCourseName());
-                courseMap.put("courseStartDate", course.getCourseStartDate());
+                courseMap.put("courseStartDate", resolveEffectiveStartDate(course));
+                courseMap.put("registeredDate", course.getRegisteredDate());
                 
                 // Get timetable info
                 List<TimetableEntry> entries = timetableEntryRepository.findByCourseId(course.getId());

@@ -1,5 +1,7 @@
 package com.deepak.Attendance.service;
 
+import com.deepak.Attendance.entity.Course;
+import com.deepak.Attendance.entity.enums.CourseType;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
@@ -46,5 +48,16 @@ class AttendanceCalculationServiceTest {
         LocalDate cutoff = service.getAttendanceCutoffDate(fatDate, "FAT", holidays);
 
         assertEquals(LocalDate.of(2026, 4, 30), cutoff);
+    }
+
+    @Test
+    void getAttendanceCutoffDate_forLabFat_usesPreviousSameWeekday() {
+        Course labCourse = new Course();
+        labCourse.setCourseType(CourseType.LAB);
+        LocalDate labFatDate = LocalDate.of(2026, 7, 7); // Tuesday
+
+        LocalDate cutoff = service.getAttendanceCutoffDate(labCourse, labFatDate, "FAT", Set.of());
+
+        assertEquals(LocalDate.of(2026, 6, 30), cutoff); // Previous Tuesday
     }
 }

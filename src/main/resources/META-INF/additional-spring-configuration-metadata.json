@@ -16,10 +16,21 @@
     "defaultValue": "uploads/timetables"
   },
   {
-    "name": "app.ocr.mock-mode",
-    "type": "java.lang.Boolean",
-    "description": "Enable mock mode for OCR (set to true for development without tessdata)",
-    "defaultValue": false
+    "name": "app.ocr.api.base-url",
+    "type": "java.lang.String",
+    "description": "Base URL for external OCR microservice",
+    "defaultValue": "http://127.0.0.1:5000"
+  },
+  {
+    "name": "app.ocr.api.key",
+    "type": "java.lang.String",
+    "description": "API key used when calling external OCR microservice"
+  },
+  {
+    "name": "app.ocr.api.timeout-ms",
+    "type": "java.lang.Long",
+    "description": "Timeout in milliseconds for OCR API requests",
+    "defaultValue": 15000
   },
   {
     "name": "management.endpoint.prometheus.enabled",

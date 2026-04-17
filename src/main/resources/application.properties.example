@@ -25,7 +25,9 @@ spring.servlet.multipart.max-file-size=10MB
 spring.servlet.multipart.max-request-size=10MB
 
 # OCR Configuration (Custom application properties)
-app.ocr.mock-mode=false
+app.ocr.api.base-url=http://127.0.0.1:5000
+app.ocr.api.key=replace_with_real_ocr_service_key
+app.ocr.api.timeout-ms=120000
 
 # Logging Configuration
 logging.level.root=INFO

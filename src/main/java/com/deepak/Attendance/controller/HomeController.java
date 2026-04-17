@@ -51,6 +51,11 @@ public class HomeController {
         return "student-manage-courses";
     }
 
+    @GetMapping("/student/manual-course-import")
+    public String studentManualCourseImport() {
+        return "student-manual-course-import";
+    }
+
     @GetMapping("/student/mark-by-date")
     public String studentMarkByDate() {
         return "student-mark-by-date";

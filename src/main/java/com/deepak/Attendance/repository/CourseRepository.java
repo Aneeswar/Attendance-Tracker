@@ -26,6 +26,7 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
     Page<Course> findByCourseCodeContainingIgnoreCaseOrCourseNameContainingIgnoreCase(String courseCode, String courseName, Pageable pageable);
     Optional<Course> findByUserIdAndCourseCatalog_CourseCodeIgnoreCase(Long userId, String courseCode);
     Optional<Course> findByUserIdAndSemesterIdAndCourseCatalog_CourseCodeIgnoreCase(Long userId, Long semesterId, String courseCode);
+    Optional<Course> findByUserIdAndSemesterIdAndCourseCodeIgnoreCase(Long userId, Long semesterId, String courseCode);
     Optional<Course> findByUserIdAndSemesterIsNullAndCourseCatalog_CourseCodeIgnoreCase(Long userId, String courseCode);
     Optional<Course> findByUserIdAndCourseCode(Long userId, String courseCode);
     boolean existsByUserIdAndCourseCatalog_CourseCodeIgnoreCase(Long userId, String courseCode);

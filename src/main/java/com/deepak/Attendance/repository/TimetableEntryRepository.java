@@ -10,4 +10,5 @@ import java.util.List;
 public interface TimetableEntryRepository extends JpaRepository<TimetableEntry, Long> {
     List<TimetableEntry> findByCourseId(Long courseId);
     List<TimetableEntry> findByCourseIdAndDayOfWeek(Long courseId, String dayOfWeek);
+    void deleteByCourseId(Long courseId);
 }

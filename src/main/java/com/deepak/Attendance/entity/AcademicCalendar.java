@@ -47,6 +47,13 @@ public class AcademicCalendar {
     @Column
     private LocalDate fatEndDate;
 
+    // LAB FAT Exam Date Range
+    @Column
+    private LocalDate labFatStartDate;
+
+    @Column
+    private LocalDate labFatEndDate;
+
     @Column(nullable = false)
     private LocalDate createdAt;
 

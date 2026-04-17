@@ -66,7 +66,7 @@ public class SecurityConfig {
                         // CAPTCHA image endpoint must be public (loaded via img src)
                         .requestMatchers("/api/student/portal/captcha-image/**").permitAll()
                         // Student pages - STUDENT role required
-                        .requestMatchers("/student-dashboard", "/student-attendance", "/student-attendance-report").hasRole("STUDENT")
+                        .requestMatchers("/student-dashboard", "/student-attendance", "/student-attendance-report", "/student/manual-course-import").hasRole("STUDENT")
                         .requestMatchers("/api/student/**").hasRole("STUDENT")
                         // Admin pages - ADMIN role required
                         .requestMatchers("/admin-dashboard", "/admin/**").hasRole("ADMIN")

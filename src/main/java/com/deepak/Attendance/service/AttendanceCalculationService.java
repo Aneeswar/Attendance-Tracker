@@ -1,6 +1,7 @@
 package com.deepak.Attendance.service;
 
 import com.deepak.Attendance.entity.*;
+import com.deepak.Attendance.entity.enums.CourseType;
 import com.deepak.Attendance.repository.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -153,6 +154,44 @@ public class AttendanceCalculationService {
         return cutoff;
     }
 
+    private LocalDate resolveLabFatAttendanceWindowEnd(LocalDate labFatStartDate) {
+        if (labFatStartDate == null) {
+            return null;
+        }
+
+        // LAB FAT cutoff is the same weekday from the previous week.
+        return labFatStartDate.minusWeeks(1);
+    }
+
+    private boolean isLabCourse(Course course) {
+        return course != null && course.getCourseType() == CourseType.LAB;
+    }
+
+    private LocalDate resolveLabFatAnchorDate(Semester semester) {
+        if (semester == null) {
+            return null;
+        }
+
+        LocalDate labFatStart = semester.getLabFatStartDate();
+        LocalDate semesterEnd = semester.getSemesterEndDate();
+
+        if (labFatStart != null && semesterEnd != null) {
+            return labFatStart.isBefore(semesterEnd) ? labFatStart : semesterEnd;
+        }
+        return labFatStart != null ? labFatStart : semesterEnd;
+    }
+
+    private LocalDate resolveFatAnchorDateForCourse(Semester semester, Course course) {
+        if (isLabCourse(course)) {
+            LocalDate labAnchor = resolveLabFatAnchorDate(semester);
+            if (labAnchor != null) {
+                return labAnchor;
+            }
+        }
+
+        return resolveFatAnchorDate(semester);
+    }
+
     private LocalDate resolveFatAnchorDate(Semester semester) {
         if (semester == null) {
             return null;
@@ -176,6 +215,7 @@ public class AttendanceCalculationService {
         // Create a final copy of today's date to work with consistently
         final LocalDate today = LocalDate.now();
         int totalFutureClasses = 0;
+        final boolean isLabFatContext = "FAT".equals(examType) && isLabCourse(course);
 
         log.info("Calculating future classes for course {} until {} (exam: {})", course.getId(), untilDate, examType);
 
@@ -217,7 +257,15 @@ public class AttendanceCalculationService {
                     }
                 }
                 
-                if (calendar.getFatStartDate() != null && calendar.getFatEndDate() != null) {
+                if (isLabFatContext) {
+                    if (calendar.getLabFatStartDate() != null && calendar.getLabFatEndDate() != null) {
+                        LocalDate examDate = calendar.getLabFatStartDate();
+                        while (!examDate.isAfter(calendar.getLabFatEndDate())) {
+                            excludedDates.add(examDate);
+                            examDate = examDate.plusDays(1);
+                        }
+                    }
+                } else if (calendar.getFatStartDate() != null && calendar.getFatEndDate() != null) {
                     LocalDate examDate = calendar.getFatStartDate().plusDays(1);
                     while (!examDate.isAfter(calendar.getFatEndDate())) {
                         excludedDates.add(examDate);
@@ -273,7 +321,9 @@ public class AttendanceCalculationService {
                 .collect(java.util.stream.Collectors.toSet());
 
         if ("FAT".equals(examType)) {
-            lastClassDay = resolveFatAttendanceWindowEnd(untilDate, finalFullHolidays);
+            lastClassDay = isLabFatContext
+                    ? resolveLabFatAttendanceWindowEnd(untilDate)
+                    : resolveFatAttendanceWindowEnd(untilDate, finalFullHolidays);
         } else {
             lastClassDay = resolveAttendanceWindowEndBeforeExam(untilDate, finalFullHolidays);
         }
@@ -359,7 +409,7 @@ public class AttendanceCalculationService {
                 untilDate = calendar.getCat2StartDate();
             } else if (calendar.getFatStartDate() != null || calendar.getSemesterEndDate() != null) {
                 examType = "FAT";
-                untilDate = resolveFatAnchorDate(calendar);
+                untilDate = resolveFatAnchorDateForCourse(calendar, course);
             }
         }
 
@@ -445,7 +495,7 @@ public class AttendanceCalculationService {
                 untilDate = calendar.getCat2StartDate();
             } else if (calendar.getFatStartDate() != null || calendar.getSemesterEndDate() != null) {
                 examType = "FAT";
-                untilDate = resolveFatAnchorDate(calendar);
+                untilDate = resolveFatAnchorDateForCourse(calendar, course);
             }
         }
 
@@ -459,6 +509,7 @@ public class AttendanceCalculationService {
         // Create a final copy of today's date to work with consistently
         final LocalDate today = LocalDate.now();
         List<LocalDate> classDates = new ArrayList<>();
+        final boolean isLabFatContext = "FAT".equals(examType) && isLabCourse(course);
 
         log.info("Generating future class dates for course {} until {} (exam: {})", course.getId(), untilDate, examType);
 
@@ -500,7 +551,15 @@ public class AttendanceCalculationService {
                     }
                 }
                 
-                if (calendar.getFatStartDate() != null && calendar.getFatEndDate() != null) {
+                if (isLabFatContext) {
+                    if (calendar.getLabFatStartDate() != null && calendar.getLabFatEndDate() != null) {
+                        LocalDate examDate = calendar.getLabFatStartDate();
+                        while (!examDate.isAfter(calendar.getLabFatEndDate())) {
+                            excludedDates.add(examDate);
+                            examDate = examDate.plusDays(1);
+                        }
+                    }
+                } else if (calendar.getFatStartDate() != null && calendar.getFatEndDate() != null) {
                     LocalDate examDate = calendar.getFatStartDate().plusDays(1);
                     while (!examDate.isAfter(calendar.getFatEndDate())) {
                         excludedDates.add(examDate);
@@ -554,7 +613,9 @@ public class AttendanceCalculationService {
                 .collect(java.util.stream.Collectors.toSet());
 
         if ("FAT".equals(examType)) {
-            lastClassDay = resolveFatAttendanceWindowEnd(untilDate, finalFullHolidays);
+            lastClassDay = isLabFatContext
+                    ? resolveLabFatAttendanceWindowEnd(untilDate)
+                    : resolveFatAttendanceWindowEnd(untilDate, finalFullHolidays);
         } else {
             lastClassDay = resolveAttendanceWindowEndBeforeExam(untilDate, finalFullHolidays);
         }
@@ -597,13 +658,20 @@ public class AttendanceCalculationService {
     /**
      * Get the attendance cutoff date for a specific exam type
      */
-    public LocalDate getAttendanceCutoffDate(LocalDate untilDate, String examType, Set<LocalDate> holidays) {
+    public LocalDate getAttendanceCutoffDate(Course course, LocalDate untilDate, String examType, Set<LocalDate> holidays) {
         if (untilDate == null) return null;
         
         if ("FAT".equals(examType)) {
+            if (isLabCourse(course)) {
+                return resolveLabFatAttendanceWindowEnd(untilDate);
+            }
             return resolveFatAttendanceWindowEnd(untilDate, holidays);
         } else {
             return resolveAttendanceWindowEndBeforeExam(untilDate, holidays);
         }
+    }
+
+    public LocalDate getAttendanceCutoffDate(LocalDate untilDate, String examType, Set<LocalDate> holidays) {
+        return getAttendanceCutoffDate(null, untilDate, examType, holidays);
     }
 }

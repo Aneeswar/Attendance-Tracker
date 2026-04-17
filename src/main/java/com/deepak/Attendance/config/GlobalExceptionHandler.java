@@ -5,14 +5,34 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(AsyncRequestNotUsableException.class)
+    public void handleAsyncRequestNotUsable(AsyncRequestNotUsableException ex) {
+        // Happens when client closes browser/tab or network drops before response is written.
+        log.debug("Client disconnected before response could be written: {}", ex.getMessage());
+    }
+
+    @ExceptionHandler(IOException.class)
+    public void handleClientAbortIo(IOException ex) throws IOException {
+        String message = ex.getMessage() == null ? "" : ex.getMessage().toLowerCase();
+        if (message.contains("broken pipe")
+                || message.contains("connection reset")
+                || message.contains("connection aborted")) {
+            log.debug("Client connection aborted while writing response: {}", ex.getMessage());
+            return;
+        }
+        throw ex;
+    }
 
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<?> handleNoResourceFound(NoResourceFoundException ex) {

@@ -48,6 +48,12 @@ public class Semester {
     @Column
     private LocalDate fatEndDate;
 
+    @Column
+    private LocalDate labFatStartDate;
+
+    @Column
+    private LocalDate labFatEndDate;
+
     @Column(nullable = false)
     private Boolean active = true;
 

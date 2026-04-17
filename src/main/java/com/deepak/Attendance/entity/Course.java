@@ -1,5 +1,6 @@
 package com.deepak.Attendance.entity;
 
+import com.deepak.Attendance.entity.enums.CourseType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -38,8 +39,15 @@ public class Course {
     @Column
     private String slot; // Added slot to the course level
 
+    @Enumerated(EnumType.STRING)
+    @Column(length = 10)
+    private CourseType courseType;
+
     @Column
-    private LocalDate courseStartDate; // Start date of the course for date-based attendance
+    private LocalDate registeredDate;
+
+    @Column
+    private LocalDate courseStartDate; // Effective attendance start date
 
     @OneToMany(mappedBy = "course", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<TimetableEntry> timetableEntries;

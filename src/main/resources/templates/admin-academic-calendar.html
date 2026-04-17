@@ -190,6 +190,7 @@
         .badge-cat1 { background: #e0f2fe; color: #0369a1; }
         .badge-cat2 { background: #dcfce7; color: #15803d; }
         .badge-fat { background: #fee2e2; color: #b91c1c; }
+        .badge-lab-fat { background: #ede9fe; color: #5b21b6; }
 
         @media (max-width: 1024px) {
             .config-grid { grid-template-columns: 1fr; }
@@ -243,7 +244,7 @@
                                 </button>
                                 <div id="propagateSemesterOptions" class="checkbox-dropdown-panel"></div>
                             </div>
-                            <div style="font-size: 0.75rem; color: #64748b; margin-top: 0.5rem;">Choose specific semesters. Only CAT-1/CAT-2/FAT dates are copied.</div>
+                            <div style="font-size: 0.75rem; color: #64748b; margin-top: 0.5rem;">Choose specific semesters. Only CAT-1/CAT-2/FAT/LAB FAT dates are copied.</div>
                         </div>
                         <div class="form-group">
                             <label>Academic Year</label>
@@ -304,7 +305,7 @@
                         </div>
 
                         <!-- FAT -->
-                        <div>
+                        <div style="margin-bottom: 2rem;">
                             <h3 style="font-size: 0.875rem; font-weight: 800; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
                                 <span class="exam-badge badge-fat">FAT</span> Final Assessment Test
                             </h3>
@@ -316,6 +317,23 @@
                                 <div class="form-group">
                                     <label>Closing Date (Optional)</label>
                                     <input type="date" id="fatEnd">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- LAB FAT -->
+                        <div>
+                            <h3 style="font-size: 0.875rem; font-weight: 800; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                                <span class="exam-badge badge-lab-fat">LAB FAT</span> Lab Final Assessment Test
+                            </h3>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Commencement Date</label>
+                                    <input type="date" id="labFatStart">
+                                </div>
+                                <div class="form-group">
+                                    <label>Closing Date (Optional)</label>
+                                    <input type="date" id="labFatEnd">
                                 </div>
                             </div>
                         </div>
@@ -375,6 +393,11 @@
                     <div class="summary-item">
                         <div class="summary-label">FAT Schedule</div>
                         <div class="summary-value" id="currentFat">---</div>
+                    </div>
+
+                    <div class="summary-item">
+                        <div class="summary-label">LAB FAT Schedule</div>
+                        <div class="summary-value" id="currentLabFat">---</div>
                     </div>
 
                     <div style="margin-top: 1.5rem; font-size: 0.75rem; color: #94a3b8; line-height: 1.4;">
@@ -507,12 +530,15 @@
             document.getElementById('cat2End').value = s.cat2EndDate || '';
             document.getElementById('fatStart').value = s.fatStartDate || '';
             document.getElementById('fatEnd').value = s.fatEndDate || '';
+            document.getElementById('labFatStart').value = s.labFatStartDate || '';
+            document.getElementById('labFatEnd').value = s.labFatEndDate || '';
 
             document.getElementById('currentYear').textContent = s.academicYear || 'Not Configured';
             document.getElementById('currentSpan').textContent = s.semesterStartDate ? `${s.semesterStartDate} to ${s.semesterEndDate || s.examStartDate}` : '---';
             document.getElementById('currentCat1').textContent = s.cat1StartDate ? `${s.cat1StartDate} - ${s.cat1EndDate || '---'}` : '---';
             document.getElementById('currentCat2').textContent = s.cat2StartDate ? `${s.cat2StartDate} - ${s.cat2EndDate || '---'}` : '---';
             document.getElementById('currentFat').textContent = s.fatStartDate ? `${s.fatStartDate} - ${s.fatEndDate || 'End'}` : '---';
+            document.getElementById('currentLabFat').textContent = s.labFatStartDate ? `${s.labFatStartDate} - ${s.labFatEndDate || 'End'}` : '---';
         }
 
         async function saveCalendar() {
@@ -531,6 +557,8 @@
                 cat2EndDate: document.getElementById('cat2End').value || null,
                 fatStartDate: document.getElementById('fatStart').value || null,
                 fatEndDate: document.getElementById('fatEnd').value || null,
+                labFatStartDate: document.getElementById('labFatStart').value || null,
+                labFatEndDate: document.getElementById('labFatEnd').value || null,
                 targetSemesterIds: getSelectedPropagationSemesters()
             };
 

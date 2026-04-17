@@ -30,6 +30,10 @@ public class AcademicCalendarDTO {
     private LocalDate fatStartDate;
     private LocalDate fatEndDate;
 
+    // LAB FAT Exam Date Range
+    private LocalDate labFatStartDate;
+    private LocalDate labFatEndDate;
+
     // Optional: when provided, CAT/FAT dates are copied to these semesters too.
     private List<Long> targetSemesterIds;
     

@@ -64,6 +64,8 @@ public class AcademicCalendarService {
             calendar.setCat2EndDate(dto.getCat2EndDate());
             calendar.setFatStartDate(dto.getFatStartDate());
             calendar.setFatEndDate(dto.getFatEndDate());
+            calendar.setLabFatStartDate(dto.getLabFatStartDate());
+            calendar.setLabFatEndDate(dto.getLabFatEndDate());
             AcademicCalendar savedCalendar = academicCalendarRepository.save(calendar);
             AcademicCalendarDTO result = new AcademicCalendarDTO();
             result.setId(savedCalendar.getId());
@@ -76,6 +78,8 @@ public class AcademicCalendarService {
             result.setCat2EndDate(savedCalendar.getCat2EndDate());
             result.setFatStartDate(savedCalendar.getFatStartDate());
             result.setFatEndDate(savedCalendar.getFatEndDate());
+            result.setLabFatStartDate(savedCalendar.getLabFatStartDate());
+            result.setLabFatEndDate(savedCalendar.getLabFatEndDate());
             return result;
         }
 
@@ -191,6 +195,8 @@ public class AcademicCalendarService {
             target.setCat2EndDate(source.getCat2EndDate());
             target.setFatStartDate(source.getFatStartDate());
             target.setFatEndDate(source.getFatEndDate());
+            target.setLabFatStartDate(source.getLabFatStartDate());
+            target.setLabFatEndDate(source.getLabFatEndDate());
         }
         if (!targets.isEmpty()) {
             semesterRepository.saveAll(targets);
@@ -278,6 +284,8 @@ public class AcademicCalendarService {
                 dto.setCat2EndDate(cal.getCat2EndDate());
                 dto.setFatStartDate(cal.getFatStartDate());
                 dto.setFatEndDate(cal.getFatEndDate());
+                dto.setLabFatStartDate(cal.getLabFatStartDate());
+                dto.setLabFatEndDate(cal.getLabFatEndDate());
                 return dto;
             });
         }
@@ -310,6 +318,8 @@ public class AcademicCalendarService {
         semester.setCat2EndDate(dto.getCat2EndDate());
         semester.setFatStartDate(dto.getFatStartDate());
         semester.setFatEndDate(dto.getFatEndDate());
+        semester.setLabFatStartDate(dto.getLabFatStartDate());
+        semester.setLabFatEndDate(dto.getLabFatEndDate());
 
         if (dto.getActive() != null) {
             semester.setActive(dto.getActive());
@@ -329,6 +339,8 @@ public class AcademicCalendarService {
         dto.setCat2EndDate(semester.getCat2EndDate());
         dto.setFatStartDate(semester.getFatStartDate());
         dto.setFatEndDate(semester.getFatEndDate());
+        dto.setLabFatStartDate(semester.getLabFatStartDate());
+        dto.setLabFatEndDate(semester.getLabFatEndDate());
         dto.setActive(semester.getActive());
         dto.setCreatedAt(semester.getCreatedAt());
         dto.setUpdatedAt(semester.getUpdatedAt());
