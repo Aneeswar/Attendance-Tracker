@@ -37,3 +37,42 @@ resource "aws_ecr_lifecycle_policy" "attentrack_policy" {
 }
 EOF
 }
+
+resource "aws_ecr_repository" "attentrack_ocr" {
+  name                 = "attentrack-ocr"
+  image_tag_mutability = "MUTABLE"
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+
+  force_delete = true
+
+  tags = {
+    Name        = "attentrack-ocr-ecr"
+    Environment = var.environment
+  }
+}
+
+resource "aws_ecr_lifecycle_policy" "attentrack_ocr_policy" {
+  repository = aws_ecr_repository.attentrack_ocr.name
+
+  policy = <<EOF
+{
+    "rules": [
+        {
+            "rulePriority": 1,
+            "description": "Keep last 5 images",
+            "selection": {
+                "tagStatus": "any",
+                "countType": "imageCountMoreThan",
+                "countNumber": 5
+            },
+            "action": {
+                "type": "expire"
+            }
+        }
+    ]
+}
+EOF
+}

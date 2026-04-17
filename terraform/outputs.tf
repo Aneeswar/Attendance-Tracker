@@ -42,3 +42,8 @@ output "ecr_repository_url" {
   description = "The URL of the ECR repository"
   value       = aws_ecr_repository.attentrack.repository_url
 }
+
+output "ocr_ecr_repository_url" {
+  description = "The URL of the OCR ECR repository"
+  value       = aws_ecr_repository.attentrack_ocr.repository_url
+}

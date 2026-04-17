@@ -28,21 +28,35 @@ jobs:
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v2
 
-    - name: Build, tag, and push image
+    - name: Build, tag, and push app image
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        ECR_REPOSITORY: attentrack
+        ECR_REPOSITORY_APP: attentrack
+        ECR_REPOSITORY_OCR: attentrack-ocr
         IMAGE_TAG: ${{ github.sha }}
       run: |
-        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        set -euo pipefail
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY_APP:$IMAGE_TAG .
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY_APP:$IMAGE_TAG
+
+        docker build -f services/ocr-service/Dockerfile -t $ECR_REGISTRY/$ECR_REPOSITORY_OCR:$IMAGE_TAG ./services/ocr-service
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY_OCR:$IMAGE_TAG
 
     - name: Update Deployment
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        ECR_REPOSITORY: attentrack
+        ECR_REPOSITORY_APP: attentrack
+        ECR_REPOSITORY_OCR: attentrack-ocr
         IMAGE_TAG: ${{ github.sha }}
+        OCR_API_KEY: ${{ secrets.OCR_API_KEY }}
       run: |
+        set -euo pipefail
+
+        if [ -z "${OCR_API_KEY:-}" ]; then
+          echo "OCR_API_KEY secret is missing. Configure it in GitHub environment secrets."
+          exit 1
+        fi
+
         # 1. Connect to EKS
         aws eks update-kubeconfig --region ap-south-1 --name attentrack-cluster
         
@@ -50,12 +64,22 @@ jobs:
         RDS_ENDPOINT=$(aws rds describe-db-instances --db-instance-identifier attentrack-cluster-db --query "DBInstances[0].Endpoint.Address" --output text)
         echo "Found RDS Endpoint: $RDS_ENDPOINT"
 
-        # 3. Apply Kubernetes Infrastructure changes
+        # 3. Create/update runtime secret for OCR service
+        kubectl create secret generic ocr-api-secret \
+          --from-literal=api-key="$OCR_API_KEY" \
+          --dry-run=client -o yaml | kubectl apply -f -
+
+        # 4. Apply Kubernetes Infrastructure changes
         kubectl apply -f k8s/deployment_and_service.yaml
+        kubectl apply -f k8s/ocr-deployment-and-service.yaml
         
-        # 4. Inject the discovered RDS Endpoint and the new Image Tag
+        # 5. Inject the discovered RDS endpoint and OCR URL into app deployment
         kubectl set env deployment/attentrack-deployment DB_HOST=$RDS_ENDPOINT
-        kubectl set image deployment/attentrack-deployment attentrack=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-        
-        # 5. Wait for rollout
-        kubectl rollout status deployment/attentrack-deployment
+        kubectl set env deployment/attentrack-deployment OCR_API_BASE_URL=http://ocr-service.default.svc.cluster.local:5000
+
+        # 6. Roll out OCR first, then app
+        kubectl set image deployment/ocr-deployment ocr-service=$ECR_REGISTRY/$ECR_REPOSITORY_OCR:$IMAGE_TAG
+        kubectl rollout status deployment/ocr-deployment --timeout=10m
+
+        kubectl set image deployment/attentrack-deployment attentrack=$ECR_REGISTRY/$ECR_REPOSITORY_APP:$IMAGE_TAG
+        kubectl rollout status deployment/attentrack-deployment --timeout=10m

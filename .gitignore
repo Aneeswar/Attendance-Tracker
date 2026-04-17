@@ -83,6 +83,18 @@ venv/
 ENV/
 env/
 
+### Services (Python OCR) ###
+services/**/__pycache__/
+services/**/*.py[cod]
+services/**/.pytest_cache/
+services/**/.mypy_cache/
+services/**/.ruff_cache/
+services/**/.coverage
+services/**/.env
+!services/**/.env.example
+services/**/build/
+services/**/dist/
+
 
 # Local .terraform directories
 **/.terraform/*
