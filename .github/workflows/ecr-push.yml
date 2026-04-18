@@ -70,31 +70,42 @@ jobs:
           --from-literal=api-key="$OCR_API_KEY" \
           --dry-run=client -o yaml | kubectl apply -f -
 
-        # 4. Apply Kubernetes Infrastructure changes
-        kubectl apply -f k8s/deployment_and_service.yaml
-        kubectl apply -f k8s/ocr-deployment-and-service.yaml
-        
-        # 5. Inject the discovered RDS endpoint and OCR URL into app deployment
-        kubectl set env deployment/attentrack-deployment DB_HOST=$RDS_ENDPOINT
+        # 4. Render manifests with concrete values, then apply
+        APP_IMAGE="$ECR_REGISTRY/$ECR_REPOSITORY_APP:$IMAGE_TAG"
+        OCR_IMAGE="$ECR_REGISTRY/$ECR_REPOSITORY_OCR:$IMAGE_TAG"
+
+        APP_RENDERED="/tmp/deployment_and_service.rendered.yaml"
+        OCR_RENDERED="/tmp/ocr-deployment-and-service.rendered.yaml"
+
+        sed -e "s|REPLACEME_ECR_REPO_URL|$APP_IMAGE|g" \
+            -e "s|REPLACEME_RDS_ENDPOINT|$RDS_ENDPOINT|g" \
+            k8s/deployment_and_service.yaml > "$APP_RENDERED"
+
+        sed -e "s|REPLACEME_OCR_ECR_REPO_URL|$OCR_IMAGE|g" \
+            k8s/ocr-deployment-and-service.yaml > "$OCR_RENDERED"
+
+        kubectl apply -f "$OCR_RENDERED"
+        kubectl apply -f "$APP_RENDERED"
+
+        # 5. Keep OCR service URL explicit at runtime for the app deployment
         kubectl set env deployment/attentrack-deployment OCR_API_BASE_URL=http://ocr-service.default.svc.cluster.local:5000
 
         # 6. Roll out OCR first, then app
-        kubectl set image deployment/ocr-deployment ocr-service=$ECR_REGISTRY/$ECR_REPOSITORY_OCR:$IMAGE_TAG
         if ! kubectl rollout status deployment/ocr-deployment --timeout=15m; then
           echo "OCR rollout failed. Collecting diagnostics..."
           kubectl get deploy,pods,rs -n default -o wide
           kubectl describe deployment/ocr-deployment -n default || true
-          OCR_POD=$(kubectl get pods -n default -l app=ocr-service -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
-          if [ -n "${OCR_POD:-}" ]; then
-            kubectl describe pod "$OCR_POD" -n default || true
-            kubectl logs "$OCR_POD" -n default --tail=200 || true
-            kubectl logs "$OCR_POD" -n default --previous --tail=200 || true
-          fi
-          kubectl get events -n default --sort-by=.metadata.creationTimestamp | tail -n 40 || true
+          kubectl describe pods -n default -l app=ocr-service || true
+          OCR_PODS=$(kubectl get pods -n default -l app=ocr-service -o jsonpath='{.items[*].metadata.name}' 2>/dev/null || true)
+          for pod in $OCR_PODS; do
+            echo "=== Logs for $pod ==="
+            kubectl logs "$pod" -n default --tail=200 || true
+            kubectl logs "$pod" -n default --previous --tail=200 || true
+          done
+          kubectl get events -n default --sort-by=.metadata.creationTimestamp | tail -n 60 || true
           exit 1
         fi
 
-        kubectl set image deployment/attentrack-deployment attentrack=$ECR_REGISTRY/$ECR_REPOSITORY_APP:$IMAGE_TAG
         kubectl rollout status deployment/attentrack-deployment --timeout=15m
 
         APP_URL=$(kubectl get svc attentrack-service -n default -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
