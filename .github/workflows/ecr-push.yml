@@ -169,6 +169,7 @@ jobs:
 
         APP_RENDERED="/tmp/deployment_and_service.rendered.yaml"
         OCR_RENDERED="/tmp/ocr-deployment-and-service.rendered.yaml"
+        REDIS_MANIFEST="k8s/redis-deployment-and-service.yaml"
 
         sed -e "s|REPLACEME_ECR_REPO_URL:latest|$APP_IMAGE|g" \
           -e "s|REPLACEME_ECR_REPO_URL|$APP_IMAGE|g" \
@@ -186,13 +187,29 @@ jobs:
           exit 1
         fi
 
+        kubectl apply -f "$REDIS_MANIFEST"
         kubectl apply -f "$OCR_RENDERED"
         kubectl apply -f "$APP_RENDERED"
 
         # 5. Keep OCR service URL explicit at runtime for the app deployment
         kubectl set env deployment/attentrack-deployment OCR_API_BASE_URL=http://ocr-service.default.svc.cluster.local:5000
 
-        # 6. Roll out OCR first, then app
+        # 6. Roll out Redis, then OCR, then app
+        if ! kubectl rollout status deployment/redis-deployment -n default --timeout=5m; then
+          echo "Redis rollout failed. Collecting diagnostics..."
+          kubectl get deploy,pods,rs -n default -o wide
+          kubectl describe deployment/redis-deployment -n default || true
+          kubectl describe pods -n default -l app=redis || true
+          REDIS_PODS=$(kubectl get pods -n default -l app=redis -o jsonpath='{.items[*].metadata.name}' 2>/dev/null || true)
+          for pod in $REDIS_PODS; do
+            echo "=== Logs for $pod ==="
+            kubectl logs "$pod" -n default --tail=200 || true
+            kubectl logs "$pod" -n default --previous --tail=200 || true
+          done
+          kubectl get events -n default --sort-by=.metadata.creationTimestamp | tail -n 60 || true
+          exit 1
+        fi
+
         if ! kubectl rollout status deployment/ocr-deployment -n default --timeout=15m; then
           echo "OCR rollout failed. Collecting diagnostics..."
           kubectl get deploy,pods,rs -n default -o wide
