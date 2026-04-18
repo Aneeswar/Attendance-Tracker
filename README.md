@@ -2,7 +2,7 @@
 
 AttenTrack is a production-oriented, microservice-ready attendance management platform for educational institutions. It combines robust attendance business logic with cloud-native deployment on AWS EKS, infrastructure automation via Terraform, and observability through Prometheus and Grafana.
 
-## Project Overview
+## Project Overvieww
 
 - Tracks and analyzes student attendance across the semester lifecycle.
 - Enforces role-based access for Admin and Student workflows.
