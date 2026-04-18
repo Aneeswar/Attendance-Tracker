@@ -28,10 +28,8 @@ variable "github_actions_iam_arn" {
   default     = "" # Empty by default
 }
 
-# --- Database Credentials ---
-# SECURITY BEST PRACTICE: Never hardcode default values for production credentials.
-# Pass these via environment variables (TF_VAR_db_password), a secure 
-# terraform.tfvars file (ignored by git), or a secrets manager (AWS Secrets Manager).
+# --- Database Configuration ---
+# Password is generated and managed automatically by RDS in AWS Secrets Manager.
 
 variable "db_name" {
   description = "Database name"
@@ -43,10 +41,4 @@ variable "db_username" {
   description = "Database username"
   type        = string
   default     = "dbadmin"
-}
-
-variable "db_password" {
-  description = "Database password"
-  type        = string
-  sensitive   = true # This ensures the value is masked in the terminal output and logs
 }

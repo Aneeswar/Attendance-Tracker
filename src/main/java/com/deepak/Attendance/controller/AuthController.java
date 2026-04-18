@@ -7,6 +7,7 @@ import com.deepak.Attendance.entity.User;
 import com.deepak.Attendance.repository.RoleRepository;
 import com.deepak.Attendance.repository.UserRepository;
 import com.deepak.Attendance.security.JwtTokenProvider;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +18,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @CrossOrigin(origins = "*", maxAge = 3600)
@@ -39,25 +41,23 @@ public class AuthController {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private MeterRegistry meterRegistry;
+
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
+        long startedAtNanos = System.nanoTime();
         try {
             if (loginRequest == null || loginRequest.getUsername() == null || loginRequest.getPassword() == null) {
                 log.error("Invalid login request: username or password is null");
+                meterRegistry.timer("attentrack.auth.login.duration", "outcome", "validation_failed")
+                        .record(System.nanoTime() - startedAtNanos, TimeUnit.NANOSECONDS);
                 return ResponseEntity.badRequest().body(new HashMap<String, String>() {{
                     put("error", "Username and password are required");
                 }});
             }
             
             log.info("Login attempt for username: {}", loginRequest.getUsername());
-            
-            // Check if user exists
-            if (!userRepository.existsByUsername(loginRequest.getUsername())) {
-                log.warn("User not found: {}", loginRequest.getUsername());
-                return ResponseEntity.badRequest().body(new HashMap<String, String>() {{
-                    put("error", "Invalid username or password");
-                }});
-            }
             
             try {
                 Authentication authentication = authenticationManager.authenticate(
@@ -73,16 +73,25 @@ public class AuthController {
                 String jwt = jwtTokenProvider.generateToken(userDetails);
                 
                 log.info("Login successful for username: {}", loginRequest.getUsername());
+                log.debug("Login completed in {} ms for username: {}",
+                        TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAtNanos),
+                        loginRequest.getUsername());
+                meterRegistry.timer("attentrack.auth.login.duration", "outcome", "success")
+                        .record(System.nanoTime() - startedAtNanos, TimeUnit.NANOSECONDS);
 
                 return ResponseEntity.ok(new LoginResponse(jwt, userDetails.getUsername(), "Login successful"));
             } catch (Exception authEx) {
                 log.error("Authentication failed for username: {}, Error: {}", loginRequest.getUsername(), authEx.getMessage());
+                meterRegistry.timer("attentrack.auth.login.duration", "outcome", "auth_failed")
+                        .record(System.nanoTime() - startedAtNanos, TimeUnit.NANOSECONDS);
                 return ResponseEntity.badRequest().body(new HashMap<String, String>() {{
                     put("error", "Invalid username or password");
                 }});
             }
         } catch (Exception e) {
             log.error("Login error: {}", e.getMessage(), e);
+            meterRegistry.timer("attentrack.auth.login.duration", "outcome", "error")
+                    .record(System.nanoTime() - startedAtNanos, TimeUnit.NANOSECONDS);
             return ResponseEntity.status(500).body(new HashMap<String, String>() {{
                 put("error", "Login failed: " + e.getMessage());
             }});

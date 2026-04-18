@@ -1,0 +1,27 @@
+# Python cache and virtualenv
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.venv/
+venv/
+
+# Test and local tooling cache
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Environment and secrets
+.env
+.env.*
+
+# VCS and editor files
+.git/
+.gitignore
+.vscode/
+.idea/
+
+# OS and misc
+.DS_Store
+Thumbs.db
+*.log

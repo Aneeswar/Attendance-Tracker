@@ -45,7 +45,7 @@ resource "aws_db_instance" "postgresql" {
   instance_class          = "db.t3.micro"
   db_name                 = var.db_name
   username                = var.db_username
-  password                = var.db_password
+  manage_master_user_password = true
   parameter_group_name    = "default.postgres15"
 
   db_subnet_group_name    = aws_db_subnet_group.rds.name

@@ -4,6 +4,7 @@ import re
 import hmac
 import io
 import hashlib
+import time
 from collections import OrderedDict
 
 from flask import Flask, jsonify, render_template, request
@@ -57,19 +58,44 @@ limiter = Limiter(
 )
 
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "bmp", "tiff", "gif"}
-ocr = PaddleOCR(use_angle_cls=True, lang="en")
+ocr = None
+ocr_init_error = None
 MAX_IMAGE_WIDTH = int(os.getenv("OCR_MAX_IMAGE_WIDTH", "1800"))
 OCR_CACHE_MAX_ITEMS = int(os.getenv("OCR_CACHE_MAX_ITEMS", "128"))
 ocr_result_cache: OrderedDict[str, list[dict[str, str]]] = OrderedDict()
+
+
+def get_ocr_engine() -> PaddleOCR:
+    global ocr, ocr_init_error
+    if ocr is not None:
+        return ocr
+
+    init_retries = int(os.getenv("OCR_INIT_RETRIES", "3"))
+    retry_delay_sec = float(os.getenv("OCR_INIT_RETRY_DELAY_SEC", "2"))
+    last_error = None
+
+    for attempt in range(1, init_retries + 1):
+        try:
+            ocr = PaddleOCR(use_angle_cls=True, lang="en")
+            ocr_init_error = None
+            return ocr
+        except Exception as exc:
+            last_error = exc
+            ocr = None
+            if attempt < init_retries:
+                time.sleep(retry_delay_sec)
+
+    ocr_init_error = str(last_error) if last_error is not None else "Unknown OCR initialization error"
+    raise RuntimeError(f"OCR engine initialization failed: {ocr_init_error}")
 
 
 def is_allowed_file(filename: str) -> bool:
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-def extract_text_with_paddle(image: Image.Image) -> str:
+def extract_text_with_paddle(image: Image.Image, ocr_engine: PaddleOCR) -> str:
     image_array = np.array(image)
-    result = ocr.ocr(image_array, cls=True)
+    result = ocr_engine.ocr(image_array, cls=True)
 
     lines = []
     for page in result or []:
@@ -281,7 +307,8 @@ def process_uploaded_image(uploaded_file):
         image = Image.open(io.BytesIO(image_bytes))
         image = preprocess_image(image)
 
-        raw_text = extract_text_with_paddle(image)
+        ocr_engine = get_ocr_engine()
+        raw_text = extract_text_with_paddle(image, ocr_engine)
         parsed_courses = parse_course_json(raw_text)
         set_cached_result(cache_key, parsed_courses)
         return parsed_courses, "", 200
@@ -349,9 +376,14 @@ def health():
 
 @app.route("/ready", methods=["GET"])
 def ready():
-    if ocr is None:
-        return jsonify({"ready": False}), 503
-    return jsonify({"ready": True}), 200
+    if ocr is not None:
+        return jsonify({"ready": True}), 200
+
+    try:
+        get_ocr_engine()
+        return jsonify({"ready": True}), 200
+    except Exception as exc:
+        return jsonify({"ready": False, "reason": str(exc)}), 503
 
 
 if __name__ == "__main__":

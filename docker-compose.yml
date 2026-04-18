@@ -3,12 +3,29 @@ services:
     build: .
     ports:
       - "8080:8081"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       - SPRING_PROFILES_ACTIVE=prod
+      - DB_HOST=${DB_HOST:-host.docker.internal}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_NAME=${DB_NAME:-attendance_db}
+      - DB_USERNAME=${DB_USERNAME:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-0000}
+      - DB_POOL_MAX_SIZE=${DB_POOL_MAX_SIZE:-10}
+      - DB_POOL_MIN_IDLE=${DB_POOL_MIN_IDLE:-3}
+      - DB_POOL_CONNECTION_TIMEOUT_MS=${DB_POOL_CONNECTION_TIMEOUT_MS:-15000}
+      - DB_POOL_IDLE_TIMEOUT_MS=${DB_POOL_IDLE_TIMEOUT_MS:-300000}
+      - DB_POOL_MAX_LIFETIME_MS=${DB_POOL_MAX_LIFETIME_MS:-1800000}
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=${SPRING_JPA_HIBERNATE_DDL_AUTO:-validate}
+      - SPRING_JPA_OPEN_IN_VIEW=${SPRING_JPA_OPEN_IN_VIEW:-false}
+      - SPRING_JPA_PROPERTIES_HIBERNATE_GENERATE_STATISTICS=${SPRING_JPA_PROPERTIES_HIBERNATE_GENERATE_STATISTICS:-false}
+      - LOGGING_LEVEL_COM_DEEPAK_ATTENDANCE=${LOGGING_LEVEL_COM_DEEPAK_ATTENDANCE:-INFO}
       - SPRING_DATA_REDIS_HOST=redis
       - SPRING_DATA_REDIS_PORT=6379
       - OCR_API_BASE_URL=http://ocr-service:5000
       - OCR_API_KEY=${OCR_API_KEY:-ocr-local-2026-key}
+      - OCR_API_TIMEOUT_MS=${OCR_API_TIMEOUT_MS:-90000}
     restart: always
     depends_on:
       redis:
@@ -20,6 +37,8 @@ services:
     build: ./services/ocr-service
     ports:
       - "5000:5000"
+    volumes:
+      - ocr-model-cache:/home/ocruser/.paddleocr
     environment:
       - OCR_API_KEY=${OCR_API_KEY:-ocr-local-2026-key}
       - OCR_MAX_IMAGE_WIDTH=${OCR_MAX_IMAGE_WIDTH:-1800}
@@ -27,11 +46,11 @@ services:
       - OCR_ALLOWED_ORIGINS=${OCR_ALLOWED_ORIGINS:-http://localhost:8081,http://127.0.0.1:8081,http://localhost:8080,http://127.0.0.1:8080}
     restart: always
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/health', timeout=3)"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/health', timeout=10)"]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 45s
+      retries: 10
+      start_period: 240s
 
   redis:
     image: redis:alpine
@@ -60,4 +79,7 @@ services:
       - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
     depends_on:
       - prometheus
+
+volumes:
+  ocr-model-cache:
 

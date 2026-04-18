@@ -1,12 +1,38 @@
-target/
-.git/
+# VCS and editor files
+.git
 .gitignore
-.DS_Store
-.vscode/
-.idea/
+.vscode
+.idea
 *.iml
 *.swp
 *.swo
 *~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build outputs and caches
+target
+**/target
+.mvn/wrapper/maven-wrapper.jar
+
+# Local environments and logs
+.env
+.env.*
+*.log
+
+# Infra and deployment assets not needed for app image
+terraform
+terraform.tfstate
+terraform.tfstate.backup
+k8s
+grafana
+prometheus.yml
+
+# OCR microservice source is built from its own context
+services/ocr-service
+
+# Docs and misc
 README.md
 HELP.md

@@ -38,6 +38,16 @@ output "rds_endpoint" {
   value       = aws_db_instance.postgresql.address
 }
 
+output "db_name" {
+  description = "Application database name"
+  value       = var.db_name
+}
+
+output "db_master_secret_arn" {
+  description = "Secrets Manager ARN storing RDS master credentials"
+  value       = aws_db_instance.postgresql.master_user_secret[0].secret_arn
+}
+
 output "ecr_repository_url" {
   description = "The URL of the ECR repository"
   value       = aws_ecr_repository.attentrack.repository_url

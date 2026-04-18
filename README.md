@@ -161,8 +161,9 @@ Infrastructure (Terraform) variables:
 - `environment`
 - `db_name`
 - `db_username`
-- `db_password` (sensitive)
 - `github_actions_iam_arn`
+
+Note: `db_password` is no longer provided manually. RDS generates and stores the master password in AWS Secrets Manager.
 
 ## Running the Project
 
@@ -258,6 +259,31 @@ Admin APIs:
 - CORS enabled for expected local origins; CSRF disabled for stateless API flow.
 
 ## DevOps and CI/CD Pipeline
+
+### Desired Workflow (Implemented)
+
+1. Build or update infrastructure locally:
+
+```bash
+cd terraform
+terraform init
+terraform apply
+```
+
+2. Push application changes to `main`.
+
+3. GitHub Actions automatically:
+- Runs infrastructure preflight (shared Terraform backend, Terraform outputs, Secrets Manager access, EKS auth)
+- Builds and pushes app/OCR images to ECR
+- Deploys updated manifests to EKS
+
+### Required GitHub Secrets
+
+- `AWS_ACCESS_KEY_ID`
+- `AWS_SECRET_ACCESS_KEY`
+- `OCR_API_KEY`
+
+No GitHub DB secrets or infra variables are required. DB host/name/user/password are resolved from Terraform outputs and AWS Secrets Manager at deploy time.
 
 GitHub Actions workflow: `.github/workflows/ecr-push.yml`
 
