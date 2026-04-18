@@ -33,7 +33,7 @@ spec:
     spec:
       containers:
         - name: attentrack
-          image: REPLACEME_ECR_REPO_URL:latest # CI/CD will inject correct tag
+          image: REPLACEME_ECR_REPO_URL # CI/CD injects full image reference (repo:tag)
           imagePullPolicy: Always
           ports:
             - containerPort: 8081
