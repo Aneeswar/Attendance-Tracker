@@ -50,11 +50,18 @@ jobs:
         ECR_REPOSITORY_OCR: attentrack-ocr
         IMAGE_TAG: ${{ github.sha }}
         OCR_API_KEY: ${{ secrets.OCR_API_KEY }}
+        DB_USERNAME: ${{ secrets.DB_USERNAME }}
+        DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
       run: |
         set -euo pipefail
 
         if [ -z "${OCR_API_KEY:-}" ]; then
           echo "OCR_API_KEY secret is missing. Configure it in GitHub environment secrets."
+          exit 1
+        fi
+
+        if [ -z "${DB_USERNAME:-}" ] || [ -z "${DB_PASSWORD:-}" ]; then
+          echo "DB_USERNAME/DB_PASSWORD secrets are missing. Configure them in GitHub environment secrets."
           exit 1
         fi
 
@@ -65,14 +72,24 @@ jobs:
         RDS_ENDPOINT=$(aws rds describe-db-instances --db-instance-identifier attentrack-cluster-db --query "DBInstances[0].Endpoint.Address" --output text)
         echo "Found RDS Endpoint: $RDS_ENDPOINT"
 
-        # 3. Create/update runtime secret for OCR service
+        # 3. Create/update runtime secrets
         kubectl create secret generic ocr-api-secret \
           --from-literal=api-key="$OCR_API_KEY" \
           --dry-run=client -o yaml | kubectl apply -f -
 
+        kubectl create secret generic db-credentials \
+          --from-literal=username="$DB_USERNAME" \
+          --from-literal=password="$DB_PASSWORD" \
+          --dry-run=client -o yaml | kubectl apply -f -
+
+        kubectl get secret ocr-api-secret -n default >/dev/null
+        kubectl get secret db-credentials -n default >/dev/null
+
         # 4. Render manifests with concrete values, then apply
         APP_IMAGE="$ECR_REGISTRY/$ECR_REPOSITORY_APP:$IMAGE_TAG"
         OCR_IMAGE="$ECR_REGISTRY/$ECR_REPOSITORY_OCR:$IMAGE_TAG"
+        echo "Using APP image: $APP_IMAGE"
+        echo "Using OCR image: $OCR_IMAGE"
 
         APP_RENDERED="/tmp/deployment_and_service.rendered.yaml"
         OCR_RENDERED="/tmp/ocr-deployment-and-service.rendered.yaml"
@@ -86,6 +103,12 @@ jobs:
           -e "s|REPLACEME_OCR_ECR_REPO_URL|$OCR_IMAGE|g" \
             k8s/ocr-deployment-and-service.yaml > "$OCR_RENDERED"
 
+        if grep -q "REPLACEME_" "$APP_RENDERED" "$OCR_RENDERED"; then
+          echo "Rendered manifests still contain unresolved REPLACEME placeholders. Aborting deployment."
+          grep -n "REPLACEME_" "$APP_RENDERED" "$OCR_RENDERED" || true
+          exit 1
+        fi
+
         kubectl apply -f "$OCR_RENDERED"
         kubectl apply -f "$APP_RENDERED"
 
@@ -93,7 +116,7 @@ jobs:
         kubectl set env deployment/attentrack-deployment OCR_API_BASE_URL=http://ocr-service.default.svc.cluster.local:5000
 
         # 6. Roll out OCR first, then app
-        if ! kubectl rollout status deployment/ocr-deployment --timeout=15m; then
+        if ! kubectl rollout status deployment/ocr-deployment -n default --timeout=15m; then
           echo "OCR rollout failed. Collecting diagnostics..."
           kubectl get deploy,pods,rs -n default -o wide
           kubectl describe deployment/ocr-deployment -n default || true
@@ -108,7 +131,7 @@ jobs:
           exit 1
         fi
 
-        if ! kubectl rollout status deployment/attentrack-deployment --timeout=15m; then
+        if ! kubectl rollout status deployment/attentrack-deployment -n default --timeout=15m; then
           echo "Attentrack rollout failed. Collecting diagnostics..."
           kubectl get deploy,pods,rs -n default -o wide
           kubectl describe deployment/attentrack-deployment -n default || true

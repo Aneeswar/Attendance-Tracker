@@ -18,6 +18,9 @@ metadata:
   name: attentrack-deployment
   namespace: default
 spec:
+  revisionHistoryLimit: 2
+  progressDeadlineSeconds: 900
+  minReadySeconds: 10
   replicas: 2
   selector:
     matchLabels:
@@ -61,6 +64,14 @@ spec:
                 secretKeyRef:
                   name: ocr-api-secret
                   key: api-key
+          startupProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8081
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 30
           # Liveness and Readiness probes (best practice)
           livenessProbe:
             httpGet:
@@ -68,12 +79,16 @@ spec:
               port: 8081
             initialDelaySeconds: 30
             periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
           readinessProbe:
             httpGet:
               path: /actuator/health/readiness
               port: 8081
             initialDelaySeconds: 20
             periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
           resources:
             requests:
               memory: "256Mi"
