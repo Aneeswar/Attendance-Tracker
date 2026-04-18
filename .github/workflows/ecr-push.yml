@@ -77,11 +77,13 @@ jobs:
         APP_RENDERED="/tmp/deployment_and_service.rendered.yaml"
         OCR_RENDERED="/tmp/ocr-deployment-and-service.rendered.yaml"
 
-        sed -e "s|REPLACEME_ECR_REPO_URL|$APP_IMAGE|g" \
+        sed -e "s|REPLACEME_ECR_REPO_URL:latest|$APP_IMAGE|g" \
+          -e "s|REPLACEME_ECR_REPO_URL|$APP_IMAGE|g" \
             -e "s|REPLACEME_RDS_ENDPOINT|$RDS_ENDPOINT|g" \
             k8s/deployment_and_service.yaml > "$APP_RENDERED"
 
-        sed -e "s|REPLACEME_OCR_ECR_REPO_URL|$OCR_IMAGE|g" \
+        sed -e "s|REPLACEME_OCR_ECR_REPO_URL:latest|$OCR_IMAGE|g" \
+          -e "s|REPLACEME_OCR_ECR_REPO_URL|$OCR_IMAGE|g" \
             k8s/ocr-deployment-and-service.yaml > "$OCR_RENDERED"
 
         kubectl apply -f "$OCR_RENDERED"
@@ -106,7 +108,20 @@ jobs:
           exit 1
         fi
 
-        kubectl rollout status deployment/attentrack-deployment --timeout=15m
+        if ! kubectl rollout status deployment/attentrack-deployment --timeout=15m; then
+          echo "Attentrack rollout failed. Collecting diagnostics..."
+          kubectl get deploy,pods,rs -n default -o wide
+          kubectl describe deployment/attentrack-deployment -n default || true
+          kubectl describe pods -n default -l app=attentrack || true
+          APP_PODS=$(kubectl get pods -n default -l app=attentrack -o jsonpath='{.items[*].metadata.name}' 2>/dev/null || true)
+          for pod in $APP_PODS; do
+            echo "=== Logs for $pod ==="
+            kubectl logs "$pod" -n default --tail=200 || true
+            kubectl logs "$pod" -n default --previous --tail=200 || true
+          done
+          kubectl get events -n default --sort-by=.metadata.creationTimestamp | tail -n 60 || true
+          exit 1
+        fi
 
         APP_URL=$(kubectl get svc attentrack-service -n default -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
         if [ -n "${APP_URL:-}" ]; then
