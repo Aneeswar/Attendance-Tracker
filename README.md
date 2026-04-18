@@ -1,131 +1,110 @@
-# AttenTrack - Student Attendance Tracking System
+# AttenTrack
 
-AttenTrack is a production-oriented, microservice-ready attendance management platform for educational institutions. It combines robust attendance business logic with cloud-native deployment on AWS EKS, infrastructure automation via Terraform, and observability through Prometheus and Grafana.
+AttenTrack is a production-grade attendance platform built around a Spring Boot application and a dedicated OCR microservice. It supports local development via Docker Compose and cloud deployment on AWS EKS with Terraform-managed infrastructure and GitHub Actions delivery.
 
-## Project Overvieww
+## What This Project Includes
 
-- Tracks and analyzes student attendance across the semester lifecycle.
-- Enforces role-based access for Admin and Student workflows.
-- Applies academic calendar, holiday, and exam-window rules to attendance projections.
-- Supports containerized deployments with scalable orchestration on Kubernetes.
-- Demonstrates end-to-end backend + DevOps ownership: application, infrastructure, CI/CD, and monitoring.
+- Student and admin attendance workflows.
+- Attendance summary and eligibility analytics.
+- OCR course extraction microservice (Python + PaddleOCR).
+- Redis-backed caching.
+- PostgreSQL on RDS for production data.
+- Kubernetes manifests for app, OCR, Redis, and monitoring.
+- Terraform infrastructure for VPC, EKS, RDS, and ECR.
+- CI/CD pipeline that builds images and deploys to EKS from shared Terraform state.
 
-## Key Features
+## Service Architecture
 
-- Role-based access control (RBAC): `ADMIN` and `STUDENT` capabilities are strictly separated.
-- Attendance modes:
-  - Aggregate attendance updates (conducted vs attended)
-  - Date-based attendance marking with calendar-aware validation
-- Business-rule-driven attendance engine:
-  - Working-day validation (semester boundaries, weekends, holiday exclusions)
-  - Exam-window aware calculations (`CAT-1`, `CAT-2`, `FAT`)
-  - Status classification: `SAFE`, `AT_RISK`, `IMPOSSIBLE`
-- Semester-aware holiday handling with scope support:
-  - `FULL`, `MORNING`, `AFTERNOON` half-day logic
-  - Holiday requests and admin approval workflow
-- Student and admin analytics/reporting endpoints.
-- Cloud deployment readiness:
-  - Dockerized runtime
-  - Kubernetes manifests for app and monitoring
-  - AWS EKS + RDS architecture provisioned with Terraform
+Production deployment uses three application services:
 
-## Engineering Impact
+- AttenTrack app service (Java/Spring Boot): API + web UI.
+- OCR service (Python/Flask): image-to-course parsing API.
+- Redis service: cache and health dependency for app runtime.
 
-- Scalability: stateless Spring Boot service deployed as multi-replica Kubernetes workloads behind AWS load balancers.
-- Reliability: Multi-AZ PostgreSQL RDS, health probes, and rollout-aware deployments.
-- Automation: GitHub Actions pipeline builds, pushes, and deploys immutable container images.
-- Infrastructure as Code: reproducible AWS environment (VPC, EKS, RDS, ECR) using Terraform modules.
-- Operability: metrics-driven monitoring stack with Prometheus scraping and Grafana dashboards.
+Main runtime dependencies:
+
+- App -> RDS PostgreSQL
+- App -> Redis
+- App -> OCR service
 
 ## Tech Stack
 
-### Backend
+### Application
 
 - Java 21
 - Spring Boot 4.x
-- Spring Security (JWT + method-level authorization)
+- Spring Security + JWT
 - Spring Data JPA (Hibernate)
-- Thymeleaf (server-rendered UI)
-- Redis (cache layer)
+- Thymeleaf
+- Redis
 
-### Cloud (AWS)
+### OCR Microservice
 
-- Amazon EKS (Kubernetes control plane + managed node groups)
-- Amazon RDS for PostgreSQL (private subnets, Multi-AZ)
-- Amazon ECR (container image registry)
-- Amazon VPC (public/private/intra subnet layout with NAT)
-- IAM (CI/CD and cluster access integration)
-- CloudWatch (AWS-native operational telemetry in deployed environments)
+- Python 3
+- Flask
+- PaddleOCR + PaddlePaddle
+- Pillow + NumPy
+- Gunicorn
 
-### DevOps
+### Infrastructure and Delivery
 
-- Docker (multi-stage image build)
-- Kubernetes manifests (`k8s/`)
-- Terraform (modular IaC under `terraform/`)
-- GitHub Actions CI/CD (`.github/workflows/ecr-push.yml`)
+- Docker and Docker Compose
+- Kubernetes (EKS)
+- Terraform
+- GitHub Actions
+- AWS ECR, EKS, RDS, S3, DynamoDB, Secrets Manager
 
-### Monitoring
+### Observability
 
-- Spring Boot Actuator + Micrometer
+- Spring Actuator + Micrometer
 - Prometheus
 - Grafana
 
-## System Architecture
-
-- Users access AttenTrack through an AWS LoadBalancer-backed Kubernetes Service.
-- EKS routes requests to Spring Boot pods (`attentrack-deployment`, configurable replicas).
-- Application pods connect to PostgreSQL on Amazon RDS over private networking.
-- RDS access is restricted via security groups to EKS worker-node traffic on port `5432`.
-- CI/CD publishes images to ECR, then updates running EKS deployments with new image tags.
-- Prometheus scrapes `/actuator/prometheus`; Grafana visualizes application and platform metrics.
-
-## Folder Structure
+## Repository Layout
 
 ```text
 .
-|- src/
-|  |- main/
-|  |  |- java/com/deepak/Attendance/
-|  |  |  |- config/         # Spring + security configuration
-|  |  |  |- controller/     # REST + web controllers
-|  |  |  |- dto/            # Request/response DTOs
-|  |  |  |- entity/         # JPA entities
-|  |  |  |- repository/     # Data access interfaces
-|  |  |  |- security/       # JWT filter/token utilities
-|  |  |  |- service/        # Business logic and attendance engine
-|  |  |- resources/         # application properties, templates, static assets
-|  |- test/java/            # unit and controller tests
-|- k8s/                     # Kubernetes manifests (app + monitoring)
-|- terraform/               # AWS infrastructure code (VPC, EKS, RDS, ECR)
-|- grafana/                 # provisioning assets
-|- Dockerfile
-|- docker-compose.yml
-|- pom.xml
+|- src/                               # Spring Boot application
+|- services/ocr-service/              # OCR microservice (Flask)
+|- k8s/                               # Kubernetes manifests
+|  |- deployment_and_service.yaml     # App service + deployment
+|  |- ocr-deployment-and-service.yaml # OCR service + deployment
+|  |- redis-deployment-and-service.yaml
+|  |- monitoring.yaml
+|- terraform/                         # Infrastructure as code
+|- .github/workflows/ecr-push.yml     # CI/CD workflow
+|- docker-compose.yml                 # Local multi-service stack
+|- prod.md                            # Production runbook
 ```
 
-## Setup Instructions
+## Local Development
 
 ### Prerequisites
 
 - Java 21
-- Maven 3.8+ (or project wrapper `mvnw` / `mvnw.cmd`)
-- PostgreSQL 15+
-- Docker + Docker Compose
-- AWS CLI, `kubectl`, Terraform >= 1.5 (for cloud deployment)
+- Maven (or mvnw)
+- Docker
+- Docker Compose
 
-### Local Setup (Spring Boot + PostgreSQL)
+### Quick Start (Recommended)
 
-1. Create PostgreSQL database:
-
-```sql
-CREATE DATABASE attendance_db;
+```bash
+docker compose up --build
 ```
 
-2. Configure application properties (or environment variables).
-   - Uses `src/main/resources/application.properties`
-   - Defaults support local development when vars are not set
+This starts:
 
-3. Start the application:
+- app on port 8080 -> container 8081
+- ocr-service on port 5000
+- redis on port 6379
+
+Optional monitoring profile:
+
+```bash
+docker compose --profile monitoring up --build
+```
+
+### Run Spring App Without Compose
 
 ```bash
 ./mvnw spring-boot:run
@@ -137,230 +116,146 @@ PowerShell:
 .\mvnw.cmd spring-boot:run
 ```
 
-Default application URL: `http://localhost:8081`
+## Configuration
 
-### Environment Variables
+Key runtime variables:
 
-Application/runtime variables:
+- DB_HOST, DB_PORT, DB_NAME, DB_USERNAME, DB_PASSWORD
+- SPRING_DATA_REDIS_HOST, SPRING_DATA_REDIS_PORT
+- OCR_API_BASE_URL, OCR_API_KEY
+- JWT_SECRET
 
-- `DB_HOST` (default: `localhost`)
-- `DB_PORT` (default: `5432`)
-- `DB_NAME` (default: `attendance_db`)
-- `DB_USERNAME` (default: `postgres`)
-- `DB_PASSWORD`
-- `JWT_SECRET`
-- `PORT` (default: `8081`)
-- `SPRING_DATA_REDIS_HOST` (default: `localhost`)
-- `SPRING_DATA_REDIS_PORT` (default: `6379`)
-- `SPRING_DATA_REDIS_PASSWORD` (optional)
+Production profile is enabled via:
 
-Infrastructure (Terraform) variables:
+- SPRING_PROFILES_ACTIVE=prod
 
-- `region`
-- `cluster_name`
-- `environment`
-- `db_name`
-- `db_username`
-- `github_actions_iam_arn`
+## OCR Microservice Details
 
-Note: `db_password` is no longer provided manually. RDS generates and stores the master password in AWS Secrets Manager.
+The OCR microservice provides course extraction from uploaded images and includes:
 
-## Running the Project
+- Lazy OCR engine initialization with retry behavior.
+- Health endpoint for liveness.
+- Ready endpoint for readiness.
+- Request auth via OCR API key.
+- In-memory result cache for repeated OCR content.
 
-### Local Run
+Kubernetes manifest:
 
-```bash
-./mvnw clean spring-boot:run
-```
+- k8s/ocr-deployment-and-service.yaml
 
-### Docker
+## Redis in Production
 
-Build image:
+Redis is deployed inside the cluster and app pods are explicitly configured to use it.
 
-```bash
-docker build -t attentrack:local .
-```
+Kubernetes manifest:
 
-Run with compose:
+- k8s/redis-deployment-and-service.yaml
 
-```bash
-docker compose up --build
-```
+App deployment env:
 
-Optional monitoring profile:
+- SPRING_DATA_REDIS_HOST=redis
+- SPRING_DATA_REDIS_PORT=6379
 
-```bash
-docker compose --profile monitoring up --build
-```
-
-### Kubernetes (EKS)
-
-1. Provision infrastructure:
-
-```bash
-cd terraform
-terraform init
-terraform apply
-```
-
-2. Configure kube context:
-
-```bash
-aws eks update-kubeconfig --region <aws-region> --name <cluster-name>
-```
-
-3. Apply Kubernetes resources:
-
-```bash
-kubectl apply -f k8s/db-secret.yaml
-kubectl apply -f k8s/gf-config.yaml
-kubectl apply -f k8s/monitoring.yaml
-kubectl apply -f k8s/deployment_and_service.yaml
-```
-
-4. Verify rollout:
-
-```bash
-kubectl rollout status deployment/attentrack-deployment
-```
+This avoids localhost fallback and prevents readiness instability.
 
 ## API Overview
 
 Authentication:
 
-- `POST /api/auth/login`
-- `POST /api/auth/register`
-- `POST /api/auth/register-admin`
-- `POST /api/auth/logout`
+- POST /api/auth/login
+- POST /api/auth/register
+- POST /api/auth/register-admin
+- POST /api/auth/logout
 
-Student APIs:
+Student routes:
 
-- `/api/student/**` for timetable, attendance entry, attendance reports, course operations, profile updates, holiday requests
-- `/api/student/attendance/**` for date-based attendance calendar/update flows
-- `/api/student/academic-calendar` for student calendar access
+- /api/student/**
 
-Admin APIs:
+Admin routes:
 
-- `/api/admin/students/**` for student administration and reporting
-- `/api/admin/courses/**` for course catalog/assignment operations
-- `/api/admin/holidays/**` for holiday CRUD/bulk/range operations
-- `/api/admin/academic-calendar/**` for semester and exam-window management
-- `/api/admin/holiday-requests/**` for approval/rejection workflows
+- /api/admin/**
 
-## Security
+## Kubernetes Deployment
 
-- Stateless JWT authentication using Spring Security filters.
-- Tokens supported via `Authorization: Bearer <token>` and JWT cookie extraction.
-- Endpoint-level authorization with role mapping:
-  - `ROLE_STUDENT` for student routes
-  - `ROLE_ADMIN` for admin routes
-- Method-level access control via `@PreAuthorize`.
-- Password hashing with `BCryptPasswordEncoder`.
-- CORS enabled for expected local origins; CSRF disabled for stateless API flow.
-
-## DevOps and CI/CD Pipeline
-
-### Desired Workflow (Implemented)
-
-1. Build or update infrastructure locally:
+For production, CI/CD handles deployment automatically. For manual apply, use:
 
 ```bash
-cd terraform
-terraform init
-terraform apply
+kubectl apply -f k8s/redis-deployment-and-service.yaml
+kubectl apply -f k8s/ocr-deployment-and-service.yaml
+kubectl apply -f k8s/deployment_and_service.yaml
 ```
 
-2. Push application changes to `main`.
+Rollout checks:
 
-3. GitHub Actions automatically:
-- Runs infrastructure preflight (shared Terraform backend, Terraform outputs, Secrets Manager access, EKS auth)
-- Builds and pushes app/OCR images to ECR
-- Deploys updated manifests to EKS
+```bash
+kubectl rollout status deployment/redis-deployment -n default --timeout=5m
+kubectl rollout status deployment/ocr-deployment -n default --timeout=15m
+kubectl rollout status deployment/attentrack-deployment -n default --timeout=15m
+```
 
-### Required GitHub Secrets
+## Terraform and Shared State
 
-- `AWS_ACCESS_KEY_ID`
-- `AWS_SECRET_ACCESS_KEY`
-- `OCR_API_KEY`
+This project uses shared remote Terraform state so local infra operations and CI/CD read the same outputs.
 
-No GitHub DB secrets or infra variables are required. DB host/name/user/password are resolved from Terraform outputs and AWS Secrets Manager at deploy time.
+Backend components:
 
-GitHub Actions workflow: `.github/workflows/ecr-push.yml`
+- S3 bucket for tfstate
+- DynamoDB table for state locking
 
-- Trigger: push to `main`
-- Pipeline stages:
-  - Checkout source
-  - Configure AWS credentials
-  - Authenticate to ECR
-  - Build Docker image tagged with commit SHA
-  - Push image to ECR repository `attentrack`
-  - Connect to EKS cluster
-  - Auto-discover RDS endpoint
-  - Apply Kubernetes manifests
-  - Inject runtime env vars (`DB_HOST`) into deployment
-  - Update deployment image and wait for rollout completion
+Complete one-time setup and migration steps are documented in prod.md.
 
-## Infrastructure as Code (Terraform)
+## CI/CD
 
-Terraform modules/resources define production infrastructure for:
+Workflow file:
 
-- VPC:
-  - Public, private, and intra subnets across AZs
-  - NAT gateway support for private workloads
-- EKS:
-  - Managed node groups
-  - Cluster access entries for CI/CD principal
-- RDS PostgreSQL:
-  - Private subnet placement
-  - Multi-AZ enabled
-  - Security-group restricted ingress from EKS nodes
-- ECR:
-  - Repository with scan-on-push
-  - Lifecycle policy to retain recent images
+- .github/workflows/ecr-push.yml
 
-## Monitoring and Logging
+Trigger:
 
-- Metrics exposure through `/actuator/prometheus`.
-- Prometheus deployment and scrape config in `k8s/monitoring.yaml`.
-- Grafana deployment with preconfigured Prometheus datasource.
-- Kubernetes pod annotations enable metrics scraping.
-- Health probes:
-  - `/actuator/health/liveness`
-  - `/actuator/health/readiness`
-- CloudWatch can be integrated in AWS environments for cluster/node/application log centralization.
+- push to main
+- manual workflow dispatch
 
-## Deployment Architecture
+Pipeline flow:
 
-- Containerized Spring Boot service runs on EKS with rolling updates.
-- Service type `LoadBalancer` provides external traffic entry.
-- App pods remain stateless; persistence is externalized to PostgreSQL RDS.
-- DB credentials are injected from Kubernetes Secrets.
-- Runtime config (including discovered RDS endpoint) is injected during deployment.
-- Horizontal scaling is achieved by adjusting deployment replicas and node-group capacity.
+1. Preflight backend and Terraform output checks.
+2. Build and push app + OCR images to ECR.
+3. Resolve DB credentials from AWS Secrets Manager.
+4. Apply Redis, OCR, and app manifests.
+5. Verify rollout order: Redis -> OCR -> app.
 
-## Future Improvements
+Required GitHub secrets:
 
-- Add Horizontal Pod Autoscaler (HPA) based on CPU and custom metrics.
-- Use AWS Secrets Manager / External Secrets Operator for secret management.
-- Add distributed tracing (OpenTelemetry + AWS X-Ray/Jaeger).
-- Introduce blue-green or canary deployment strategy.
-- Expand notification workflows (email/SMS) for low attendance alerts.
-- Expose versioned OpenAPI/Swagger documentation for API consumers.
+- AWS_ACCESS_KEY_ID
+- AWS_SECRET_ACCESS_KEY
+- OCR_API_KEY
 
-## Contribution Guidelines
+No GitHub DB secrets are required.
 
-- Fork the repository and create a feature branch.
-- Follow clean commit practices with focused changes.
-- Maintain test coverage for service/controller updates.
-- Validate locally before PR:
+## Production Runbook
+
+Use this for full production onboarding and repeatable operations:
+
+- [prod.md](prod.md)
+
+It covers:
+
+- one-time S3 + DynamoDB backend setup
+- one-time state migration
+- terraform apply flow
+- IAM requirements
+- deployment verification steps
+
+## Contribution
+
+- Create focused branches and small commits.
+- Run tests before PR:
 
 ```bash
 ./mvnw test
 ```
 
-- For infra updates, include Terraform plan output summary in PR notes.
-- For deployment-manifest changes, include rollout/rollback validation steps.
+- Include rollout notes for k8s or infra changes.
 
 ## License
 
-Use and distribution follow the repository's license policy.
+Use and distribution follow the repository license policy.
