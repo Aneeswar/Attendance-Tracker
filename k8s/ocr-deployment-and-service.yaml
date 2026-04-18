@@ -18,6 +18,8 @@ metadata:
   name: ocr-deployment
   namespace: default
 spec:
+  progressDeadlineSeconds: 900
+  minReadySeconds: 15
   replicas: 1
   selector:
     matchLabels:
@@ -27,6 +29,7 @@ spec:
       labels:
         app: ocr-service
     spec:
+      terminationGracePeriodSeconds: 60
       containers:
         - name: ocr-service
           image: REPLACEME_OCR_ECR_REPO_URL:latest
@@ -43,18 +46,30 @@ spec:
               value: "1800"
             - name: OCR_CACHE_MAX_ITEMS
               value: "128"
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 5000
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 60
           livenessProbe:
             httpGet:
               path: /health
               port: 5000
-            initialDelaySeconds: 60
+            initialDelaySeconds: 120
             periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
           readinessProbe:
             httpGet:
               path: /ready
               port: 5000
-            initialDelaySeconds: 45
+            initialDelaySeconds: 90
             periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
           resources:
             requests:
               memory: "512Mi"
