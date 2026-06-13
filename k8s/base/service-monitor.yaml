@@ -1,0 +1,14 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: attendance-tracker-monitor
+  labels:
+    release: prometheus # Matches kube-prometheus-stack default label
+spec:
+  selector:
+    matchLabels:
+      app: attentrack # Matches service selector in deployment_and_service.yaml
+  endpoints:
+  - port: http # Ensure this name matches the port name in your Service
+    path: /actuator/prometheus
+    interval: 30s
